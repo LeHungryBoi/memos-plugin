@@ -321,6 +321,22 @@
     return { data: cardData, tags, rawText };
   }
 
+  /**
+   * Value of one language section in card data, with legacy key fallback
+   * (jp -> ja, cn -> zh). Returns "" when the section is absent or empty.
+   */
+  function cardLangValue(data, langKey) {
+    if (!data) return '';
+    const legacy = langKey === 'ja' ? data['jp'] : (langKey === 'zh' ? data['cn'] : null);
+    const val = data[langKey] || legacy || '';
+    return String(val).trim();
+  }
+
+  /** Languages the card actually has content in, in CONFIG (UI) order */
+  function cardPresentLangs(data) {
+    return CONFIG.languages.filter(lang => cardLangValue(data, lang.key)).map(lang => lang.key);
+  }
+
   // --- Part 1: Render Language Cards with Per-Note Local Switch ---
 
   /** Resolve the Memos name ("memos/xxx") of the card that owns this container */
@@ -396,9 +412,12 @@
       const cardWrapper = document.createElement('div');
       cardWrapper.className = 'lc-card-wrapper';
 
-      // Per-note language state: initialized from global switch
-      // But toggling it here ONLY affects this individual note!
-      const noteActiveLangs = new Set(globalEnabled);
+      // Per-note language state: the languages THIS card actually contains,
+      // in UI order (a ja-only card shows only the ja slot). The global switch
+      // is only the fallback for cards without any language content (e.g. a
+      // tags-only legacy card). Toggling pills here ONLY affects this note!
+      const cardLangs = cardPresentLangs(data);
+      const noteActiveLangs = new Set(cardLangs.length > 0 ? cardLangs : globalEnabled);
 
       // 1. Per-note Header Bar with Local Language Switch
       const noteBar = document.createElement('div');
@@ -440,7 +459,7 @@
 
       // Add pill toggles for all languages in this note
       CONFIG.languages.forEach(lang => {
-        const hasText = Boolean(data[lang.key] || (lang.key === 'ja' ? data['jp'] : null) || (lang.key === 'zh' ? data['cn'] : null));
+        const hasText = Boolean(cardLangValue(data, lang.key));
         const pill = document.createElement('button');
         pill.type = 'button';
         pill.className = 'lc-note-toggle' + (noteActiveLangs.has(lang.key) ? ' active' : '');
@@ -478,16 +497,10 @@
         editBtn.innerText = '✏️';
         editBtn.onclick = (e) => {
           e.stopPropagation();
-          openModal(
-            {
-              name: memoName,
-              ja: data.ja || data.jp || '',
-              en: data.en || '',
-              zh: data.zh || data.cn || '',
-              tags: tags.join(' ')
-            },
-            Array.from(noteActiveLangs)
-          );
+          // Pre-fill in CONFIG (UI) order; cardLangValue handles legacy jp/cn keys
+          const editValues = { name: memoName, tags: tags.join(' ') };
+          CONFIG.languages.forEach(l => { editValues[l.key] = cardLangValue(data, l.key); });
+          openModal(editValues, Array.from(noteActiveLangs));
         };
         noteControls.appendChild(editBtn);
       }
@@ -497,7 +510,7 @@
 
       // 2. Build Card Slots (JA -> EN -> ZH)
       CONFIG.languages.forEach((lang) => {
-        const val = data[lang.key] || (lang.key === 'ja' ? data['jp'] : null) || (lang.key === 'zh' ? data['cn'] : null) || '';
+        const val = cardLangValue(data, lang.key);
         
         const slot = document.createElement('div');
         slot.className = 'lc-card-slot';
@@ -812,7 +825,7 @@
     document.getElementById('lc-btn-save').onclick = saveCard;
 
     // Live preview, tag autocomplete & keyboard events
-    ['lc-input-ja', 'lc-input-en', 'lc-input-zh', 'lc-input-tags'].forEach((id) => {
+    [...CONFIG.languages.map(l => `lc-input-${l.key}`), 'lc-input-tags'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener('input', (e) => {
@@ -1407,13 +1420,9 @@
     if (saveBtn) saveBtn.innerText = editingMemoName ? 'Update Card' : 'Save Card';
 
     // Pre-fill from the card being edited, or reset for a fresh card
-    const values = {
-      ja: (editData && editData.ja) || '',
-      en: (editData && editData.en) || '',
-      zh: (editData && editData.zh) || '',
-      tags: (editData && editData.tags) || ''
-    };
-    ['ja', 'en', 'zh', 'tags'].forEach((key) => {
+    const values = { tags: (editData && editData.tags) || '' };
+    CONFIG.languages.forEach(l => { values[l.key] = (editData && editData[l.key]) || ''; });
+    [...CONFIG.languages.map(l => l.key), 'tags'].forEach((key) => {
       const el = document.getElementById(`lc-input-${key}`);
       if (el) el.value = values[key];
     });
@@ -1596,16 +1605,20 @@
   }
 
   function buildCardPayload() {
-    const ja = (document.getElementById('lc-input-ja')?.value || '').trim();
-    const en = (document.getElementById('lc-input-en')?.value || '').trim();
-    const zh = (document.getElementById('lc-input-zh')?.value || '').trim();
-    const rawTags = (document.getElementById('lc-input-tags')?.value || '').trim();
-
+    // Language sections are serialized in CONFIG.languages order — the same
+    // left-to-right order the editor UI shows — so the output JSON always
+    // mirrors the UI, and adding a language to CONFIG is picked up for free.
     const data = { _t: CONFIG.typeIdentifier, v: CONFIG.cardVersion };
-    // Keep order: ja, en, zh
-    if (ja) data.ja = ja;
-    if (en) data.en = en;
-    if (zh) data.zh = zh;
+    let hasAny = false;
+    CONFIG.languages.forEach((lang) => {
+      const val = (document.getElementById(`lc-input-${lang.key}`)?.value || '').trim();
+      if (val) {
+        data[lang.key] = val;
+        hasAny = true;
+      }
+    });
+
+    const rawTags = (document.getElementById('lc-input-tags')?.value || '').trim();
 
     const tags = rawTags
       ? rawTags
@@ -1616,7 +1629,7 @@
       : '';
 
     const content = JSON.stringify(data) + (tags ? `\n${tags}` : '');
-    return { data, tags, content, hasAny: Boolean(en || ja || zh) };
+    return { data, tags, content, hasAny: hasAny };
   }
 
   function updatePreview() {
@@ -1837,12 +1850,12 @@
       if (savedRawTags) {
         savedRawTags.split(/[\s,]+/).forEach(t => tagStore.add(t));
       }
-      ['lc-input-ja', 'lc-input-en', 'lc-input-zh'].forEach(id => {
+      CONFIG.languages.map(l => `lc-input-${l.key}`).forEach(id => {
         const txt = document.getElementById(id)?.value || '';
         (txt.match(/#[^\s#]+/g) || []).forEach(t => tagStore.add(t));
       });
 
-      ['lc-input-ja', 'lc-input-en', 'lc-input-zh', 'lc-input-tags'].forEach((id) => {
+      [...CONFIG.languages.map(l => `lc-input-${l.key}`), 'lc-input-tags'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.value = '';
       });
