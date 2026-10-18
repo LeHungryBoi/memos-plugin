@@ -1,10 +1,12 @@
 /* ==========================================================================
-   Language Card Extension for Memos (Custom CSS v2.7)
+   Language Card Extension for Memos (Custom CSS v2.8)
    100% Theme-Adaptive (Auto Dark / Light Mode Matching)
    - Dynamic Language Visibility: toggled-off language takes 0 space on x-axis
    - Mobile-First Side-by-Side: 2 columns remain side-by-side on phone screens
    - JA (Left) -> EN (Middle) -> ZH (Right) ordering
    - Per-card Edit button in the note bar
+   - Space indicator in the modal header (ok / multiple-with-warning / missing)
+   - Language card header box with copy button (modal bottom & info popup)
    Paste into: Memos Admin -> Settings -> System -> Additional Style
    ========================================================================== */
 
@@ -374,15 +376,70 @@
   color: var(--lc-text-primary) !important;
 }
 
-.lc-badge-ident {
+/* --- Space Indicator (replaces the old _t badge in the modal header) --- */
+.lc-space-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 5px;
   background: rgba(59, 130, 246, 0.15);
   color: #3b82f6;
   border: 1px solid rgba(59, 130, 246, 0.3);
   font-weight: 600;
+  cursor: pointer;
+  max-width: 240px;
+  transition: all 0.15s ease;
+}
+
+.lc-space-indicator:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.lc-space-indicator > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lc-space-indicator.lc-si-loading {
+  background: rgba(140, 140, 140, 0.12);
+  color: var(--lc-text-muted);
+  border-color: var(--lc-modal-border);
+  cursor: progress;
+}
+
+.lc-space-indicator.lc-si-ok {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+.lc-space-indicator.lc-si-warn {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.lc-space-indicator.lc-si-missing {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.lc-theme-dark .lc-space-indicator.lc-si-ok {
+  color: #34d399;
+}
+
+.lc-theme-dark .lc-space-indicator.lc-si-warn {
+  color: #fbbf24;
+}
+
+.lc-theme-dark .lc-space-indicator.lc-si-missing {
+  color: #f87171;
 }
 
 .lc-modal-header-actions {
@@ -754,4 +811,96 @@
   color: var(--lc-text-muted);
   text-align: center;
   font-style: italic;
+}
+
+/* --- Language Card Header Box (JSON + copy button, modal bottom & info popup) --- */
+.lc-header-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--lc-preview-bg) !important;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+  padding: 6px 6px 6px 12px;
+}
+
+.lc-header-json {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--lc-preview-text) !important;
+  word-break: break-all;
+  line-height: 1.45;
+}
+
+.lc-header-copy-btn {
+  flex-shrink: 0;
+  background: rgba(140, 140, 140, 0.12);
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 5px 8px;
+  transition: all 0.15s ease;
+}
+
+.lc-header-copy-btn:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.lc-header-copy-btn:active {
+  transform: scale(0.94);
+}
+
+/* --- Space Info Popup (opened from the space indicator) --- */
+.lc-space-info-overlay {
+  z-index: 10060;
+}
+
+.lc-space-info-dialog {
+  max-width: 460px;
+}
+
+.lc-space-info-dialog .lc-modal-body {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--lc-text-primary);
+}
+
+.lc-space-info-dialog .lc-modal-body p {
+  margin: 0 0 10px;
+}
+
+.lc-space-info-dialog .lc-modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+.lc-space-info-dialog .lc-modal-body ol,
+.lc-space-info-dialog .lc-modal-body ul {
+  margin: 0 0 10px;
+  padding-left: 22px;
+}
+
+.lc-space-info-dialog .lc-modal-body li {
+  margin-bottom: 4px;
+}
+
+.lc-space-info-name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: #059669;
+  padding: 6px 10px;
+  border-radius: 7px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  word-break: break-all;
+  margin-bottom: 10px;
+}
+
+.lc-theme-dark .lc-space-info-name {
+  color: #34d399;
 }

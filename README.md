@@ -5,7 +5,7 @@ GOAL:
 - 用于记录words pairing in different languages. for multi-lingual ppl such as myself. 
 
 参考:
-- 爬虫下载的doc在 language-card\docs\memos-api .
+- 爬虫下载的doc在 \memos-api-docs\ . 这个版本最新, 优先参考.
 - memos\web 包含官方的网页客户端, 功能重合度高, 可参考.
 
 ---
@@ -40,3 +40,8 @@ Custom UI 描述:
   "cn": "电机"
 }
 ```
+
+## Space 标记（存放位置）
+- 想让 language card 固定存进某个 space：往该 space 的 description 里放入**仅含 header 的 json** `{"_t":"lc","v":2}`。
+- 插件通过 `GET /api/spaces` 读取各 space 的 description 识别它；只允许一个 space 带此 header（多个则警告、不自动选择），没找到则弹引导。
+- 2026-10-18 实现：`memos-plugin/language-card.js` 的 Space 指示器（弹窗标题栏）+ header 复制框（弹窗底部）。

@@ -55,4 +55,10 @@
    - ✏️ **行内编辑**：每张卡片标题栏右侧带编辑按钮，点击直接打开同一套并排编辑器，自动预填该卡片的 JA/EN/ZH 与 Tags；保存走 `PATCH` 更新原 memo，**不刷新页面**，卡片原地换新内容。编辑框内的语言开关只影响本次编辑会话，不会改动卡片的全局/单篇显示状态。
    - 保存成功后**不做任何整页刷新**，也不弹提示——Memos 会自行把新卡片/更新后的卡片带进 feed。
 7. **Space（空间）专属模式**：
-   - 只要你在某个 Space 下（URL 为 `/s/<space_id>`），新建的卡片会自动归入当前 Space。
+   - **Header 标记专属 Space**：在某个 Space 的 description 里放入 language card header（`{"_t":"lc","v":2}`，弹窗底部有一键复制框），该 Space 即成为"语言卡片空间"——**在任何页面**新建卡片都会自动存入这个 Space，不再依赖 URL。
+     - 弹窗标题栏原来的 `_t:"lc"` 徽标已变成 **Space 指示器**（可点击）：
+       - `🃏 <space_id>`（绿色）= 已锁定唯一目标 Space，点击查看详情；
+       - `⚠️ N spaces with header`（黄色）= 有多个 Space 带了 header（只允许一个），此时不自动选择目标，点击弹出详情并列出所有命中的 Space；
+       - `⛔ No space with header`（红色）= 尚未设置，点击弹出引导：把 header JSON 粘到目标 Space 的 description 里。
+   - **兼容旧行为**：没有 header 标记的 Space 时，只要你在某个 Space 下（URL 为 `/s/<space_id>`），新建的卡片仍会自动归入当前 Space；否则进个人空间。
+   - 识别结果缓存于 localStorage（`memos_lc_target_space_v2`），遇到 401/403 自动失效重查。

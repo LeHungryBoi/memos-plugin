@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * Language Card Extension for Memos (Custom JavaScript v2.7)
+ * Language Card Extension for Memos (Custom JavaScript v2.8)
  * Features:
  * - Outside Switch = Global default (persisted in localStorage)
  * - Inside Note / Modal Switch = Strictly scoped to that individual note/modal
@@ -14,6 +14,9 @@
  *   follows caret movement / modal scroll / viewport resize
  * - Save failures report the exact request: method, absolute URL, HTTP status
  *   and the raw response body (plus full detail in the browser console)
+ * - Dedicated space: a space whose description carries the LC header JSON
+ *   receives every new card; the modal header shows a clickable space
+ *   indicator (ok / "multiple spaces" warning / "not found" with setup guide)
  * Paste into: Memos Admin -> Settings -> System -> Additional Script
  * ============================================================================
  */
@@ -24,6 +27,7 @@
   // --- Configuration ---
   const CONFIG = {
     typeIdentifier: 'lc',
+    cardVersion: 2,
     dedicatedSpaceKeyword: null,
     // Ordered: JA (left) -> EN (middle) -> ZH (right)
     languages: [
@@ -124,6 +128,93 @@
       return match[1].startsWith('spaces/') ? match[1] : `spaces/${match[1]}`;
     }
     return null;
+  }
+
+  // --- Dedicated Space Resolution ---
+  // A space becomes "the language card space" when its description carries the
+  // language card header JSON ({"_t":"lc","v":2}). New cards are then saved
+  // there regardless of which page the editor is opened from.
+  const LS_TARGET_SPACE_KEY = 'memos_lc_target_space_v2';
+
+  /** "spaces/abc123" -> "abc123" (display only; API calls keep the full name) */
+  function stripSpacePrefix(name) {
+    return String(name || '').replace(/^spaces\//, '');
+  }
+
+  /** The header JSON that marks a space (and a memo) as a language card */
+  function getCardHeaderJson() {
+    return JSON.stringify({ _t: CONFIG.typeIdentifier, v: CONFIG.cardVersion });
+  }
+
+  /** List every space the current user belongs to (paginated) */
+  async function fetchAllSpaces(token) {
+    const spaces = [];
+    let pageToken = '';
+    do {
+      const url = `/api/spaces?pageSize=1000${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(url, { headers, credentials: 'include' });
+      if (!res.ok) throw new Error(`ListSpaces failed: HTTP ${res.status}`);
+      const json = await res.json();
+      if (Array.isArray(json.spaces)) spaces.push(...json.spaces);
+      pageToken = json.nextPageToken || '';
+    } while (pageToken);
+    return spaces;
+  }
+
+  /**
+   * Extract the language card header from a space description.
+   * Tolerant: human-readable text may surround the JSON (first "{" to last
+   * "}"), the same strategy parseCardMemo uses for memo content.
+   */
+  function parseSpaceHeader(description) {
+    if (!description || !description.includes('{')) return null;
+    const start = description.indexOf('{');
+    const end = description.lastIndexOf('}');
+    if (start === -1 || end <= start) return null;
+    try {
+      const data = JSON.parse(description.substring(start, end + 1));
+      return data && data._t === CONFIG.typeIdentifier ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /** All spaces carrying the language card header, sorted for deterministic picks */
+  async function findDedicatedSpaces() {
+    const token = await getMemosAuthToken();
+    const spaces = await fetchAllSpaces(token);
+    return spaces
+      .filter((space) => parseSpaceHeader(space.description))
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  }
+
+  /**
+   * Resolve the dedicated language card space.
+   * Returns { space: "spaces/xxx" | null, matches: Space[] | null, fromCache }.
+   * - exactly one match -> that space name (cached in localStorage)
+   * - multiple matches  -> null (ambiguous; the caller shows a warning)
+   * - none / fetch error -> null
+   */
+  async function resolveTargetSpace(options) {
+    const force = Boolean(options && options.force);
+    if (!force) {
+      try {
+        const cached = localStorage.getItem(LS_TARGET_SPACE_KEY);
+        if (cached) return { space: cached, matches: null, fromCache: true };
+      } catch (e) { /* ignore */ }
+    }
+    const matches = await findDedicatedSpaces();
+    if (matches.length === 1) {
+      try { localStorage.setItem(LS_TARGET_SPACE_KEY, matches[0].name); } catch (e) { /* ignore */ }
+      return { space: matches[0].name, matches, fromCache: false };
+    }
+    clearTargetSpaceCache();
+    return { space: null, matches, fromCache: false };
+  }
+
+  function clearTargetSpaceCache() {
+    try { localStorage.removeItem(LS_TARGET_SPACE_KEY); } catch (e) { /* ignore */ }
   }
 
   /**
@@ -513,7 +604,11 @@
               <span>🔤</span>
               <span id="lc-modal-title-text">New Language Card</span>
             </h3>
-            <span class="lc-badge-ident">_t: "lc"</span>
+            <!-- Space indicator: replaces the old _t badge. Shows the dedicated
+                 language card space (or warnings when it is ambiguous/missing) -->
+            <button type="button" id="lc-space-indicator" class="lc-space-indicator lc-si-loading" title="Language card target space (click for details)">
+              <span id="lc-space-indicator-text">⏳ Checking spaces…</span>
+            </button>
           </div>
 
           <!-- Language Visibility Toggles in Modal (Local to this note) -->
@@ -572,6 +667,18 @@
             </label>
             <div id="lc-json-preview" class="lc-preview-box">{"_t":"lc","v":2}</div>
           </div>
+
+          <!-- Language card header: paste into the description of the space that should receive cards -->
+          <div class="lc-form-group">
+            <label class="lc-form-label" style="display:flex; justify-content:space-between;">
+              <span>Language Card Header (space description marker)</span>
+              <span style="font-weight: normal; font-size: 11px; opacity: 0.8;">only one space may carry it</span>
+            </label>
+            <div class="lc-header-box">
+              <code id="lc-header-json" class="lc-header-json"></code>
+              <button type="button" id="lc-header-copy-btn" class="lc-header-copy-btn" title="Copy header JSON">📋</button>
+            </div>
+          </div>
         </div>
 
         <div class="lc-modal-footer">
@@ -587,6 +694,60 @@
     `;
 
     document.body.appendChild(overlay);
+
+    // 3. Space info popup (opened by the space indicator in the modal header)
+    const infoOverlay = document.createElement('div');
+    infoOverlay.id = 'lc-space-info-overlay';
+    infoOverlay.className = 'lc-modal-overlay lc-space-info-overlay';
+    infoOverlay.style.display = 'none';
+    infoOverlay.onclick = (e) => {
+      if (e.target === infoOverlay) hideSpaceInfoPopup();
+    };
+    infoOverlay.innerHTML = `
+      <div class="lc-modal-dialog lc-space-info-dialog">
+        <div class="lc-modal-header">
+          <div class="lc-modal-title-row">
+            <h3 class="lc-modal-title"><span id="lc-space-info-title">Language Card Space</span></h3>
+          </div>
+          <div class="lc-modal-header-actions">
+            <button class="lc-modal-close" id="lc-space-info-close-btn" title="Close (Esc)">&times;</button>
+          </div>
+        </div>
+        <div class="lc-modal-body" id="lc-space-info-body"></div>
+        <div class="lc-modal-footer">
+          <div style="font-size: 12px; color: var(--lc-text-muted);">Only one space may carry the language card header.</div>
+          <div style="display:flex; gap:10px;">
+            <button class="lc-btn lc-btn-primary" id="lc-space-info-ok-btn">Got it</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(infoOverlay);
+
+    document.getElementById('lc-space-info-close-btn').onclick = hideSpaceInfoPopup;
+    document.getElementById('lc-space-info-ok-btn').onclick = hideSpaceInfoPopup;
+
+    // Header box: fill from CONFIG and wire its copy button
+    const headerJsonEl = document.getElementById('lc-header-json');
+    if (headerJsonEl) headerJsonEl.innerText = getCardHeaderJson();
+    const headerCopyBtn = document.getElementById('lc-header-copy-btn');
+    if (headerCopyBtn) {
+      headerCopyBtn.onclick = (e) => {
+        e.stopPropagation();
+        copyText(getCardHeaderJson(), headerCopyBtn);
+      };
+    }
+
+    // Space indicator: click re-checks the server, then opens the detail popup
+    const spaceIndicator = document.getElementById('lc-space-indicator');
+    if (spaceIndicator) {
+      spaceIndicator.onclick = async (e) => {
+        e.stopPropagation();
+        const result = await refreshSpaceIndicator(true);
+        showSpaceInfoPopup(result);
+      };
+    }
+    refreshSpaceIndicator();
 
     // Bind modal local toggle clicks: only affects THIS note modal, NOT global!
     CONFIG.languages.forEach(l => {
@@ -695,7 +856,7 @@
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
         // 1. Try ConnectRPC ListUserStats
-        const res = await fetch('/memos.api.v1.UserService/ListUserStats', {
+        const res = await fetch('/memos.api.UserService/ListUserStats', {
           method: 'POST',
           headers,
           credentials: 'include',
@@ -718,7 +879,7 @@
         }
 
         // 2. Try REST fallback
-        const res2 = await fetch('/api/v1/users/-/stats', {
+        const res2 = await fetch('/api/users/-/stats', {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {},
           credentials: 'include'
         }).catch(() => null);
@@ -1164,11 +1325,9 @@
     overlay.style.display = 'flex';
     clearError();
 
-    const currentSpace = getCurrentSpace();
-    const spaceHint = document.getElementById('lc-space-hint');
-    if (spaceHint) {
-      spaceHint.innerText = currentSpace ? `Target Space: ${currentSpace}` : 'Target Space: Personal Space';
-    }
+    updateSpaceHint(getCurrentSpace());
+    // Re-check (cheap when cached) so the indicator reflects the latest server state
+    refreshSpaceIndicator();
 
     // Edit mode updates an existing card; otherwise create a new one
     editingMemoName = editData && editData.name ? editData.name : null;
@@ -1216,13 +1375,159 @@
     if (overlay) overlay.style.display = 'none';
   }
 
+  // --- Space Indicator & Info Popup ---
+  let spaceResolutionInFlight = null;
+
+  function setSpaceIndicatorState(state, text) {
+    const btn = document.getElementById('lc-space-indicator');
+    const textEl = document.getElementById('lc-space-indicator-text');
+    if (!btn || !textEl) return;
+    btn.classList.remove('lc-si-loading', 'lc-si-ok', 'lc-si-warn', 'lc-si-missing');
+    btn.classList.add(`lc-si-${state}`);
+    textEl.innerText = text;
+  }
+
+  function updateSpaceHint(spaceName) {
+    const hint = document.getElementById('lc-space-hint');
+    if (!hint) return;
+    hint.innerText = spaceName
+      ? `Target Space: ${stripSpacePrefix(spaceName)}`
+      : 'Target Space: Personal Space';
+  }
+
+  /** Resolve the dedicated space and paint the indicator (cached unless force) */
+  async function refreshSpaceIndicator(force) {
+    if (spaceResolutionInFlight) return spaceResolutionInFlight;
+    spaceResolutionInFlight = (async () => {
+      setSpaceIndicatorState('loading', '⏳ Checking spaces…');
+      try {
+        const result = await resolveTargetSpace({ force: Boolean(force) });
+        if (result.space) {
+          setSpaceIndicatorState('ok', `🃏 ${stripSpacePrefix(result.space)}`);
+        } else if (result.matches && result.matches.length > 1) {
+          setSpaceIndicatorState('warn', `⚠️ ${result.matches.length} spaces with header`);
+        } else if (result.matches) {
+          setSpaceIndicatorState('missing', '⛔ No space with header');
+        } else {
+          setSpaceIndicatorState('missing', '⛔ Space check failed');
+        }
+        updateSpaceHint(result.space || getCurrentSpace());
+        return result;
+      } catch (err) {
+        console.warn('[LanguageCard] space resolution failed', err);
+        setSpaceIndicatorState('missing', '⛔ Space check failed');
+        return null;
+      } finally {
+        spaceResolutionInFlight = null;
+      }
+    })();
+    return spaceResolutionInFlight;
+  }
+
+  function spaceHeaderCodeHtml() {
+    return `<div class="lc-header-box">
+      <code class="lc-header-json">${escapeHtml(getCardHeaderJson())}</code>
+      <button type="button" class="lc-header-copy-btn" id="lc-space-info-copy-btn" title="Copy header JSON">📋</button>
+    </div>`;
+  }
+
+  function showSpaceInfoPopup(result) {
+    const overlay = document.getElementById('lc-space-info-overlay');
+    const titleEl = document.getElementById('lc-space-info-title');
+    const bodyEl = document.getElementById('lc-space-info-body');
+    if (!overlay || !titleEl || !bodyEl) return;
+
+    let title = 'Language Card Space';
+    let bodyHtml = '';
+
+    if (!result) {
+      title = '⚠️ Space check failed';
+      bodyHtml = `<p>The space list could not be read from the server. This usually means the access token expired — reload the page and click the indicator again.</p>`;
+    } else if (result.space) {
+      title = '🃏 Language card space';
+      bodyHtml = `
+        <p>New cards are saved into this space:</p>
+        <div class="lc-space-info-name">${escapeHtml(stripSpacePrefix(result.space))}</div>
+        <p>It is identified by this header in its description:</p>
+        ${spaceHeaderCodeHtml()}`;
+    } else if (result.matches && result.matches.length > 1) {
+      title = `⚠️ ${result.matches.length} spaces carry the header`;
+      bodyHtml = `
+        <p><b>Only one space</b> may carry the language card header, so no target space is selected. Remove the header from the description of all but one space:</p>
+        <ul class="lc-space-info-list">
+          ${result.matches.map((s) => `<li><b>${escapeHtml(stripSpacePrefix(s.name))}</b>${s.title ? ` — ${escapeHtml(s.title)}` : ''}</li>`).join('')}
+        </ul>
+        <p>This is the header to look for:</p>
+        ${spaceHeaderCodeHtml()}`;
+    } else {
+      title = '⛔ No language card space found';
+      bodyHtml = `
+        <p>No space carries the language card header yet, so new cards go to the current space (or your personal space).</p>
+        <p>To choose the space that receives new cards:</p>
+        <ol>
+          <li>Open the space you want to use.</li>
+          <li>Edit its description and paste this header into it:</li>
+        </ol>
+        ${spaceHeaderCodeHtml()}
+        <p>Only one space should carry this header.</p>`;
+    }
+
+    titleEl.innerText = title;
+    bodyEl.innerHTML = bodyHtml;
+
+    const copyBtn = document.getElementById('lc-space-info-copy-btn');
+    if (copyBtn) {
+      copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        copyText(getCardHeaderJson(), copyBtn);
+      };
+    }
+
+    overlay.style.display = 'flex';
+    const onKey = (ev) => {
+      if (ev.key === 'Escape') {
+        hideSpaceInfoPopup();
+        document.removeEventListener('keydown', onKey, true);
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+  }
+
+  function hideSpaceInfoPopup() {
+    const overlay = document.getElementById('lc-space-info-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
+
+  /** Copy text with a clipboard API + execCommand fallback; flashes feedback on btn */
+  async function copyText(text, btn) {
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(text);
+      ok = true;
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+      document.body.removeChild(ta);
+    }
+    if (btn) {
+      const prev = btn.innerText;
+      btn.innerText = ok ? '✅' : '❌';
+      setTimeout(() => { btn.innerText = prev; }, 1200);
+    }
+  }
+
   function buildCardPayload() {
     const ja = (document.getElementById('lc-input-ja')?.value || '').trim();
     const en = (document.getElementById('lc-input-en')?.value || '').trim();
     const zh = (document.getElementById('lc-input-zh')?.value || '').trim();
     const rawTags = (document.getElementById('lc-input-tags')?.value || '').trim();
 
-    const data = { _t: CONFIG.typeIdentifier, v: 2 };
+    const data = { _t: CONFIG.typeIdentifier, v: CONFIG.cardVersion };
     // Keep order: ja, en, zh
     if (ja) data.ja = ja;
     if (en) data.en = en;
@@ -1290,7 +1595,7 @@
 
     // Attempt silent refresh via ConnectRPC endpoint
     try {
-      const res = await fetch('/memos.api.v1.AuthService/RefreshToken', {
+      const res = await fetch('/memos.api.AuthService/RefreshToken', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1359,27 +1664,36 @@
     saveBtn.innerText = 'Saving...';
 
     const isEdit = Boolean(editingMemoName);
-    const currentSpace = getCurrentSpace();
     const payload = {
       content: content,
       visibility: 'PRIVATE'
     };
-    let url = '/api/v1/memos';
+    let url = '/api/memos';
     let method = 'POST';
     // Edit mode PATCHes the existing memo; the path takes the bare id, not "memos/xxx"
     const bareId = isEdit ? (editingMemoName || '').replace(/^memos\//, '').trim() : '';
     const usePatch = isEdit && bareId.length > 0;
     if (usePatch) {
-      url = `/api/v1/memos/${encodeURIComponent(bareId)}?updateMask=content`;
+      url = `/api/memos/${encodeURIComponent(bareId)}?updateMask=content`;
       method = 'PATCH';
-    } else if (currentSpace) {
-      payload.space = currentSpace;
+    } else {
+      // The dedicated space (marked by the LC header in its description) wins;
+      // otherwise keep the previous behaviour: URL space, else personal space.
+      let dedicatedSpace = null;
+      try {
+        const resolved = await resolveTargetSpace();
+        dedicatedSpace = resolved.space;
+      } catch (e) {
+        console.warn('[LanguageCard] target space resolution failed', e);
+      }
+      const targetSpace = dedicatedSpace || getCurrentSpace();
+      if (targetSpace) payload.space = targetSpace;
     }
 
     try {
       let token = await getMemosAuthToken();
 
-      const sendRequest = async (authToken) => {
+      const sendRequest = async (authToken, requestUrl) => {
         const headers = {
           'Content-Type': 'application/json'
         };
@@ -1387,14 +1701,14 @@
           headers['Authorization'] = `Bearer ${authToken}`;
         }
         try {
-          return await fetch(url, {
+          return await fetch(requestUrl || url, {
             method: method,
             headers: headers,
             credentials: 'include',
             body: JSON.stringify(payload)
           });
         } catch (networkErr) {
-          throw new Error(`Network error (${method} ${url}): ${networkErr.message}`);
+          throw new Error(`Network error (${method} ${requestUrl || url}): ${networkErr.message}`);
         }
       };
 
@@ -1402,10 +1716,23 @@
 
       // If unauthorized (token might have expired just now), attempt silent refresh once and retry
       if (res.status === 401) {
+        clearTargetSpaceCache();
         token = await getMemosAuthToken(true);
         if (token) {
           res = await sendRequest(token);
         }
+      }
+
+      // Memos 26.10+ serves the API under /api/...; older builds only know /api/v1/...
+      if (res.status === 410 && url.startsWith('/api/')) {
+        const legacyUrl = url.replace(/^\/api\//, '/api/v1/');
+        res = await sendRequest(token, legacyUrl);
+        url = legacyUrl; // keep error reporting below accurate
+      }
+
+      if (res.status === 403) {
+        // Likely lost membership of the dedicated space: drop the cached target
+        clearTargetSpaceCache();
       }
 
       if (!res.ok) {
@@ -1426,7 +1753,7 @@
           status: res.status,
           statusText: res.statusText,
           usePatch,
-          space: currentSpace || null,
+          space: payload.space || null,
           hasAuthToken: Boolean(token),
           responseBody: rawBody.slice(0, 1000)
         });
