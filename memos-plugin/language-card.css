@@ -898,7 +898,21 @@
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.3);
   word-break: break-all;
+  margin-bottom: 4px;
+}
+
+/* Secondary line: the space uid (API resource name), shown under the title */
+.lc-space-info-uid {
+  font-size: 11px;
+  color: var(--lc-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
   margin-bottom: 10px;
+}
+
+.lc-space-info-list .lc-space-info-uid {
+  display: block;
+  margin-bottom: 0;
 }
 
 .lc-theme-dark .lc-space-info-name {

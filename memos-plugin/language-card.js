@@ -214,28 +214,50 @@
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }
 
+  /** Read the cached dedicated space; tolerates the legacy bare-name cache format */
+  function readCachedTargetSpace() {
+    try {
+      const raw = localStorage.getItem(LS_TARGET_SPACE_KEY);
+      if (!raw) return null;
+      if (raw.startsWith('{')) {
+        const parsed = JSON.parse(raw);
+        return parsed && parsed.name ? { name: parsed.name, title: parsed.title || '' } : null;
+      }
+      // Legacy cache entry: bare resource name "spaces/xxx" (no title known)
+      return { name: raw, title: '' };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function writeCachedTargetSpace(name, title) {
+    try {
+      localStorage.setItem(LS_TARGET_SPACE_KEY, JSON.stringify({ name: name, title: title || '' }));
+    } catch (e) { /* ignore */ }
+  }
+
   /**
    * Resolve the dedicated language card space.
-   * Returns { space: "spaces/xxx" | null, matches: Space[] | null, fromCache }.
-   * - exactly one match -> that space name (cached in localStorage)
+   * Returns { space: "spaces/xxx" | null (API resource name),
+   *           title: human-readable space title ("" when unknown),
+   *           matches: Space[] | null, fromCache }.
+   * - exactly one match -> that space (name+title cached in localStorage)
    * - multiple matches  -> null (ambiguous; the caller shows a warning)
    * - none / fetch error -> null
    */
   async function resolveTargetSpace(options) {
     const force = Boolean(options && options.force);
     if (!force) {
-      try {
-        const cached = localStorage.getItem(LS_TARGET_SPACE_KEY);
-        if (cached) return { space: cached, matches: null, fromCache: true };
-      } catch (e) { /* ignore */ }
+      const cached = readCachedTargetSpace();
+      if (cached) return { space: cached.name, title: cached.title, matches: null, fromCache: true };
     }
     const matches = await findDedicatedSpaces();
     if (matches.length === 1) {
-      try { localStorage.setItem(LS_TARGET_SPACE_KEY, matches[0].name); } catch (e) { /* ignore */ }
-      return { space: matches[0].name, matches, fromCache: false };
+      writeCachedTargetSpace(matches[0].name, matches[0].title || '');
+      return { space: matches[0].name, title: matches[0].title || '', matches, fromCache: false };
     }
     clearTargetSpaceCache();
-    return { space: null, matches, fromCache: false };
+    return { space: null, title: '', matches, fromCache: false };
   }
 
   function clearTargetSpaceCache() {
@@ -1430,14 +1452,14 @@
     btn.classList.remove('lc-si-loading', 'lc-si-ok', 'lc-si-warn', 'lc-si-missing');
     btn.classList.add(`lc-si-${state}`);
     textEl.innerText = text;
+    btn.title = `${text} — click for details`;
   }
 
-  function updateSpaceHint(spaceName) {
+  function updateSpaceHint(spaceName, spaceTitle) {
     const hint = document.getElementById('lc-space-hint');
     if (!hint) return;
-    hint.innerText = spaceName
-      ? `Target Space: ${stripSpacePrefix(spaceName)}`
-      : 'Target Space: Personal Space';
+    const label = spaceTitle || (spaceName ? stripSpacePrefix(spaceName) : '');
+    hint.innerText = spaceName ? `Target Space: ${label}` : 'Target Space: Personal Space';
   }
 
   /** Resolve the dedicated space and paint the indicator (cached unless force) */
@@ -1448,7 +1470,8 @@
       try {
         const result = await resolveTargetSpace({ force: Boolean(force) });
         if (result.space) {
-          setSpaceIndicatorState('ok', `🃏 ${stripSpacePrefix(result.space)}`);
+          // Show the human-readable title; fall back to the bare uid
+          setSpaceIndicatorState('ok', `🃏 ${result.title || stripSpacePrefix(result.space)}`);
         } else if (result.matches && result.matches.length > 1) {
           setSpaceIndicatorState('warn', `⚠️ ${result.matches.length} spaces with header`);
         } else if (result.matches) {
@@ -1456,7 +1479,11 @@
         } else {
           setSpaceIndicatorState('missing', '⛔ Space check failed');
         }
-        updateSpaceHint(result.space || getCurrentSpace());
+        if (result.space) {
+          updateSpaceHint(result.space, result.title);
+        } else {
+          updateSpaceHint(getCurrentSpace(), '');
+        }
         return result;
       } catch (err) {
         console.warn('[LanguageCard] space resolution failed', err);
@@ -1490,9 +1517,11 @@
       bodyHtml = `<p>The space list could not be read from the server. This usually means the access token expired — reload the page and click the indicator again.</p>`;
     } else if (result.space) {
       title = '🃏 Language card space';
+      const displayTitle = result.title || stripSpacePrefix(result.space);
       bodyHtml = `
         <p>New cards are saved into this space:</p>
-        <div class="lc-space-info-name">${escapeHtml(stripSpacePrefix(result.space))}</div>
+        <div class="lc-space-info-name">${escapeHtml(displayTitle)}</div>
+        ${result.title ? `<div class="lc-space-info-uid">uid: ${escapeHtml(stripSpacePrefix(result.space))}</div>` : ''}
         <p>It is identified by this header in its description:</p>
         ${spaceHeaderCodeHtml()}`;
     } else if (result.matches && result.matches.length > 1) {
@@ -1500,7 +1529,7 @@
       bodyHtml = `
         <p><b>Only one space</b> may carry the language card header, so no target space is selected. Remove the header from the description of all but one space:</p>
         <ul class="lc-space-info-list">
-          ${result.matches.map((s) => `<li><b>${escapeHtml(stripSpacePrefix(s.name))}</b>${s.title ? ` — ${escapeHtml(s.title)}` : ''}</li>`).join('')}
+          ${result.matches.map((s) => `<li><b>${escapeHtml(s.title || stripSpacePrefix(s.name))}</b><span class="lc-space-info-uid">${escapeHtml(stripSpacePrefix(s.name))}</span></li>`).join('')}
         </ul>
         <p>This is the header to look for:</p>
         ${spaceHeaderCodeHtml()}`;
