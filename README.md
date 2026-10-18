@@ -5,8 +5,9 @@ GOAL:
 - 用于记录words pairing in different languages. for multi-lingual ppl such as myself. 
 
 参考:
-- 爬虫下载的doc在 \memos-api-docs\ . 这个版本最新, 优先参考.
-- memos\web 包含官方的网页客户端, 功能重合度高, 可参考.
+- /memos 是上游 main 的开发源码可能领先于最新 RC，不代表稳定发布版或用户服务器版本
+- 爬虫下载的doc在 /memos-api-docs/ . 这个版本最新. （注意：它代表最新版 API，不代表用户服务器——用户服务器是 0.31.0，v1 API。动手前必读下方「API 版本状况」！）
+- memos/web 包含官方的网页客户端, 功能重合度高, 可参考.
 
 ---
 
@@ -46,8 +47,28 @@ Custom UI 描述:
 - 插件识别 space 列表 API 并读取各 space 的 description；只允许一个 space 带此 header（多个则警告、不自动选择），没找到则弹引导。
 - 2026-10-18 实现：`memos-plugin/language-card.js` 的 Space 指示器（弹窗标题栏）+ header 复制框（弹窗底部）。
 
-## API 版本状况（2026-10-18 核实）
-- 用户服务器 = **memos 0.31.0**：v1 API（`/api/v1/...`、Connect `/memos.api.v1.*`），**已含 SpaceService**（`GET /api/v1/spaces`、Memo.space 字段、Space.description）。
-- `memos-api-docs/`（官网爬取）+ 工作区 `memos/` 源码 = **最新版（26.10.x）**：API 无 v1 前缀（`/api/...`、`/memos.api.*`），v1 路径返回 410 Gone。
-- 插件策略：**先走最新版路径，404/410 自动回退 0.31 路径**（注意 0.31 上新版路径是 404 不是 410），两代服务器通用。
-- 字段差异（已兼容）：0.31 的 tag 统计是 `ListAllUserStats`（`GET /api/v1/users:stats`，响应 `stats[].tagCount`）；最新版是 `ListUserStats`（parent `users/-`，`GET /api/users/-/stats`，响应 `userStats[].tagCounts`）。
+## API 版本状况（2026-10-18 核实，改插件前必读）
+
+**事实**：
+- 用户服务器 = **memos 0.31.0**。API 带 v1：REST `/api/v1/...`、Connect `/memos.api.v1.*`。
+- `memos-api-docs/`（官网爬取）+ 工作区 `memos/` 源码 = **最新版（26.10.x）**，与服务器**不同代**：REST `/api/...`、Connect `/memos.api.*`，v1 路径返回 410 Gone。
+- 0.31.0 **已包含 SpaceService**（`GET /api/v1/spaces`、`Memo.space`、`Space.description`），space 功能无需升级即可用。
+- 插件（`memos-plugin/language-card.js`）已做双代兼容：**先走最新版路径，遇 404/410 自动回退 v1 路径**。
+
+**下次开新 chat 如何确认 API（按优先级）**：
+1. **服务器版本的 proto = 唯一事实源**，从 GitHub tag 直接拉（小文件，秒拉）：
+   - 0.31.0 全部 API 契约目录：`https://github.com/usememos/memos/tree/v0.31.0/proto/api/v1`
+   - raw 单文件示例（把文件名换成所需 service）：
+     - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/space_service.proto`
+     - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/memo_service.proto`
+     - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/auth_service.proto`
+     - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/user_service.proto`
+     - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/instance_service.proto`
+   - 最新版对照：把 URL 里的 `v0.31.0` 换成 `main`（或工作区 `memos/proto/api/`，无 v1 后缀）。
+2. `memos-api-docs/` 是官网最新版本爬取文档，**不代表用户的 0.31 服务器**——引用前先想清楚在给哪一代写代码。
+
+**已知字段差异（插件已兼容）**：
+- tag 统计：0.31 = `ListAllUserStats`（`GET /api/v1/users:stats`，响应 `stats[].tagCount`）；最新版 = `ListUserStats`（parent `users/-`，`GET /api/users/-/stats`，响应 `userStats[].tagCounts`）。
+- token 刷新：0.31 = `POST /api/v1/auth/refresh`；最新版 = `POST /api/auth/refresh`。
+
+**目录**：`memos/` 保持最新版源码不动（它是"最新版参考"，不是服务器版本）；如确需 0.31 服务端源码，另拉 `git clone --branch v0.31.0 --depth 1`，不要覆盖现有文件夹。
