@@ -1,0 +1,757 @@
+/* ==========================================================================
+   Language Card Extension for Memos (Custom CSS v2.7)
+   100% Theme-Adaptive (Auto Dark / Light Mode Matching)
+   - Dynamic Language Visibility: toggled-off language takes 0 space on x-axis
+   - Mobile-First Side-by-Side: 2 columns remain side-by-side on phone screens
+   - JA (Left) -> EN (Middle) -> ZH (Right) ordering
+   - Per-card Edit button in the note bar
+   Paste into: Memos Admin -> Settings -> System -> Additional Style
+   ========================================================================== */
+
+/* --- Base Variables & Theme Defaults --- */
+:root {
+  --lc-bg-card: var(--card, rgba(0, 0, 0, 0.03));
+  --lc-border-card: var(--border, rgba(0, 0, 0, 0.12));
+  --lc-text-primary: var(--foreground, #0f172a);
+  --lc-text-muted: var(--muted-foreground, #64748b);
+  --lc-text-badge: #475569;
+  --lc-modal-bg: var(--popover, #ffffff);
+  --lc-modal-border: var(--border, rgba(0, 0, 0, 0.15));
+  --lc-input-bg: var(--background, #ffffff);
+  --lc-input-text: var(--foreground, #0f172a);
+  --lc-input-placeholder: #94a3b8;
+  --lc-preview-bg: rgba(0, 0, 0, 0.04);
+  --lc-preview-text: #059669;
+  --lc-chip-bg: rgba(59, 130, 246, 0.1);
+  --lc-chip-text: #2563eb;
+  --lc-chip-border: rgba(59, 130, 246, 0.2);
+  --lc-slot-bg: rgba(0, 0, 0, 0.03);
+}
+
+/* Force Dark Mode Palette when Memos is in Dark Mode */
+.lc-theme-dark,
+.dark,
+:root[style*="color-scheme: dark"] {
+  --lc-bg-card: rgba(255, 255, 255, 0.05);
+  --lc-border-card: rgba(255, 255, 255, 0.14);
+  --lc-text-primary: #f8fafc;
+  --lc-text-muted: #94a3b8;
+  --lc-text-badge: #cbd5e1;
+  --lc-modal-bg: #18181b;
+  --lc-modal-border: rgba(255, 255, 255, 0.15);
+  --lc-input-bg: rgba(0, 0, 0, 0.35);
+  --lc-input-text: #f8fafc;
+  --lc-input-placeholder: #71717a;
+  --lc-preview-bg: rgba(0, 0, 0, 0.5);
+  --lc-preview-text: #34d399;
+  --lc-chip-bg: rgba(59, 130, 246, 0.2);
+  --lc-chip-text: #93c5fd;
+  --lc-chip-border: rgba(59, 130, 246, 0.4);
+  --lc-slot-bg: rgba(0, 0, 0, 0.25);
+}
+
+/* --- Card Grid in Memo Feed (Mobile-First Side-by-Side) --- */
+.lc-card-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.lc-card-note-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding: 0 2px;
+}
+
+.lc-card-note-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lc-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.8;
+}
+
+.lc-card-note-toggles {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(140, 140, 140, 0.08);
+  border: 1px solid var(--lc-modal-border);
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+/* Right-side controls group: per-note toggles + edit button */
+.lc-card-note-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lc-card-edit-btn {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.lc-card-edit-btn:hover {
+  opacity: 1;
+}
+
+.lc-note-toggle {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  cursor: pointer;
+  color: var(--lc-text-muted);
+  transition: all 0.15s ease;
+  line-height: 1.2;
+}
+
+.lc-note-toggle.active {
+  background: rgba(140, 140, 140, 0.2);
+  color: var(--lc-text-primary);
+}
+
+.lc-card-grid {
+  display: grid;
+  /* Dynamic columns based on active languages (2 cols on phone by default!) */
+  grid-template-columns: repeat(var(--lc-cols, 2), minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  margin: 6px 0 10px 0;
+  box-sizing: border-box;
+}
+
+.lc-card-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--lc-border-card);
+  background: var(--lc-bg-card);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .lc-card-slot {
+    padding: 10px 14px;
+    border-radius: 10px;
+  }
+}
+
+.lc-card-slot:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.lc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.lc-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--lc-text-badge);
+}
+
+@media (min-width: 640px) {
+  .lc-card-badge {
+    font-size: 11px;
+  }
+}
+
+.lc-btn-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 3px;
+  border-radius: 4px;
+  color: var(--lc-text-muted);
+  transition: all 0.15s ease;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lc-btn-icon:hover {
+  background: rgba(140, 140, 140, 0.2);
+  color: var(--lc-text-primary);
+  transform: scale(1.1);
+}
+
+.lc-btn-icon:active {
+  transform: scale(0.95);
+}
+
+.lc-card-text {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--lc-text-primary);
+  word-break: break-word;
+  white-space: pre-wrap;
+  transition: filter 0.25s ease, opacity 0.25s ease;
+}
+
+@media (min-width: 640px) {
+  .lc-card-text {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+}
+
+.lc-card-empty {
+  opacity: 0.35;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* --- Card Tags Row --- */
+.lc-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.lc-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--lc-chip-bg);
+  color: var(--lc-chip-text);
+  border: 1px solid var(--lc-chip-border);
+}
+
+/* --- Floating Action Bar (Pills + Button) --- */
+.lc-floating-bar {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-lang-toggles {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 4px;
+  background: var(--lc-modal-bg);
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 30px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  gap: 2px;
+}
+
+.lc-lang-btn {
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  color: var(--lc-text-muted);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.lc-lang-btn.active {
+  background: rgba(140, 140, 140, 0.15);
+  color: var(--lc-text-primary);
+}
+
+.lc-fab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 15px;
+  border-radius: 50px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.lc-fab:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(37, 99, 235, 0.55);
+}
+
+.lc-fab:active {
+  transform: translateY(0);
+}
+
+/* --- Modal Overlay & Dialog --- */
+.lc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.lc-modal-dialog {
+  width: 100%;
+  max-width: 820px;
+  background: var(--lc-modal-bg) !important;
+  color: var(--lc-text-primary) !important;
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  border: 1px solid var(--lc-modal-border);
+  animation: lc-modal-in 0.18s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes lc-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.lc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--lc-modal-border);
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lc-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lc-text-primary) !important;
+}
+
+.lc-badge-ident {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  font-weight: 600;
+}
+
+.lc-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lc-modal-lang-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(140, 140, 140, 0.08);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--lc-modal-border);
+}
+
+.lc-modal-lang-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lc-text-muted);
+  text-transform: uppercase;
+}
+
+.lc-modal-lang-chip {
+  background: transparent;
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lc-modal-lang-chip.active {
+  background: rgba(140, 140, 140, 0.18);
+}
+
+.lc-modal-close {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  color: var(--lc-text-muted);
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.lc-modal-close:hover {
+  background: rgba(140, 140, 140, 0.2);
+  color: var(--lc-text-primary);
+}
+
+.lc-modal-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+/* --- Side-by-Side Editor Grid (Maintains side-by-side on mobile!) --- */
+.lc-editor-grid {
+  display: grid;
+  /* Dynamic columns: default 2 cols side-by-side on phone screens */
+  grid-template-columns: repeat(var(--lc-editor-cols, 2), minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.lc-editor-slot {
+  border-radius: 9px;
+  border: 1px solid var(--lc-modal-border);
+  background: var(--lc-slot-bg);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.lc-editor-slot:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  background: var(--lc-input-bg);
+}
+
+.lc-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lc-slot-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lc-slot-hint {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.55;
+  color: var(--lc-text-muted);
+}
+
+.lc-slot-textarea {
+  width: 100%;
+  min-height: 70px;
+  border: none;
+  background: transparent !important;
+  color: var(--lc-input-text) !important;
+  font-size: 13.5px;
+  line-height: 1.4;
+  resize: vertical;
+  outline: none;
+  padding: 0;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.lc-slot-textarea::placeholder {
+  color: var(--lc-input-placeholder) !important;
+  opacity: 0.8;
+}
+
+/* --- Form Input & Preview --- */
+.lc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.lc-form-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--lc-text-badge);
+}
+
+.lc-form-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--lc-modal-border);
+  background: var(--lc-input-bg) !important;
+  font-size: 13.5px;
+  color: var(--lc-input-text) !important;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.lc-form-input::placeholder {
+  color: var(--lc-input-placeholder) !important;
+  opacity: 0.8;
+}
+
+.lc-form-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.lc-preview-box {
+  background: var(--lc-preview-bg) !important;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--lc-preview-text) !important;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.45;
+}
+
+.lc-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-top: 1px solid var(--lc-modal-border);
+  background: rgba(140, 140, 140, 0.04);
+}
+
+.lc-btn {
+  padding: 8px 16px;
+  border-radius: 7px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.lc-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.lc-btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.lc-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.lc-btn-secondary {
+  background: transparent;
+  border-color: var(--lc-modal-border);
+  color: var(--lc-text-primary);
+}
+
+.lc-btn-secondary:hover {
+  background: rgba(140, 140, 140, 0.15);
+}
+
+/* --- Tag Autocomplete Dropdown (fixed: anchored to the caret in viewport coords) --- */
+.lc-tag-dropdown {
+  position: fixed;
+  z-index: 10050;
+  background: var(--lc-modal-bg) !important;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 9px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: lc-tag-drop-in 0.12s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes lc-tag-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lc-tag-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: rgba(140, 140, 140, 0.08);
+  border-bottom: 1px solid var(--lc-modal-border);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--lc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lc-tag-dropdown-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+}
+
+.lc-tag-dropdown-list::-webkit-scrollbar {
+  width: 5px;
+}
+.lc-tag-dropdown-list::-webkit-scrollbar-thumb {
+  background: rgba(140, 140, 140, 0.3);
+  border-radius: 4px;
+}
+
+.lc-tag-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.lc-tag-item:hover,
+.lc-tag-item.active {
+  background: rgba(59, 130, 246, 0.18);
+  color: #2563eb;
+}
+
+.lc-theme-dark .lc-tag-item:hover,
+.lc-theme-dark .lc-tag-item.active {
+  background: rgba(59, 130, 246, 0.28);
+  color: #60a5fa;
+}
+
+.lc-tag-item-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lc-tag-icon {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b82f6;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.lc-tag-label {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lc-tag-label b {
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lc-theme-dark .lc-tag-label b {
+  color: #93c5fd;
+}
+
+.lc-tag-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(140, 140, 140, 0.14);
+  color: var(--lc-text-muted);
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.lc-tag-item-create {
+  border-top: 1px dashed var(--lc-modal-border);
+  margin-top: 3px;
+  padding-top: 6px;
+  color: #10b981;
+}
+
+.lc-tag-item-create .lc-tag-icon {
+  color: #10b981;
+}
+
+.lc-tag-dropdown-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--lc-text-muted);
+  text-align: center;
+  font-style: italic;
+}
