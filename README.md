@@ -49,11 +49,20 @@ Custom UI 描述:
 
 ## API 版本状况（2026-10-18 核实，改插件前必读）
 
+**版本号 scheme（重要，别被数字大小骗了）**：
+- memos 在 2026-10 换了版本号规则：**旧规则 `0.x`** → **新规则 CalVer 按年月**（`26.10` = 2026 年 10 月）。
+- 时间线（以 `https://github.com/usememos/memos/tags` 的发布日期为准）：
+  - `v0.31.0`（2026-09-19）= 旧规则**最后一个正式版**，也就是用户服务器的版本；
+  - `26.10-RC.1`（2026-10-09）= 新规则**首个版本**（RC = release candidate 候选版）；
+  - 之后的正式版形如 `26.10.0` / `26.10.1`，**小数点后的 `.x` 是小版本号，不是版本数字变小**。
+- 结论：**26.10.x 比 0.31.0 新**。docs 和工作区源码都是新规则最新版，用户服务器是旧规则最后版，差一个月。
+
 **事实**：
 - 用户服务器 = **memos 0.31.0**。API 带 v1：REST `/api/v1/...`、Connect `/memos.api.v1.*`。
-- `memos-api-docs/`（官网爬取）+ 工作区 `memos/` 源码 = **最新版（26.10.x）**，与服务器**不同代**：REST `/api/...`、Connect `/memos.api.*`，v1 路径返回 410 Gone。
+- `memos-api-docs/`（官网爬取）+ 工作区 `memos/` 源码 = **新规则最新版（26.10.x，2026-10）**，与服务器不同代：REST `/api/...`、Connect `/memos.api.*`，v1 路径返回 410 Gone。
 - 0.31.0 **已包含 SpaceService**（`GET /api/v1/spaces`、`Memo.space`、`Space.description`），space 功能无需升级即可用。
-- 插件（`memos-plugin/language-card.js`）已做双代兼容：**先走最新版路径，遇 404/410 自动回退 v1 路径**。
+- 插件（`memos-plugin/language-card.js`）已做双代兼容：**先走最新版路径，遇 404/410 自动回退 v1 路径**（0.31 上新版路径是 404 不是 410，只判 410 会漏）。
+- 确认服务器版本：Memos 设置页直接看版本号；或 `GET <服务器>/api/v1/instance/profile` 返回 JSON 的 `version` 字段。
 
 **下次开新 chat 如何确认 API（按优先级）**：
 1. **服务器版本的 proto = 唯一事实源**，从 GitHub tag 直接拉（小文件，秒拉）：
@@ -64,7 +73,7 @@ Custom UI 描述:
      - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/auth_service.proto`
      - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/user_service.proto`
      - `https://raw.githubusercontent.com/usememos/memos/v0.31.0/proto/api/v1/instance_service.proto`
-   - 最新版对照：把 URL 里的 `v0.31.0` 换成 `main`（或工作区 `memos/proto/api/`，无 v1 后缀）。
+   - 最新版对照：把 URL 里的 `v0.31.0` 换成 `main`（或工作区 `memos/proto/api/`，无 v1 后缀）。注意 tag 命名也随规则变了：旧规则带 `v` 前缀（`v0.31.0`），新规则不带（`26.10-RC.1`）。
 2. `memos-api-docs/` 是官网最新版本爬取文档，**不代表用户的 0.31 服务器**——引用前先想清楚在给哪一代写代码。
 
 **已知字段差异（插件已兼容）**：

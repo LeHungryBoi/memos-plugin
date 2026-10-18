@@ -64,6 +64,7 @@
    - 识别结果缓存于 localStorage（`memos_lc_target_space_v2`），遇到 401/403 自动失效重查。
 8. **双代 API 自动兼容（0.31 ↔ 最新版）**：
    - Memos 存在两代 API：**0.31**（`/api/v1/...`、Connect `/memos.api.v1.*`）与 **26.10+ 最新版**（`/api/...`、Connect `/memos.api.*`，v1 路径返回 410 Gone）。
+   - 版本号说明：memos 2026-10 换了规则，`26.10` = 2026 年 10 月（CalVer），**比 0.31.0 新**；`v0.31.0`（2026-09-19）是旧 0.x 规则最后一个正式版。详见根 README「API 版本状况」。
    - 本脚本所有请求（memos 增改、spaces 列表、token 刷新、tag 统计）都**先走最新版路径，遇到 404/410 自动回退 0.31 路径**，两代服务器无需改代码。
    - 已知字段差异已处理：tag 统计在 0.31 是 `ListAllUserStats` + 响应 `stats[].tagCount`，最新版是 `ListUserStats(parent=users/-)` + `userStats[].tagCounts`。
    - 参考：`memos-api-docs/`（usememos 官网最新版 API 文档）。
