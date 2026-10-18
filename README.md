@@ -43,5 +43,11 @@ Custom UI 描述:
 
 ## Space 标记（存放位置）
 - 想让 language card 固定存进某个 space：往该 space 的 description 里放入**仅含 header 的 json** `{"_t":"lc","v":2}`。
-- 插件通过 `GET /api/spaces` 读取各 space 的 description 识别它；只允许一个 space 带此 header（多个则警告、不自动选择），没找到则弹引导。
+- 插件识别 space 列表 API 并读取各 space 的 description；只允许一个 space 带此 header（多个则警告、不自动选择），没找到则弹引导。
 - 2026-10-18 实现：`memos-plugin/language-card.js` 的 Space 指示器（弹窗标题栏）+ header 复制框（弹窗底部）。
+
+## API 版本状况（2026-10-18 核实）
+- 用户服务器 = **memos 0.31.0**：v1 API（`/api/v1/...`、Connect `/memos.api.v1.*`），**已含 SpaceService**（`GET /api/v1/spaces`、Memo.space 字段、Space.description）。
+- `memos-api-docs/`（官网爬取）+ 工作区 `memos/` 源码 = **最新版（26.10.x）**：API 无 v1 前缀（`/api/...`、`/memos.api.*`），v1 路径返回 410 Gone。
+- 插件策略：**先走最新版路径，404/410 自动回退 0.31 路径**（注意 0.31 上新版路径是 404 不是 410），两代服务器通用。
+- 字段差异（已兼容）：0.31 的 tag 统计是 `ListAllUserStats`（`GET /api/v1/users:stats`，响应 `stats[].tagCount`）；最新版是 `ListUserStats`（parent `users/-`，`GET /api/users/-/stats`，响应 `userStats[].tagCounts`）。

@@ -146,15 +146,40 @@
     return JSON.stringify({ _t: CONFIG.typeIdentifier, v: CONFIG.cardVersion });
   }
 
+  // --- API Generation Compatibility ---
+  // Two API generations exist in the wild:
+  // - memos 0.31 (and older): /api/v1/... REST, /memos.api.v1.<Service>/<Method> Connect
+  // - memos 26.10+ (current): /api/... REST, /memos.api.<Service>/<Method> Connect,
+  //   and v1 paths answer 410 Gone
+  // Requests below try the new path first and fall back to the legacy one.
+  // Note: on 0.31 the new path is simply unknown -> 404 (NOT 410).
+  function isLegacyFallbackStatus(status) {
+    return status === 404 || status === 410;
+  }
+
+  /** GET the first path that does not answer 404/410; returns the last response otherwise */
+  async function fetchJsonWithFallback(paths, token) {
+    let lastRes = null;
+    for (const path of paths) {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(path, { headers, credentials: 'include' });
+      if (isLegacyFallbackStatus(res.status)) {
+        lastRes = res;
+        continue;
+      }
+      return res;
+    }
+    return lastRes;
+  }
+
   /** List every space the current user belongs to (paginated) */
   async function fetchAllSpaces(token) {
     const spaces = [];
     let pageToken = '';
     do {
-      const url = `/api/spaces?pageSize=1000${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch(url, { headers, credentials: 'include' });
-      if (!res.ok) throw new Error(`ListSpaces failed: HTTP ${res.status}`);
+      const query = pageToken ? `?pageSize=1000&pageToken=${encodeURIComponent(pageToken)}` : '?pageSize=1000';
+      const res = await fetchJsonWithFallback([`/api/spaces${query}`, `/api/v1/spaces${query}`], token);
+      if (!res || !res.ok) throw new Error(`ListSpaces failed: HTTP ${res ? res.status : 'no response'}`);
       const json = await res.json();
       if (Array.isArray(json.spaces)) spaces.push(...json.spaces);
       pageToken = json.nextPageToken || '';
@@ -855,46 +880,66 @@
         };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        // 1. Try ConnectRPC ListUserStats
+        // Normalize both generations:
+        // - new (26.10+): ListUserStats {parent}, response userStats[].tagCounts
+        // - 0.31:        ListAllUserStats {}, response stats[].tagCount
+        const ingest = (json) => {
+          const stats = (json && (json.userStats || json.stats)) || [];
+          let found = false;
+          stats.forEach(stat => {
+            const counts = (stat && (stat.tagCounts || stat.tagCount)) || null;
+            if (counts && typeof counts === 'object') {
+              Object.entries(counts).forEach(([tag, cnt]) => {
+                this.add(tag, Number(cnt) || 1);
+                found = true;
+              });
+            }
+          });
+          return found;
+        };
+
+        // 1. New API: POST /memos.api.UserService/ListUserStats
         const res = await fetch('/memos.api.UserService/ListUserStats', {
           method: 'POST',
           headers,
           credentials: 'include',
           body: JSON.stringify({ parent: 'users/-' })
         });
-
         if (res.ok) {
           const json = await res.json();
-          if (json && Array.isArray(json.userStats)) {
-            json.userStats.forEach(stat => {
-              if (stat.tagCounts && typeof stat.tagCounts === 'object') {
-                Object.entries(stat.tagCounts).forEach(([tag, cnt]) => {
-                  this.add(tag, Number(cnt) || 1);
-                });
-              }
-            });
+          if (ingest(json)) {
             this.lastFetched = Date.now();
             return;
           }
         }
 
-        // 2. Try REST fallback
-        const res2 = await fetch('/api/users/-/stats', {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-          credentials: 'include'
-        }).catch(() => null);
-
-        if (res2 && res2.ok) {
-          const json2 = await res2.json();
-          if (json2 && Array.isArray(json2.userStats)) {
-            json2.userStats.forEach(stat => {
-              if (stat.tagCounts) {
-                Object.entries(stat.tagCounts).forEach(([tag, cnt]) => {
-                  this.add(tag, Number(cnt) || 1);
-                });
-              }
-            });
+        // 2. Legacy API (memos 0.31): POST /memos.api.v1.UserService/ListAllUserStats
+        const resLegacy = await fetch('/memos.api.v1.UserService/ListAllUserStats', {
+          method: 'POST',
+          headers,
+          credentials: 'include',
+          body: '{}'
+        });
+        if (resLegacy.ok) {
+          const jsonLegacy = await resLegacy.json();
+          if (ingest(jsonLegacy)) {
             this.lastFetched = Date.now();
+            return;
+          }
+        }
+
+        // 3. REST fallbacks (new route, then the 0.31 route /api/v1/users:stats)
+        for (const restUrl of ['/api/users/-/stats', '/api/v1/users:stats']) {
+          const res2 = await fetch(restUrl, {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+            credentials: 'include'
+          }).catch(() => null);
+          if (res2 && res2.ok) {
+            const json2 = await res2.json();
+            if (ingest(json2)) {
+              this.lastFetched = Date.now();
+              return;
+            }
           }
         }
       } catch (e) {
@@ -1593,51 +1638,41 @@
       }
     }
 
-    // Attempt silent refresh via ConnectRPC endpoint
-    try {
-      const res = await fetch('/memos.api.AuthService/RefreshToken', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Connect-Protocol-Version': '1'
-        },
-        credentials: 'include',
-        body: '{}'
-      });
-
-      if (res.ok) {
+    // Silent refresh: try every known endpoint across both API generations.
+    // New builds (26.10+) serve /memos.api.* + /api/auth/refresh; memos 0.31
+    // serves /memos.api.v1.* + /api/v1/auth/refresh. Unknown paths 404, so a
+    // simple sequential try is enough.
+    const refreshEndpoints = [
+      { url: '/memos.api.AuthService/RefreshToken', connect: true },
+      { url: '/memos.api.v1.AuthService/RefreshToken', connect: true },
+      { url: '/api/auth/refresh', connect: false },
+      { url: '/api/v1/auth/refresh', connect: false }
+    ];
+    for (const endpoint of refreshEndpoints) {
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (endpoint.connect) headers['Connect-Protocol-Version'] = '1';
+        const res = await fetch(endpoint.url, {
+          method: 'POST',
+          headers: headers,
+          credentials: 'include',
+          body: '{}'
+        });
+        if (!res.ok) continue;
         const data = await res.json();
+        // New builds: accessToken/accessTokenExpireTime; 0.31: same JSON names.
         const token = data.accessToken || data.access_token;
         if (token) {
           try {
             localStorage.setItem('memos_access_token', token);
-            if (data.accessTokenExpireTime) {
-              localStorage.setItem('memos_token_expires_at', data.accessTokenExpireTime);
-            }
+            const expires = data.accessTokenExpireTime || data.expiresAt || data.expires_at;
+            if (expires) localStorage.setItem('memos_token_expires_at', expires);
           } catch (e) {}
           return token;
         }
+      } catch (e) {
+        // try the next endpoint
       }
-    } catch (e) {
-      // Fallback to REST refresh endpoint
-      try {
-        const res2 = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: '{}'
-        });
-        if (res2.ok) {
-          const data2 = await res2.json();
-          const token2 = data2.accessToken || data2.access_token;
-          if (token2) {
-            try {
-              localStorage.setItem('memos_access_token', token2);
-            } catch (e) {}
-            return token2;
-          }
-        }
-      } catch (e2) {}
     }
 
     // Optional PAT or custom token fallback if present
@@ -1723,8 +1758,10 @@
         }
       }
 
-      // Memos 26.10+ serves the API under /api/...; older builds only know /api/v1/...
-      if (res.status === 410 && url.startsWith('/api/')) {
+      // Memos 26.10+ serves the API under /api/...; older builds (e.g. 0.31)
+      // only know /api/v1/... and answer the new path with 404 (26.10 answers
+      // the legacy path with 410 Gone), so accept both.
+      if (isLegacyFallbackStatus(res.status) && url.startsWith('/api/')) {
         const legacyUrl = url.replace(/^\/api\//, '/api/v1/');
         res = await sendRequest(token, legacyUrl);
         url = legacyUrl; // keep error reporting below accurate

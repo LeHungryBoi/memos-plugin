@@ -62,3 +62,8 @@
        - `⛔ No space with header`（红色）= 尚未设置，点击弹出引导：把 header JSON 粘到目标 Space 的 description 里。
    - **兼容旧行为**：没有 header 标记的 Space 时，只要你在某个 Space 下（URL 为 `/s/<space_id>`），新建的卡片仍会自动归入当前 Space；否则进个人空间。
    - 识别结果缓存于 localStorage（`memos_lc_target_space_v2`），遇到 401/403 自动失效重查。
+8. **双代 API 自动兼容（0.31 ↔ 最新版）**：
+   - Memos 存在两代 API：**0.31**（`/api/v1/...`、Connect `/memos.api.v1.*`）与 **26.10+ 最新版**（`/api/...`、Connect `/memos.api.*`，v1 路径返回 410 Gone）。
+   - 本脚本所有请求（memos 增改、spaces 列表、token 刷新、tag 统计）都**先走最新版路径，遇到 404/410 自动回退 0.31 路径**，两代服务器无需改代码。
+   - 已知字段差异已处理：tag 统计在 0.31 是 `ListAllUserStats` + 响应 `stats[].tagCount`，最新版是 `ListUserStats(parent=users/-)` + `userStats[].tagCounts`。
+   - 参考：`memos-api-docs/`（usememos 官网最新版 API 文档）。
