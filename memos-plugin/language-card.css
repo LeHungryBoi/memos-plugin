@@ -77,17 +77,7 @@
   opacity: 0.8;
 }
 
-.lc-card-note-toggles {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  background: rgba(140, 140, 140, 0.08);
-  border: 1px solid var(--lc-modal-border);
-  padding: 2px 4px;
-  border-radius: 6px;
-}
-
-/* Right-side controls group: per-note toggles + edit button */
+/* Right-side controls group: edit button */
 .lc-card-note-controls {
   display: inline-flex;
   align-items: center;
@@ -101,24 +91,6 @@
 
 .lc-card-edit-btn:hover {
   opacity: 1;
-}
-
-.lc-note-toggle {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 5px;
-  cursor: pointer;
-  color: var(--lc-text-muted);
-  transition: all 0.15s ease;
-  line-height: 1.2;
-}
-
-.lc-note-toggle.active {
-  background: rgba(140, 140, 140, 0.2);
-  color: var(--lc-text-primary);
 }
 
 .lc-card-grid {

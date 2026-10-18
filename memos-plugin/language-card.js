@@ -3,7 +3,8 @@
  * Language Card Extension for Memos (Custom JavaScript v2.8)
  * Features:
  * - Outside Switch = Global default (persisted in localStorage)
- * - Inside Note / Modal Switch = Strictly scoped to that individual note/modal
+ * - Modal Switch = language slots scoped to that editor session only
+ *   (feed cards show the languages they contain; no per-card pills)
  * - JA (left) -> EN (middle) -> ZH (right) ordering
  * - Toggled-off languages take 0 space on the x-axis
  * - Mobile-first side-by-side 2-column layout
@@ -75,8 +76,8 @@
     }
     setGlobalEnabledLangs(next);
 
-    // Re-render all cards on page to inherit the new global default
-    // (force flag makes the parser run again; raw text is kept)
+    // Re-render cards so the few content-less legacy cards pick up the new
+    // global default (cards with content always show their own languages)
     document.querySelectorAll('[data-lc-parsed]').forEach(el => {
       el.removeAttribute('data-lc-parsed');
       el.setAttribute('data-lc-force', '1');
@@ -412,14 +413,20 @@
       const cardWrapper = document.createElement('div');
       cardWrapper.className = 'lc-card-wrapper';
 
-      // Per-note language state: the languages THIS card actually contains,
-      // in UI order (a ja-only card shows only the ja slot). The global switch
-      // is only the fallback for cards without any language content (e.g. a
-      // tags-only legacy card). Toggling pills here ONLY affects this note!
+      // Languages this card actually contains, in UI order. A card simply
+      // shows what it has (a ja-only card shows only the ja slot) — there are
+      // no per-card language pills anymore: every language section is already
+      // labelled in its own slot header, and edits go through the pencil.
+      // The global switch is only the fallback for cards without any language
+      // content (e.g. a tags-only legacy card).
       const cardLangs = cardPresentLangs(data);
-      const noteActiveLangs = new Set(cardLangs.length > 0 ? cardLangs : globalEnabled);
+      const activeLangs = new Set(
+        (cardLangs.length > 0 ? cardLangs : globalEnabled).filter(k =>
+          CONFIG.languages.some(l => l.key === k)
+        )
+      );
 
-      // 1. Per-note Header Bar with Local Language Switch
+      // 1. Header bar: card title + edit button (no language toggle pills)
       const noteBar = document.createElement('div');
       noteBar.className = 'lc-card-note-bar';
 
@@ -428,65 +435,8 @@
       titleEl.innerHTML = `<span>🔤</span><span>Card</span>`;
       noteBar.appendChild(titleEl);
 
-      const noteToggles = document.createElement('div');
-      noteToggles.className = 'lc-card-note-toggles';
-      noteToggles.title = 'Toggle languages for this note';
-
-      const grid = document.createElement('div');
-      grid.className = 'lc-card-grid';
-
-      // Function to re-calculate columns & visibility for THIS card only
-      function updateThisNoteLayout() {
-        const activeCount = Array.from(noteActiveLangs).filter(k => 
-          CONFIG.languages.some(l => l.key === k)
-        ).length;
-        grid.style.setProperty('--lc-cols', Math.max(1, activeCount));
-
-        CONFIG.languages.forEach(lang => {
-          const slot = grid.querySelector(`[data-lc-slot="${lang.key}"]`);
-          const pill = noteToggles.querySelector(`[data-lc-pill="${lang.key}"]`);
-          const isAct = noteActiveLangs.has(lang.key);
-          if (slot) {
-            slot.style.display = isAct ? 'flex' : 'none';
-          }
-          if (pill) {
-            pill.classList.toggle('active', isAct);
-            pill.style.borderColor = isAct ? lang.color : 'transparent';
-            pill.style.color = isAct ? lang.color : 'var(--lc-text-muted)';
-          }
-        });
-      }
-
-      // Add pill toggles for all languages in this note
-      CONFIG.languages.forEach(lang => {
-        const hasText = Boolean(cardLangValue(data, lang.key));
-        const pill = document.createElement('button');
-        pill.type = 'button';
-        pill.className = 'lc-note-toggle' + (noteActiveLangs.has(lang.key) ? ' active' : '');
-        pill.setAttribute('data-lc-pill', lang.key);
-        pill.innerText = lang.code;
-        if (!hasText) pill.style.opacity = '0.5';
-        pill.title = `${lang.name} (${hasText ? 'has text' : 'empty in this card'})`;
-
-        pill.onclick = (e) => {
-          e.stopPropagation();
-          // Toggle inside THIS note only
-          if (noteActiveLangs.has(lang.key)) {
-            if (noteActiveLangs.size <= 1) return; // Keep at least 1
-            noteActiveLangs.delete(lang.key);
-          } else {
-            noteActiveLangs.add(lang.key);
-          }
-          updateThisNoteLayout();
-        };
-
-        noteToggles.appendChild(pill);
-      });
-
-      // Right-side controls: per-note language toggles + edit button
       const noteControls = document.createElement('div');
       noteControls.className = 'lc-card-note-controls';
-      noteControls.appendChild(noteToggles);
 
       // Edit button: opens the same side-by-side editor, pre-filled with this card
       if (memoName) {
@@ -500,7 +450,7 @@
           // Pre-fill in CONFIG (UI) order; cardLangValue handles legacy jp/cn keys
           const editValues = { name: memoName, tags: tags.join(' ') };
           CONFIG.languages.forEach(l => { editValues[l.key] = cardLangValue(data, l.key); });
-          openModal(editValues, Array.from(noteActiveLangs));
+          openModal(editValues, Array.from(activeLangs));
         };
         noteControls.appendChild(editBtn);
       }
@@ -508,14 +458,18 @@
       noteBar.appendChild(noteControls);
       cardWrapper.appendChild(noteBar);
 
-      // 2. Build Card Slots (JA -> EN -> ZH)
+      // 2. Build Card Slots (JA -> EN -> ZH); only languages the card has are visible
+      const grid = document.createElement('div');
+      grid.className = 'lc-card-grid';
+      grid.style.setProperty('--lc-cols', Math.max(1, activeLangs.size));
+
       CONFIG.languages.forEach((lang) => {
         const val = cardLangValue(data, lang.key);
-        
+
         const slot = document.createElement('div');
         slot.className = 'lc-card-slot';
         slot.setAttribute('data-lc-slot', lang.key);
-        slot.style.display = noteActiveLangs.has(lang.key) ? 'flex' : 'none';
+        slot.style.display = activeLangs.has(lang.key) ? 'flex' : 'none';
 
         const header = document.createElement('div');
         header.className = 'lc-card-header';
@@ -537,7 +491,6 @@
       });
 
       cardWrapper.appendChild(grid);
-      updateThisNoteLayout();
 
       // 3. Tags container
       if (tags.length > 0) {
