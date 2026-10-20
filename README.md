@@ -47,6 +47,12 @@ Custom UI 描述:
 - 插件识别 space 列表 API 并读取各 space 的 description；只允许一个 space 带此 header（多个则警告、不自动选择），没找到则弹引导。
 - 2026-10-18 实现：`memos-plugin/language-card.js` 的 Space 指示器（弹窗标题栏）+ header 复制框（弹窗底部）。
 
+## 卡片快捷操作（Quick Actions，2026-10-20 实现）
+- 需求：memo 卡片右上角原生三点菜单里的 Pin / Edit / Archive 直接外露成图标，省掉一次点击。
+- 实现：`memos-plugin/language-card.js`（v2.9）给每张 memo 卡片的原生 `data-slot="memo-header-actions"` 注入图标按钮（置于三点按钮左侧），点击时**驱动该卡片原生的三点下拉菜单**并点击对应菜单项——原生逻辑全复用，不重复实现任何 API。
+- 菜单 DOM 事实（2026-10-20 chrome-devtools 实测，服务器 0.31.0）：触发器 = `button[aria-label="More"]`（`data-slot="dropdown-menu-trigger"`，Base UI 渲染，菜单挂在 body 下的 portal，`role="menu"` + `aria-labelledby` 指向触发器 id）；菜单项 = `div[role="menuitem"]`，顶层 Pin/Edit/Copy/Archive/More，子菜单 Copy→Copy Link/Copy Content，More→Move to Space/Delete；图标为 lucide（bookmark-plus/pen-line/archive）。原生编辑器打开时 `article` 整体被替换、且编辑器是 CodeMirror 不是 tiptap，插件不会误抓编辑器内容。
+- 快捷集合可在 `CONFIG.quickActions` 增删，`path` 支持子菜单路径（如 `['Copy', 'Copy Content']`）；窄屏 <480px 自动隐藏图标保留三点菜单。
+
 ## API 版本状况（2026-10-18 核实，改插件前必读）
 
 **版本号 scheme（重要，别被数字大小骗了）**：

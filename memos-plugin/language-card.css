@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Language Card Extension for Memos (Custom CSS v2.8)
+   Language Card Extension for Memos (Custom CSS v2.9)
    100% Theme-Adaptive (Auto Dark / Light Mode Matching)
    - Dynamic Language Visibility: toggled-off language takes 0 space on x-axis
    - Mobile-First Side-by-Side: 2 columns remain side-by-side on phone screens
@@ -7,6 +7,7 @@
    - Per-card Edit button in the note bar
    - Space indicator in the modal header (ok / multiple-with-warning / missing)
    - Language card header box with copy button (modal bottom & info popup)
+   - Native Quick Actions (Pin / Edit / Archive) in memo card headers
    Paste into: Memos Admin -> Settings -> System -> Additional Style
    ========================================================================== */
 
@@ -825,6 +826,23 @@
 
 .lc-header-copy-btn:active {
   transform: scale(0.94);
+}
+
+/* --- Native Quick Actions (Pin / Edit / Archive) in memo card headers ---
+   The buttons clone the native three-dots button's utility classes at
+   injection time (exact theme match); these rules only add layout safety
+   and the small-screen policy. */
+.lc-quick-action {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* Very narrow phones: three icons + reaction + three-dots would cramp the
+   header, so keep the three-dots menu as the only path there. */
+@media (max-width: 479px) {
+  .lc-quick-action {
+    display: none !important;
+  }
 }
 
 /* --- Space Info Popup (opened from the space indicator) --- */

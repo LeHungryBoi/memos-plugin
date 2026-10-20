@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * Language Card Extension for Memos (Custom JavaScript v2.8)
+ * Language Card Extension for Memos (Custom JavaScript v2.9)
  * Features:
  * - Outside Switch = Global default (persisted in localStorage)
  * - Modal Switch = language slots scoped to that editor session only
@@ -18,6 +18,11 @@
  * - Dedicated space: a space whose description carries the LC header JSON
  *   receives every new card; the modal header shows a clickable space
  *   indicator (ok / "multiple spaces" warning / "not found" with setup guide)
+ * - Quick Actions: Pin / Edit / Archive icon buttons sit directly in every
+ *   memo card's native header (left of the three-dots menu), one click each.
+ *   They drive Memos' own dropdown menu programmatically and click the
+ *   matching item, so all native logic (API, pin state, editor) is reused
+ *   as-is. Configurable via CONFIG.quickActions.
  * Paste into: Memos Admin -> Settings -> System -> Additional Script
  * ============================================================================
  */
@@ -35,6 +40,35 @@
       { key: 'ja', label: '日本語', code: 'JA', color: '#fbbf24', ttsLang: 'ja-JP', placeholder: 'e.g. セレンディピティ' },
       { key: 'en', label: 'English', code: 'EN', color: '#38bdf8', ttsLang: 'en-US', placeholder: 'e.g. serendipity' },
       { key: 'zh', label: '中文', code: 'ZH', color: '#34d399', ttsLang: 'zh-CN', placeholder: 'e.g. 意外发现珍宝的运气 / 缘分' }
+    ],
+    // Native memo actions surfaced as one-click icon buttons in the card
+    // header (left of the three-dots "More" menu). Each entry:
+    //   label   - button aria-label / tooltip
+    //   path    - menu labels to walk (last entry is clicked); supports
+    //             submenus, e.g. ['Copy', 'Copy Content']
+    //   icon    - lucide SVG markup shown on the button
+    //   iconName- lucide class fallback used when the menu label changes
+    //             (e.g. "Pin" -> "Unpin" once pinned)
+    // Add / remove entries to change the quick action set.
+    quickActions: [
+      {
+        label: 'Pin',
+        path: ['Pin'],
+        iconName: 'lucide-bookmark-plus',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bookmark-plus" aria-hidden="true"><path d="M12 7v6"></path><path d="M15 10H9"></path><path d="M17 3a2 2 0 0 1 2 2v15a1 1 0 0 1-1.496.868l-4.512-2.578a2 2 0 0 0-1.984 0l-4.512 2.578A1 1 0 0 1 5 20V5a2 2 0 0 1 2-2z"></path></svg>'
+      },
+      {
+        label: 'Edit',
+        path: ['Edit'],
+        iconName: 'lucide-pen-line',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pen-line" aria-hidden="true"><path d="M13 21h8"></path><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg>'
+      },
+      {
+        label: 'Archive',
+        path: ['Archive'],
+        iconName: 'lucide-archive',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-archive" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>'
+      }
     ]
   };
 
@@ -1839,13 +1873,182 @@
     renderLanguageCards();
   }
 
-  // --- Part 3: Lifecycle & Observer ---
+  // ============================================================================
+  // Part 3: Native Quick Actions (Pin / Edit / Archive ...)
+  // ----------------------------------------------------------------------------
+  // Memos keeps these actions inside the card header's three-dots dropdown.
+  // This part surfaces the most used ones as single-click icon buttons placed
+  // directly in the native header (left of the three-dots). A click drives
+  // Memos' own dropdown menu programmatically and clicks the matching item,
+  // so every native behavior (API calls, pin state, editor wiring) is reused
+  // as-is — nothing is reimplemented, nothing can desync.
+  // ============================================================================
+
+  const QUICK_ACTION_TIMEOUT_MS = 1200;
+
+  /** Find the three-dots "More" trigger inside a memo header actions area */
+  function findMoreTrigger(actionsEl) {
+    if (!actionsEl) return null;
+    return actionsEl.querySelector(
+      'button[aria-label="More"], button[data-slot="dropdown-menu-trigger"]'
+    );
+  }
+
+  /** The dropdown menu portal belonging to a given trigger (null when closed) */
+  function findMenuForTrigger(triggerEl) {
+    const menus = [...document.querySelectorAll('[role="menu"]')];
+    if (triggerEl && triggerEl.id) {
+      return menus.find((m) => m.getAttribute('aria-labelledby') === triggerEl.id) || null;
+    }
+    // Trigger without id: fall back to the most recently opened menu
+    return menus.length ? menus[menus.length - 1] : null;
+  }
+
+  /** Resolve once the menu portal for triggerEl is mounted (or on timeout) */
+  function waitForMenu(triggerEl, timeoutMs) {
+    return new Promise((resolve) => {
+      const started = Date.now();
+      const tick = () => {
+        const menu = findMenuForTrigger(triggerEl);
+        if (menu) {
+          resolve(menu);
+          return;
+        }
+        if (Date.now() - started > timeoutMs) {
+          resolve(null);
+          return;
+        }
+        setTimeout(tick, 16);
+      };
+      tick();
+    });
+  }
+
+  /**
+   * Find a menu item by label: exact match first, then a case-insensitive
+   * "contains" match (covers state-dependent labels like Pin / Unpin), then
+   * the lucide icon class (survives label localization).
+   */
+  function findMenuItem(menu, label, iconName) {
+    if (!menu) return null;
+    const items = [...menu.querySelectorAll('[role="menuitem"]')];
+    const textOf = (el) => (el.innerText || '').trim();
+    const lowerLabel = String(label).toLowerCase();
+    let item = items.find((el) => textOf(el) === label);
+    if (!item) item = items.find((el) => textOf(el).toLowerCase().includes(lowerLabel));
+    if (!item && iconName) {
+      try {
+        item = items.find((el) => el.querySelector('svg.' + iconName));
+      } catch (e) {
+        // invalid selector fallback: ignore
+      }
+    }
+    return item || null;
+  }
+
+  /** Close the dropdown owned by triggerEl (leaves the rest of the UI alone) */
+  function closeMenuForTrigger(triggerEl) {
+    if (triggerEl && findMenuForTrigger(triggerEl)) triggerEl.click();
+  }
+
+  /**
+   * Run a native memo action by driving the card's own dropdown menu.
+   * action.path walks menu levels (e.g. ['Copy', 'Copy Content']); the last
+   * entry is the item that gets clicked. Fails quietly (menu closed again)
+   * when Memos' menu structure is not recognized.
+   */
+  async function triggerNativeAction(actionsEl, action) {
+    const trigger = findMoreTrigger(actionsEl);
+    if (!trigger) return;
+
+    let menu = findMenuForTrigger(trigger);
+    if (!menu) {
+      trigger.click();
+      menu = await waitForMenu(trigger, QUICK_ACTION_TIMEOUT_MS);
+      // A racing outside-click may have closed it right as we opened it
+      if (!menu) {
+        trigger.click();
+        menu = await waitForMenu(trigger, QUICK_ACTION_TIMEOUT_MS);
+      }
+    }
+    if (!menu) {
+      console.warn('[LanguageCard] quick action "' + action.label + '": dropdown menu did not open');
+      return;
+    }
+
+    // Walk submenu levels: every path entry except the last is a sub-trigger
+    let currentMenu = menu;
+    for (let i = 0; i < action.path.length - 1; i++) {
+      const subTrigger = findMenuItem(currentMenu, action.path[i]);
+      if (!subTrigger) {
+        closeMenuForTrigger(trigger);
+        return;
+      }
+      subTrigger.dispatchEvent(new MouseEvent('pointermove', { bubbles: true }));
+      subTrigger.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
+      subTrigger.click();
+      const subMenu = await waitForMenu(subTrigger, QUICK_ACTION_TIMEOUT_MS);
+      if (!subMenu) {
+        closeMenuForTrigger(trigger);
+        return;
+      }
+      currentMenu = subMenu;
+    }
+
+    const leafLabel = action.path[action.path.length - 1];
+    const item = findMenuItem(currentMenu, leafLabel, action.iconName);
+    if (!item) {
+      console.warn('[LanguageCard] quick action "' + action.label + '": menu item not found');
+      closeMenuForTrigger(trigger);
+      return;
+    }
+    item.click();
+  }
+
+  /**
+   * Inject quick-action icon buttons into every memo header actions area.
+   * Idempotent: the actions container is marked once injected, so Memos
+   * re-rendering the card simply drops the old buttons with the old DOM and
+   * the observer re-injects fresh ones.
+   */
+  function injectQuickActions() {
+    if (!CONFIG.quickActions || CONFIG.quickActions.length === 0) return;
+    document.querySelectorAll('article [data-slot="memo-header-actions"]').forEach((actionsEl) => {
+      if (actionsEl.hasAttribute('data-lc-quick-actions')) return;
+      const moreBtn = findMoreTrigger(actionsEl);
+      if (!moreBtn) return;
+      actionsEl.setAttribute('data-lc-quick-actions', '1');
+
+      const fragment = document.createDocumentFragment();
+      CONFIG.quickActions.forEach((action) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        // Reuse the native More button's utility classes so the look matches exactly
+        btn.className = (moreBtn.className ? moreBtn.className + ' ' : '') + 'lc-quick-action';
+        btn.setAttribute('aria-label', action.label);
+        btn.title = action.label;
+        btn.innerHTML = action.icon;
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          triggerNativeAction(actionsEl, action);
+        });
+        fragment.appendChild(btn);
+      });
+      // Insert left of the three-dots button; React inserts its own children
+      // relative to its tracked nodes, so extra siblings here survive re-renders
+      actionsEl.insertBefore(fragment, moreBtn);
+    });
+  }
+
+  // --- Part 4: Lifecycle & Observer ---
   let debounceTimer = null;
   const observer = new MutationObserver(() => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
       renderLanguageCards();
       injectCreatorUI();
+      injectQuickActions();
     }, 120);
   });
 
@@ -1855,9 +2058,11 @@
     document.addEventListener('DOMContentLoaded', () => {
       renderLanguageCards();
       injectCreatorUI();
+      injectQuickActions();
     });
   } else {
     renderLanguageCards();
     injectCreatorUI();
+    injectQuickActions();
   }
 })();
