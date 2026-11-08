@@ -16,6 +16,20 @@ import { buildCardContentV3, normalizeTags } from './card-model.js';
 import { defaultType, activeTypeForNew } from './card-types.js';
 
 let pageScrollLock = null;
+let spaceSwipeAnimationTimer = null;
+
+function animateSpaceSwipe(direction) {
+  const header = document.getElementById('lc-modal-header');
+  if (!header) return;
+  header.classList.remove('lc-space-swipe-next', 'lc-space-swipe-previous');
+  void header.offsetWidth;
+  header.classList.add(direction > 0 ? 'lc-space-swipe-next' : 'lc-space-swipe-previous');
+  clearTimeout(spaceSwipeAnimationTimer);
+  spaceSwipeAnimationTimer = setTimeout(() => {
+    header.classList.remove('lc-space-swipe-next', 'lc-space-swipe-previous');
+    spaceSwipeAnimationTimer = null;
+  }, 260);
+}
 
 function lockPageScroll() {
   if (pageScrollLock) return;
@@ -355,7 +369,8 @@ function unlockPageScroll() {
       const dy = touch ? touch.clientY - swipeStart.y : 0;
       swipeStart = null;
       if (horizontalSwipe && Math.abs(dx) >= 35 && Math.abs(dx) > Math.abs(dy)) {
-        swipeQuickSpaceSelector(dx < 0 ? 1 : -1);
+        const direction = dx < 0 ? 1 : -1;
+        if (swipeQuickSpaceSelector(direction)) animateSpaceSwipe(direction);
       }
       horizontalSwipe = false;
     }, { passive: true });
@@ -366,7 +381,7 @@ function unlockPageScroll() {
 
     overlay.innerHTML = `
       <div class="lc-modal-dialog">
-        <div class="lc-modal-header">
+        <div class="lc-modal-header" id="lc-modal-header">
           <div class="lc-modal-title-row">
             <h3 class="lc-modal-title">
               <span>🔤</span>

@@ -299,7 +299,8 @@ async function runScript(file, label) {
     });
     if (!editorSwipeMove.defaultPrevented ||
         JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/other' ||
-        !env.ids.get('lc-space-select-panel').hidden) {
+        !env.ids.get('lc-space-select-panel').hidden ||
+        !env.ids.get('lc-modal-header').classList.contains('lc-space-swipe-next')) {
         throw new Error('swiping the editor itself must switch spaces without opening its dropdown');
     }
     const typeBeforeBodySwipe = JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name;

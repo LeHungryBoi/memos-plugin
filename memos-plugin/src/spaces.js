@@ -135,7 +135,7 @@ import {
 
   function swipeQuickSpaceSelector(delta) {
     const types = sortTypes(state.types);
-    if (types.length < 2) return;
+    if (types.length < 2) return null;
     const currentIndex = types.findIndex(type => state.activeType && type.id === state.activeType.id);
     const startIndex = currentIndex < 0 ? 0 : currentIndex;
     const nextIndex = (startIndex + delta + types.length) % types.length;
@@ -144,6 +144,7 @@ import {
     if (selected && typeof state.onQuickTypeSelected === 'function') {
       state.onQuickTypeSelected(selected);
     }
+    return selected;
   }
 
   /**
