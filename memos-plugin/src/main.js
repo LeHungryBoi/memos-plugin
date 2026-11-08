@@ -1,4 +1,5 @@
-import cssText from './styles/language-card.css';
+// Build-time manifest: build.mjs resolves this to one concatenated stylesheet.
+import cssText from './styles/index.css';
 import { renderLanguageCards, forceRerenderCards } from './card-render.js';
 import { injectCreatorUI } from './editor.js';
 import { injectQuickActions } from './quick-actions.js';

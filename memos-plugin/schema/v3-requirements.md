@@ -99,7 +99,7 @@
 
 **验收**：语言开关同步切换其对应的语言说明并将启用键写入 `_s`；统一说明显示在语言说明下方并写入 `_u`；总开关通过 `_x` 控制说明显示；旧版全局说明及 V2 卡片正常读取；编辑已有卡片不丢值。
 
-**涉及文件**：`src/card-model.js`（解析/序列化）、`src/editor.js`（输入、开关、preview）、`src/card-render.js`（渲染）、`src/card-types.js`（模式定义）、`src/styles/language-card.css`。
+**涉及文件**：`src/card-model.js`（解析/序列化）、`src/editor.js`（输入、开关、preview）、`src/card-render.js`（渲染）、`src/card-types.js`（模式定义）、`src/styles/index.css` + `src/styles/components/explanations.css`（说明区样式）。
 
 ---
 

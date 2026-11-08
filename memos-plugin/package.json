@@ -6,7 +6,7 @@
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
     "build:split": "node build.mjs --no-inline-css",
-    "test": "node tools/schema-v2.test.mjs && node tools/schema-v3.test.mjs && node tools/smoke-test.mjs",
+    "test": "node tools/schema-v2.test.mjs && node tools/schema-v3.test.mjs && node tools/css-modules.test.mjs && node tools/smoke-test.mjs",
     "test:schema": "node tools/schema-v2.test.mjs",
     "test:v3": "node tools/schema-v3.test.mjs"
   },

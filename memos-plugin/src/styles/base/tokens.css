@@ -1,0 +1,55 @@
+/* ==========================================================================
+   Language Card Extension for Memos (Custom CSS v2.9)
+   100% Theme-Adaptive (Auto Dark / Light Mode Matching)
+   - Dynamic Language Visibility: toggled-off language takes 0 space on x-axis
+   - Mobile-First Side-by-Side: 2 columns remain side-by-side on phone screens
+   - JA (Left) -> EN (Middle) -> ZH (Right) ordering
+   - Per-card Edit button in the note bar
+   - Space indicator in the modal header (ok / multiple-with-warning / missing)
+   - Language card header box with copy button (modal bottom & info popup)
+   - Native Quick Actions (Pin / Edit / Archive) in memo card headers
+   Paste into: Memos Admin -> Settings -> System -> Additional Style
+   ========================================================================== */
+
+/* --- Base Variables & Theme Defaults --- */
+:root {
+  --lc-bg-card: var(--card, rgba(0, 0, 0, 0.03));
+  --lc-border-card: var(--border, rgba(0, 0, 0, 0.12));
+  --lc-text-primary: var(--foreground, #0f172a);
+  --lc-text-muted: var(--muted-foreground, #64748b);
+  --lc-text-badge: #475569;
+  --lc-modal-bg: var(--popover, #ffffff);
+  --lc-modal-border: var(--border, rgba(0, 0, 0, 0.15));
+  --lc-input-bg: var(--background, #ffffff);
+  --lc-input-text: var(--foreground, #0f172a);
+  --lc-input-placeholder: #94a3b8;
+  --lc-preview-bg: rgba(0, 0, 0, 0.04);
+  --lc-preview-text: #059669;
+  --lc-chip-bg: rgba(59, 130, 246, 0.1);
+  --lc-chip-text: #2563eb;
+  --lc-chip-border: rgba(59, 130, 246, 0.2);
+  --lc-slot-bg: rgba(0, 0, 0, 0.03);
+}
+
+/* Force Dark Mode Palette when Memos is in Dark Mode */
+.lc-theme-dark,
+.dark,
+:root[style*="color-scheme: dark"] {
+  --lc-bg-card: rgba(255, 255, 255, 0.05);
+  --lc-border-card: rgba(255, 255, 255, 0.14);
+  --lc-text-primary: #f8fafc;
+  --lc-text-muted: #94a3b8;
+  --lc-text-badge: #cbd5e1;
+  --lc-modal-bg: #18181b;
+  --lc-modal-border: rgba(255, 255, 255, 0.15);
+  --lc-input-bg: rgba(0, 0, 0, 0.35);
+  --lc-input-text: #f8fafc;
+  --lc-input-placeholder: #71717a;
+  --lc-preview-bg: rgba(0, 0, 0, 0.5);
+  --lc-preview-text: #34d399;
+  --lc-chip-bg: rgba(59, 130, 246, 0.2);
+  --lc-chip-text: #93c5fd;
+  --lc-chip-border: rgba(59, 130, 246, 0.4);
+  --lc-slot-bg: rgba(0, 0, 0, 0.25);
+}
+

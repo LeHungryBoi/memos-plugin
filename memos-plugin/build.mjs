@@ -1,11 +1,12 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
 import { acquireWatchLock, releaseWatchLock } from './tools/watch-lock.mjs';
+import { collectCss } from './tools/css-manifest.mjs';
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
-const cssSource = path.join(projectRoot, 'src/styles/language-card.css');
+const cssEntry = path.join(projectRoot, 'src/styles/index.css');
 const isWatch = process.argv.includes('--watch');
 const outputDir = isWatch ? path.join(projectRoot, '.watch') : projectRoot;
 const outJs = path.join(outputDir, 'language-card.js');
@@ -18,37 +19,39 @@ mkdirSync(outputDir, { recursive: true });
 
 const jsBanner = `/* ============================================================================
  * Language Card Extension for Memos - GENERATED FILE, DO NOT EDIT HERE.
- * Sources: src/*.js and src/styles/language-card.css
+ * Sources: src/*.js and the CSS modules listed in src/styles/index.css
  * Rebuild published files: npm run build; watcher output: .watch/language-card.js
  * Paste this whole file into Settings -> System -> Additional Script.
  * ============================================================================ */
 "use strict";`;
 const cssBanner = `/* Language Card Extension for Memos - GENERATED FILE.
- * Source: src/styles/language-card.css. Rebuild: npm run build.
+ * Source: src/styles/index.css (module manifest). Rebuild: npm run build.
  * Optional: the default language-card.js already inlines these styles.
  * Paste into Settings -> System -> Additional Style only when using
  * a --no-inline-css build (or the classic two-box install).
  */`;
 
-const readCss = () => readFileSync(cssSource, 'utf8').replace(/\r\n/g, '\n');
-
+// index.css is a manifest: collectCss() concatenates its modules in cascade order.
 function writeCssOutput() {
-    writeFileSync(outCss, `${cssBanner}\n${readCss()}`, 'utf8');
+    writeFileSync(outCss, `${cssBanner}\n${collectCss(cssEntry).css}`, 'utf8');
 }
 
 const cssPlugin = {
     name: 'language-card-css',
     setup(build) {
         build.onResolve({ filter: /\.css$/ }, () => ({
-            path: 'styles/language-card.css',
+            path: 'styles/index.css',
             namespace: 'lc-css'
         }));
-        build.onLoad({ filter: /.*/, namespace: 'lc-css' }, () => ({
-            contents: `export default ${JSON.stringify(noInlineCss ? '' : readCss())};`,
-            loader: 'js',
-            // The CSS is not a real JS import: tell esbuild to watch it anyway.
-            watchFiles: [cssSource]
-        }));
+        build.onLoad({ filter: /.*/, namespace: 'lc-css' }, () => {
+            const { css, files } = collectCss(cssEntry);
+            return {
+                contents: `export default ${JSON.stringify(noInlineCss ? '' : css)};`,
+                loader: 'js',
+                // The CSS is not a real JS import: watch the manifest and every module.
+                watchFiles: files
+            };
+        });
         build.onEnd(result => {
             if (result.errors.length === 0) writeCssOutput();
         });

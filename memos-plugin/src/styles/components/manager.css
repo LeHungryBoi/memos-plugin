@@ -1,0 +1,145 @@
+/* --- V3: Card type / space manager (R4) --- */
+.lc-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lc-manager-section {
+  padding: 10px 12px;
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-bg-card);
+}
+
+.lc-manager-section h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+}
+
+.lc-manager-hint {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--lc-text-muted);
+}
+
+.lc-type-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lc-type-card {
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-modal-bg);
+  overflow: hidden;
+}
+
+.lc-type-card.lc-type-in-use {
+  border-color: #34d399;
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.25);
+}
+
+.lc-type-card.lc-type-open {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.lc-type-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.lc-type-card-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  color: var(--lc-text-primary);
+}
+
+.lc-type-card-title b {
+  font-size: 13px;
+}
+
+.lc-type-meta {
+  font-size: 10px;
+  color: var(--lc-text-muted);
+}
+
+.lc-type-badge-use {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+}
+
+.lc-type-card-body {
+  padding: 4px 10px 12px;
+  border-top: 1px solid var(--lc-border-card);
+}
+
+.lc-type-row-actions,
+.lc-manager-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lc-manager-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lc-manager-create-space {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-manager-create-space .lc-form-input {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (max-width: 520px) {
+  .lc-manager-create-space {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.lc-editor-block {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-modal-bg);
+}
+
+.lc-editor-block h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+}
+

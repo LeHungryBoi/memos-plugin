@@ -1,0 +1,56 @@
+/* ==========================================================================
+ * Language Card · 样式统一入口（构建清单 / manifest）
+ *
+ * 本文件不是浏览器直接使用的样式表：Memos 的 Additional Style、以及注入的
+ * <style> 都无法解析相对路径的 @import。构建时由 build.mjs 调用
+ * tools/css-manifest.mjs 读取下面的清单，按顺序把每个模块的内容原样拼成
+ * 一份 CSS，再内联进 language-card.js，并另存为独立的 language-card.css。
+ *
+ * 加载顺序 = 清单书写顺序 = 拆分前单文件里的规则顺序。CSS 层叠对顺序敏感，
+ * 调整顺序即可能改变最终样式，请勿随意重排。层与依赖：
+ *   1. base/        基础层：--lc-* 设计令牌与深色主题覆盖，必须最先加载，
+ *                   后续所有模块都读取这些变量。
+ *   2. components/  组件层：按功能切分，媒体查询与所属组件放在一起
+ *                   （不集中抽离），保证覆盖关系与拆分前完全一致。
+ *   3. utilities/   收尾覆盖层：必须最后加载，内含对前面组件的晚期覆盖
+ *                   （如 .lc-space-info-dialog 宽度）与跨组件窄屏规则。
+ *
+ * 没有独立的「全局 reset」或「原子工具类」文件：插件只作用于 .lc-* 前缀
+ * 的节点，全局 reset 会污染 Memos 宿主页面；布局（grid）规则就近放在各自
+ * 组件模块里，避免为了分层而搬运规则、打乱层叠顺序。
+ *
+ * 维护约定：
+ *   - 新增样式放进职责对应的现有模块；只有新功能才新建模块并在此登记。
+ *   - 模块内容必须原样拼接：文件以换行结尾，构建器不插入额外字符。
+ *   - 禁止模块内再写 @import（保持单层清单，顺序一目了然）。
+ *   - 改动后执行 npm run build；npm test 会校验清单、顺序、重复定义与产物。
+ * ========================================================================== */
+
+/* --- 基础层：设计令牌与主题 -------------------------------------------- */
+/* 原单文件的整体头注释也留在 base/tokens.css 开头，保证产出文本不变。 */
+@import "./base/tokens.css";
+
+/* --- 组件层：feed 卡片与首页入口 ---------------------------------------- */
+@import "./components/card.css";           /* 卡片网格、槽位、徽标、正文、标签 chip */
+@import "./components/floating-bar.css";   /* 首页悬浮操作栏 / New Card FAB */
+
+/* --- 组件层：编辑弹窗 --------------------------------------------------- */
+@import "./components/modal-shell.css";     /* 遮罩、对话框、头部、入场/切换动画 */
+@import "./components/space-selector.css";  /* Space 状态指示器与独立快选下拉 */
+@import "./components/modal-chrome.css";    /* 头部动作栏、语言条、关闭按钮、滚动 body */
+@import "./components/editor-grid.css";     /* 并排编辑网格、语言槽位、textarea */
+@import "./components/forms.css";           /* 表单控件、预览框、底栏与主/次按钮 */
+
+/* --- 组件层：编辑器附属浮层 --------------------------------------------- */
+@import "./components/tag-dropdown.css";    /* 标签自动补全下拉 */
+@import "./components/header-box.css";      /* 卡片 JSON 头与复制按钮 */
+@import "./components/quick-actions.css";   /* memo 卡头的原生快捷按钮与窄屏隐藏 */
+@import "./components/space-info.css";      /* Space 信息弹窗（含富文本排版） */
+@import "./components/explanations.css";    /* 说明区展示与编辑面板 */
+
+/* --- 组件层：类型 / Space 管理 ------------------------------------------ */
+@import "./components/manager.css";   /* 类型卡片、分区编辑、Space 管理面板 */
+@import "./components/migration.css";/* 不兼容 note 的迁移向导 */
+
+/* --- 收尾覆盖层：必须保持最后 ------------------------------------------- */
+@import "./utilities/overrides.css"; /* 分区行、状态/错误文案、晚期宽度覆盖、窄屏 */

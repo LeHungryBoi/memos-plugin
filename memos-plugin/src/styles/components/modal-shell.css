@@ -1,0 +1,113 @@
+/* --- Modal Overlay & Dialog --- */
+.lc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.lc-modal-dialog {
+  width: 100%;
+  max-width: 820px;
+  max-height: calc(100dvh - 24px);
+  display: flex;
+  flex-direction: column;
+  background: var(--lc-modal-bg) !important;
+  color: var(--lc-text-primary) !important;
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  border: 1px solid var(--lc-modal-border);
+  animation: lc-modal-in 0.18s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes lc-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.lc-modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--lc-modal-border);
+  gap: 10px;
+}
+
+.lc-modal-header.lc-space-swipe-next {
+  animation: lc-space-swipe-next 240ms cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+.lc-modal-header.lc-space-swipe-previous {
+  animation: lc-space-swipe-previous 240ms cubic-bezier(0.2, 0.75, 0.3, 1);
+}
+
+@keyframes lc-space-swipe-next {
+  from {
+    opacity: 0.65;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes lc-space-swipe-previous {
+  from {
+    opacity: 0.65;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lc-modal-header.lc-space-swipe-next,
+  .lc-modal-header.lc-space-swipe-previous {
+    animation-duration: 1ms;
+  }
+}
+
+.lc-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.lc-space-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lc-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--lc-text-primary) !important;
+}
+

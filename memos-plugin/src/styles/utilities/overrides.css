@@ -1,0 +1,37 @@
+.lc-section-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(4, 28px);
+  gap: 4px;
+  margin-bottom: 5px;
+}
+
+.lc-section-row .lc-form-input {
+  min-width: 0;
+  padding: 5px 7px;
+  font-size: 11px;
+}
+
+.lc-manager-status {
+  font-size: 12px;
+  color: #059669;
+  min-height: 16px;
+}
+
+.lc-manager-error,
+.lc-manager-status.lc-manager-error {
+  color: #ef4444;
+}
+
+.lc-space-info-dialog {
+  max-width: 860px;
+}
+
+@media (max-width: 640px) {
+  .lc-section-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(4, 28px);
+  }
+  .lc-type-card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

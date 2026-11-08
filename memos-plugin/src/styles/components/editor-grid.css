@@ -1,0 +1,68 @@
+/* --- Side-by-Side Editor Grid (Maintains side-by-side on mobile!) --- */
+.lc-editor-grid {
+  display: grid;
+  /* Dynamic columns: default 2 cols side-by-side on phone screens */
+  grid-template-columns: repeat(var(--lc-editor-cols, 2), minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.lc-editor-slot {
+  border-radius: 9px;
+  border: 1px solid var(--lc-modal-border);
+  background: var(--lc-slot-bg);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.lc-editor-slot:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+  background: var(--lc-input-bg);
+}
+
+.lc-slot-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lc-slot-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.lc-slot-hint {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.55;
+  color: var(--lc-text-muted);
+}
+
+.lc-slot-textarea {
+  width: 100%;
+  min-height: 70px;
+  border: none;
+  background: transparent !important;
+  color: var(--lc-input-text) !important;
+  font-size: 13.5px;
+  line-height: 1.4;
+  resize: vertical;
+  outline: none;
+  padding: 0;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.lc-slot-textarea::placeholder {
+  color: var(--lc-input-placeholder) !important;
+  opacity: 0.8;
+}
+

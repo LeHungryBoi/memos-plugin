@@ -1,0 +1,147 @@
+/* --- Tag Autocomplete Dropdown (fixed: anchored to the caret in viewport coords) --- */
+.lc-tag-dropdown {
+  position: fixed;
+  z-index: 10050;
+  background: var(--lc-modal-bg) !important;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 9px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: lc-tag-drop-in 0.12s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes lc-tag-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lc-tag-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: rgba(140, 140, 140, 0.08);
+  border-bottom: 1px solid var(--lc-modal-border);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--lc-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lc-tag-dropdown-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+}
+
+.lc-tag-dropdown-list::-webkit-scrollbar {
+  width: 5px;
+}
+.lc-tag-dropdown-list::-webkit-scrollbar-thumb {
+  background: rgba(140, 140, 140, 0.3);
+  border-radius: 4px;
+}
+
+.lc-tag-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  user-select: none;
+}
+
+.lc-tag-item:hover,
+.lc-tag-item.active {
+  background: rgba(59, 130, 246, 0.18);
+  color: #2563eb;
+}
+
+.lc-theme-dark .lc-tag-item:hover,
+.lc-theme-dark .lc-tag-item.active {
+  background: rgba(59, 130, 246, 0.28);
+  color: #60a5fa;
+}
+
+.lc-tag-item-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.lc-tag-icon {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b82f6;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.lc-tag-label {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lc-tag-label b {
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lc-theme-dark .lc-tag-label b {
+  color: #93c5fd;
+}
+
+.lc-tag-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(140, 140, 140, 0.14);
+  color: var(--lc-text-muted);
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+.lc-tag-item-create {
+  border-top: 1px dashed var(--lc-modal-border);
+  margin-top: 3px;
+  padding-top: 6px;
+  color: #10b981;
+}
+
+.lc-tag-item-create .lc-tag-icon {
+  color: #10b981;
+}
+
+.lc-tag-dropdown-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--lc-text-muted);
+  text-align: center;
+  font-style: italic;
+}
+

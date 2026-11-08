@@ -1,13 +1,13 @@
 /* ============================================================================
  * Language Card Extension for Memos - GENERATED FILE, DO NOT EDIT HERE.
- * Sources: src/*.js and src/styles/language-card.css
+ * Sources: src/*.js and the CSS modules listed in src/styles/index.css
  * Rebuild published files: npm run build; watcher output: .watch/language-card.js
  * Paste this whole file into Settings -> System -> Additional Script.
  * ============================================================================ */
 "use strict";
 (() => {
-  // lc-css:styles/language-card.css
-  var language_card_default = `/* ==========================================================================
+  // lc-css:styles/index.css
+  var styles_default = `/* ==========================================================================
    Language Card Extension for Memos (Custom CSS v2.9)
    100% Theme-Adaptive (Auto Dark / Light Mode Matching)
    - Dynamic Language Visibility: toggled-off language takes 0 space on x-axis
@@ -4301,7 +4301,7 @@ ${tags}` : "");
     style.textContent = css;
     (document.head || document.body).appendChild(style);
   }
-  injectStyles(language_card_default);
+  injectStyles(styles_default);
   getCardTypes().then(() => warmMemoSpaceCache()).then(() => forceRerenderCards()).catch(() => {
   });
   var debounceTimer = null;

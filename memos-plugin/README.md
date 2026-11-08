@@ -7,7 +7,7 @@
 ## 目录结构说明
 
 - `/memos-plugin`: **Plan B** Memos 原生 Custom JS/CSS 插件方案。
-  - `src/`: **源码（只改这里）**，按职责拆分的小模块 + `src/styles/language-card.css`。
+  - `src/`: **源码（只改这里）**，按职责拆分的小模块 + `src/styles/`（模块化样式，入口 `index.css`）。
   - `build.mjs` / `package.json`: esbuild 构建器，把所有模块**合并成一个完整文件**。
   - `language-card.js`: **生成物**，合并后的完整脚本（已内联 CSS），直接粘贴到 Memos。
   - `language-card.css`: **生成物**，独立样式表，仅旧式双框安装时需要。
@@ -54,7 +54,7 @@
 | `src/editor.js` | 悬浮栏、动态并排编辑器、说明区开关、预览与保存 |
 | `src/quick-actions.js` | 原生 Pin / Edit / Archive / Copy Content / Delete 快捷按钮 |
 | `src/main.js` | 样式注入、类型预热、MutationObserver、启动 |
-| `src/styles/language-card.css` | 全部样式（构建时内联进 JS） |
+| `src/styles/index.css` | 样式统一入口（构建清单，按顺序合并全部模块后内联进 JS） |
 
 ```powershell
 cd memos-plugin
@@ -62,10 +62,25 @@ npm install          # 仅首次，安装 esbuild
 npm run build        # 生成 language-card.js + language-card.css
 npm run watch        # 监听 src/ 变化，自动重建（单实例）
 npm run build:split  # 旧式双框安装：JS 不内联 CSS
-npm test            # V2 + V3 契约向量 + mock DOM 冒烟测试
+npm test            # V2 + V3 契约向量 + CSS 模块守卫 + mock DOM 冒烟测试
 npm run test:schema # 只跑 V2 数据格式契约向量
 npm run test:v3     # 只跑 V3 marker / payload / 迁移向量
 ```
+
+### 样式模块（`src/styles/`）
+
+原来 1300+ 行的单文件 CSS 已按职责拆成 16 个模块，由 `index.css` 统一登记：
+
+| 层 | 文件 | 职责 |
+| --- | --- | --- |
+| 基础 | `base/tokens.css` | `--lc-*` 设计令牌、深色主题覆盖；后续所有模块依赖，必须最先加载 |
+| 组件 | `components/*.css`（14 个） | 卡片网格、悬浮栏、弹窗外壳/头部、Space 选择器、编辑器网格、表单与按钮、标签下拉、JSON 头、快捷操作、信息弹窗、说明区、类型管理、迁移向导 |
+| 收尾覆盖 | `utilities/overrides.css` | 分区行、状态文案、晚期宽度覆盖与跨组件窄屏规则，必须最后加载 |
+
+- **加载顺序 = `index.css` 里 `@import` 的书写顺序 = 拆分前的规则顺序**。CSS 层叠对顺序敏感，重排会改变样式；`build.mjs` 通过 `tools/css-manifest.mjs` 按清单逐字拼接模块，再内联进 JS、另存为 `language-card.css`。浏览器无法解析 Memos 注入样式里的相对 `@import`，所以这一步由构建器完成。
+- 模块是原文件的精确切片，拼接时**不插入额外字符**，生成物与拆分前的样式逐字节一致；各组件的媒体查询就近留在组件里，不另抽响应式文件。
+- 不做全局 reset 或原子工具类：插件只作用于 `.lc-*` 前缀节点，全局 reset 会污染 Memos 宿主页面。
+- 新增样式放进职责对应的模块；新建模块必须在 `index.css` 登记、文件以换行结尾，且模块内禁止嵌套 `@import`。`npm test` 会校验孤儿模块、加载顺序、重复规则定义，以及生成物是否与源码同步。
 
 **数据格式**：V3 卡片定义（分区、排序、别名）只写在 Space 的 description marker 里；
 note `content` 存分区值、启用分区、每语言与统一说明及尾部 tags。格式见 `schema/v3.md`，V2 兼容规则见 `schema/v2.md`。
@@ -74,8 +89,8 @@ note `content` 存分区值、启用分区、每语言与统一说明及尾部 t
 **VS Code 自动监听**：打开工作区根目录时，`.vscode/tasks.json` 会启动 `npm run watch`。
 监听构建只写入被 Git 忽略的 `memos-plugin/.watch/`，不会改动 Git 跟踪的发布文件，因此 rebase 时无需停止 watcher。
 开发时从 `memos-plugin/.watch/language-card.js` 复制最新构建；仓库中的 `language-card.js` 保持为可直接下载和粘贴的发布版本。
-`tools/watch-lock.mjs` 保证多窗口/多次启动只有一个 watcher 写产物；改任意 `src/*.js` 或 CSS
-都会在终端打印一次构建结果。
+`tools/watch-lock.mjs` 保证多窗口/多次启动只有一个 watcher 写产物；改任意 `src/*.js`、
+`src/styles/index.css` 或其下的任一 CSS 模块，都会在终端打印一次构建结果。
 
 `language-card.js` / `language-card.css` 是**生成文件**，不要直接编辑；改 `src/` 后重新构建。
 只有显式运行 `npm run build`（或 `npm run build:split`）才会更新 Git 跟踪的发布文件。

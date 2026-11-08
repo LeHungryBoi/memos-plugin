@@ -1,0 +1,42 @@
+/* --- Language Card Header Box (JSON + copy button, modal bottom & info popup) --- */
+.lc-header-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--lc-preview-bg) !important;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+  padding: 6px 6px 6px 12px;
+}
+
+.lc-header-json {
+  flex: 1;
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--lc-preview-text) !important;
+  word-break: break-all;
+  line-height: 1.45;
+}
+
+.lc-header-copy-btn {
+  flex-shrink: 0;
+  background: rgba(140, 140, 140, 0.12);
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  padding: 5px 8px;
+  transition: all 0.15s ease;
+}
+
+.lc-header-copy-btn:hover {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.lc-header-copy-btn:active {
+  transform: scale(0.94);
+}
+
