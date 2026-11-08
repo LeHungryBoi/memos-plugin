@@ -23,7 +23,12 @@ function makeEnvironment() {
     const created = [];
     const fetchCalls = [];
     const spaces = [
-        { name: 'spaces/lc', title: 'Language Cards', description: '{"_t":"lc","v":2}' }
+        { name: 'spaces/lc', title: 'Language Cards', description: '{"_t":"lc","v":2}' },
+        {
+            name: 'spaces/other',
+            title: 'Other',
+            description: '{"_t":"lc","v":3,"typeId":"other","name":"Other","order":10,"sections":[{"key":"en","label":"English","color":"#38bdf8"}]}'
+        }
     ];
     const storageWrites = {};
     const storage = new Map([
@@ -120,8 +125,8 @@ function makeEnvironment() {
             this.type = type;
             Object.assign(this, init);
         }
-        preventDefault() {}
-        stopPropagation() {}
+        preventDefault() { this.defaultPrevented = true; }
+        stopPropagation() { this.propagationStopped = true; }
     }
 
     const document = new El('body');
@@ -185,7 +190,7 @@ function makeEnvironment() {
             addEventListener() {},
             innerWidth: 1280,
             innerHeight: 800,
-            location: { pathname: '/', href: 'http://localhost/' }
+            location: { pathname: '/s/other', href: 'http://localhost/s/other' }
         },
         navigator: { clipboard: { writeText: async () => {} } },
         localStorage: {
@@ -218,10 +223,17 @@ function makeEnvironment() {
     const fire = (id, type, event = {}) => {
         const el = ids.get(id);
         if (!el) throw new Error(`missing element #${id}`);
-        return el.dispatchEvent(new StyledEvent(type, event));
+        const styledEvent = new StyledEvent(type, event);
+        el.dispatchEvent(styledEvent);
+        return styledEvent;
+    };
+    const fireDocument = (type, event = {}) => {
+        const styledEvent = new StyledEvent(type, event);
+        for (const fn of listeners.get(type) || []) fn(styledEvent);
+        return styledEvent;
     };
 
-    return { sandbox, click, fire, ids, htmlById, created, fetchCalls, spaces, storageWrites };
+    return { sandbox, click, fire, fireDocument, ids, htmlById, created, fetchCalls, spaces, storageWrites };
 }
 
 const tick = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -250,6 +262,70 @@ async function runScript(file, label) {
     await tick(20);
     if (env.ids.has('lc-toggle-btn-ja')) throw new Error('R5.1: homepage language pills must be gone');
     if (!env.ids.has('lc-explanation-toggle')) throw new Error('R3: independent explanation switch missing');
+    if (!env.ids.has('lc-space-select-btn') || !env.ids.has('lc-space-indicator')) {
+        throw new Error('space selection and space management must have separate controls');
+    }
+    if (env.ids.get('lc-space-select-text').innerText !== 'Language Cards') {
+        throw new Error('the first ordered type must be the default even when the page is in another space');
+    }
+    if (env.sandbox.document.body.style.position !== 'fixed' ||
+        env.sandbox.document.documentElement.style.overflow !== 'hidden') {
+        throw new Error('opening the editor must lock page scrolling');
+    }
+    const backgroundTouch = env.fireDocument('touchmove', {
+        target: { closest: () => null }
+    });
+    if (!backgroundTouch.defaultPrevented) {
+        throw new Error('touch scrolling outside the editor must be prevented');
+    }
+    const editorTouch = env.fireDocument('touchmove', {
+        target: { closest: selector => selector === '.lc-modal-dialog' ? {} : null }
+    });
+    if (editorTouch.defaultPrevented) {
+        throw new Error('touch scrolling inside the editor must remain available');
+    }
+
+    env.ids.get('lc-space-select-panel').hidden = true;
+    env.fire('lc-modal-overlay', 'touchstart', {
+        target: { closest: selector => selector === '.lc-modal-header' ? {} : null },
+        touches: [{ clientX: 200, clientY: 100 }]
+    });
+    const editorSwipeMove = env.fire('lc-modal-overlay', 'touchmove', {
+        target: { closest: selector => selector === '.lc-modal-header' ? {} : null },
+        touches: [{ clientX: 140, clientY: 102 }]
+    });
+    env.fire('lc-modal-overlay', 'touchend', {
+        changedTouches: [{ clientX: 140, clientY: 102 }]
+    });
+    if (!editorSwipeMove.defaultPrevented ||
+        JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/other' ||
+        !env.ids.get('lc-space-select-panel').hidden) {
+        throw new Error('swiping the editor itself must switch spaces without opening its dropdown');
+    }
+    const typeBeforeBodySwipe = JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name;
+    env.fire('lc-modal-overlay', 'touchstart', {
+        target: { closest: selector => selector === '.lc-modal-body' ? {} : null },
+        touches: [{ clientX: 200, clientY: 100 }]
+    });
+    const bodySwipeMove = env.fire('lc-modal-overlay', 'touchmove', {
+        target: { closest: selector => selector === '.lc-modal-body' ? {} : null },
+        touches: [{ clientX: 140, clientY: 102 }]
+    });
+    env.fire('lc-modal-overlay', 'touchend', {
+        changedTouches: [{ clientX: 140, clientY: 102 }]
+    });
+    if (bodySwipeMove.defaultPrevented ||
+        JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== typeBeforeBodySwipe) {
+        throw new Error('swipes in the editor body must not switch spaces');
+    }
+
+    env.ids.get('lc-space-select-panel').hidden = true;
+    await env.click('lc-space-select-btn');
+    if (env.ids.get('lc-space-select-panel').hidden) throw new Error('quick Space dropdown did not open');
+    env.fireDocument('pointerdown', { target: { outside: true } });
+    if (!env.ids.get('lc-space-select-panel').hidden || env.ids.get('lc-space-select-btn').getAttribute('aria-expanded') !== 'false') {
+        throw new Error('clicking outside the Space dropdown must dismiss it');
+    }
 
     const tagsInput = env.ids.get('lc-input-tags');
     tagsInput.value = '#vo';
@@ -262,6 +338,10 @@ async function runScript(file, label) {
     env.ids.get('lc-input-en').value = 'hello';
     await env.click('lc-btn-save'); // POST /api/memos
     await tick(20);
+    if (env.sandbox.document.body.style.position !== undefined ||
+        env.sandbox.document.documentElement.style.overflow !== undefined) {
+        throw new Error('closing the editor must restore page scrolling');
+    }
 
     await env.click('lc-explanation-toggle'); // R3: switch is independent of section chips
     if (env.ids.has('lc-header-json')) throw new Error('editor must not show a second marker preview');
@@ -290,6 +370,18 @@ async function runScript(file, label) {
     const selectedSpace = JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}');
     if (selectedSpace.name !== createdSpace.name || selectedSpace.manual !== true) {
         throw new Error('the newly created space must persist as the selected target for new cards');
+    }
+    const createdTypeId = JSON.parse(createdSpace.description).typeId;
+    await env.ids.get('lc-space-info-body').onclick({
+        target: {
+            closest: () => ({
+                id: '',
+                getAttribute: name => name === 'data-action' ? 'type-edit' : (name === 'data-type-id' ? createdTypeId : null)
+            })
+        }
+    });
+    if ((env.htmlById.get('lc-type-list') || '').includes('lc-type-order')) {
+        throw new Error('type order must be controlled by the reorder buttons, not a manual field');
     }
 
     return summarize(env);

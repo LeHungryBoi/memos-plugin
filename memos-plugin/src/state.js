@@ -15,6 +15,7 @@ export const state = {
   allSpaces: [],
   activeType: null,
   activeTypeManuallySelected: false,
+  onQuickTypeSelected: null,
   memoSpaceCache: new Map(),
   memoSpaceWarmed: false,
   editingVersion: 2,

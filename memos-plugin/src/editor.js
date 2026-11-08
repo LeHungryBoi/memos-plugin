@@ -4,15 +4,62 @@ import { getCurrentSpace, syncThemeClass, escapeHtml } from './utils.js';
 import { isLegacyFallbackStatus, getMemosAuthToken } from './api.js';
 import {
   clearTargetSpaceCache, resolveTargetSpace, refreshSpaceIndicator,
-  hideSpaceInfoPopup, updateSpaceHint
+  hideSpaceInfoPopup, updateSpaceHint, refreshQuickSpaceSelector,
+  swipeQuickSpaceSelector
 } from './spaces.js';
-import { showTypeManager } from './space-manager.js';
+import { showTypeManager, showCreateSpaceManager } from './space-manager.js';
 import {
   tagStore, checkTagAutocomplete, handleTagAutocompleteKeydown, hideTagAutocomplete
 } from './tags.js';
 import { refreshCardLocally } from './card-render.js';
 import { buildCardContentV3, normalizeTags } from './card-model.js';
 import { defaultType, activeTypeForNew } from './card-types.js';
+
+let pageScrollLock = null;
+
+function lockPageScroll() {
+  if (pageScrollLock) return;
+  const root = document.documentElement;
+  const body = document.body;
+  const lock = {
+    rootOverflow: root.style.overflow,
+    bodyOverflow: body.style.overflow,
+    bodyPosition: body.style.position,
+    bodyTop: body.style.top,
+    bodyWidth: body.style.width,
+    scrollY: window.scrollY || window.pageYOffset || 0
+  };
+  pageScrollLock = lock;
+  root.style.overflow = 'hidden';
+  body.style.overflow = 'hidden';
+  body.style.position = 'fixed';
+  body.style.top = `-${lock.scrollY}px`;
+  body.style.width = '100%';
+
+  const preventBackgroundScroll = (event) => {
+    const target = event.target;
+    const inDialog = target && target.closest && target.closest('.lc-modal-dialog');
+    if (inDialog) return;
+    event.preventDefault();
+  };
+  document.addEventListener('touchmove', preventBackgroundScroll, { capture: true, passive: false });
+  document.addEventListener('wheel', preventBackgroundScroll, { capture: true, passive: false });
+  lock.preventBackgroundScroll = preventBackgroundScroll;
+}
+
+function unlockPageScroll() {
+  if (!pageScrollLock) return;
+  const lock = pageScrollLock;
+  pageScrollLock = null;
+  document.removeEventListener('touchmove', lock.preventBackgroundScroll, true);
+  document.removeEventListener('wheel', lock.preventBackgroundScroll, true);
+  document.documentElement.style.overflow = lock.rootOverflow;
+  document.body.style.overflow = lock.bodyOverflow;
+  document.body.style.position = lock.bodyPosition;
+  document.body.style.top = lock.bodyTop;
+  document.body.style.width = lock.bodyWidth;
+  if (typeof window.scrollTo === 'function') window.scrollTo(0, lock.scrollY);
+}
 
   /** Sections of the card currently being edited (V2 falls back to CONFIG). */
   function currentSections() {
@@ -148,6 +195,39 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     bindEditorInputs(type.sections.map(s => s.key));
   }
 
+  function applyQuickSelectedType(type) {
+    const overlay = document.getElementById('lc-modal-overlay');
+    if (!overlay || overlay.style.display === 'none' || state.editingMemoName) return;
+
+    const previousSections = currentSections();
+    const values = {};
+    const explanations = {};
+    previousSections.forEach(section => {
+      values[section.key] = document.getElementById(`lc-input-${section.key}`)?.value || '';
+      explanations[section.key] = document.getElementById(`lc-explain-${section.key}`)?.value || '';
+    });
+    const unifiedExplanation = document.getElementById('lc-explain-unified')?.value || '';
+    const previousActive = new Set(state.modalActiveLangs);
+
+    state.editingType = type;
+    state.activeType = type;
+    const keys = type.sections.map(section => section.key);
+    state.modalActiveLangs = keys.filter(key => previousActive.has(key));
+    if (!state.modalActiveLangs.length) {
+      state.modalActiveLangs = keys.filter(key => !type.sections.some(section => (
+        section.key === key && section.defaultHidden
+      )));
+    }
+    if (!state.modalActiveLangs.length && keys.length) state.modalActiveLangs = [...keys];
+
+    renderEditorForType(type, values, explanations, unifiedExplanation, state.explanationEnabled);
+    updateModalEditorSlots();
+    updateSpaceHint(type.spaceName, type.spaceTitle);
+    const title = document.getElementById('lc-modal-title-text');
+    if (title) title.innerText = `New · ${type.name}`;
+    refreshQuickSpaceSelector();
+  }
+
   /** Live preview, tag autocomplete & keyboard events for dynamic inputs. */
   function bindEditorInputs(keys) {
     const ids = [
@@ -233,7 +313,10 @@ import { defaultType, activeTypeForNew } from './card-types.js';
       </button>
     `;
     document.body.appendChild(bar);
-    document.getElementById('lc-fab-btn').onclick = () => openModal();
+    document.getElementById('lc-fab-btn').onclick = async () => {
+      await refreshSpaceIndicator(true);
+      openModal();
+    };
 
     // 2. Modal overlay: sections and explanation are rendered from the type.
     const overlay = document.createElement('div');
@@ -243,6 +326,43 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     overlay.onclick = (e) => {
       if (e.target === overlay) closeModal();
     };
+    let swipeStart = null;
+    let horizontalSwipe = false;
+    overlay.addEventListener('touchstart', (e) => {
+      if (state.editingMemoName || document.getElementById('lc-space-info-overlay')?.style.display === 'flex') return;
+      const target = e.target;
+      if (!target || !target.closest || !target.closest('.lc-modal-header')) return;
+      const touch = e.touches && e.touches[0];
+      swipeStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+      horizontalSwipe = false;
+    }, { passive: true });
+    overlay.addEventListener('touchmove', (e) => {
+      if (!swipeStart) return;
+      const touch = e.touches && e.touches[0];
+      if (!touch) return;
+      const dx = touch.clientX - swipeStart.x;
+      const dy = touch.clientY - swipeStart.y;
+      if (Math.abs(dx) >= 10 && Math.abs(dx) > Math.abs(dy)) {
+        horizontalSwipe = true;
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, { passive: false });
+    overlay.addEventListener('touchend', (e) => {
+      if (!swipeStart) return;
+      const touch = e.changedTouches && e.changedTouches[0];
+      const dx = touch ? touch.clientX - swipeStart.x : 0;
+      const dy = touch ? touch.clientY - swipeStart.y : 0;
+      swipeStart = null;
+      if (horizontalSwipe && Math.abs(dx) >= 35 && Math.abs(dx) > Math.abs(dy)) {
+        swipeQuickSpaceSelector(dx < 0 ? 1 : -1);
+      }
+      horizontalSwipe = false;
+    }, { passive: true });
+    overlay.addEventListener('touchcancel', () => {
+      swipeStart = null;
+      horizontalSwipe = false;
+    }, { passive: true });
 
     overlay.innerHTML = `
       <div class="lc-modal-dialog">
@@ -252,10 +372,20 @@ import { defaultType, activeTypeForNew } from './card-types.js';
               <span>🔤</span>
               <span id="lc-modal-title-text">New Language Card</span>
             </h3>
-            <!-- R4: the green element opens the card type / space manager -->
-            <button type="button" id="lc-space-indicator" class="lc-space-indicator lc-si-loading" title="Card types (click to manage)">
+            <div class="lc-space-controls">
+              <button type="button" id="lc-space-indicator" class="lc-space-indicator lc-si-loading" title="Manage card types and spaces">
               <span id="lc-space-indicator-text">⏳ Checking card types…</span>
-            </button>
+              </button>
+              <div class="lc-space-select">
+                <button type="button" id="lc-space-select-btn" class="lc-space-select-btn" aria-expanded="false" aria-controls="lc-space-select-panel">
+                  <span id="lc-space-select-text">Loading spaces…</span><span aria-hidden="true">⌄</span>
+                </button>
+                <div id="lc-space-select-panel" class="lc-space-select-panel" hidden>
+                  <div id="lc-space-select-options" class="lc-space-select-options"></div>
+                  <button type="button" id="lc-add-space-btn" class="lc-space-select-add">＋ Add new space</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="lc-modal-header-actions">
@@ -339,12 +469,40 @@ import { defaultType, activeTypeForNew } from './card-types.js';
         showTypeManager();
       };
     }
+    state.onQuickTypeSelected = applyQuickSelectedType;
+    const spaceSelectButton = document.getElementById('lc-space-select-btn');
+    const spaceSelectPanel = document.getElementById('lc-space-select-panel');
+    const spaceSelect = document.getElementById('lc-space-select');
+    if (spaceSelectButton && spaceSelectPanel) {
+      spaceSelectButton.onclick = async (e) => {
+        e.stopPropagation();
+        await refreshSpaceIndicator(true);
+        spaceSelectPanel.hidden = !spaceSelectPanel.hidden;
+        spaceSelectButton.setAttribute('aria-expanded', String(!spaceSelectPanel.hidden));
+      };
+    }
+    document.addEventListener('pointerdown', (e) => {
+      if (!spaceSelectPanel || spaceSelectPanel.hidden) return;
+      if (spaceSelect && e.target && spaceSelect.contains(e.target)) return;
+      spaceSelectPanel.hidden = true;
+      if (spaceSelectButton) spaceSelectButton.setAttribute('aria-expanded', 'false');
+    }, true);
+    const addSpaceButton = document.getElementById('lc-add-space-btn');
+    if (addSpaceButton) {
+      addSpaceButton.onclick = async (e) => {
+        e.stopPropagation();
+        if (spaceSelectPanel) spaceSelectPanel.hidden = true;
+        if (spaceSelectButton) spaceSelectButton.setAttribute('aria-expanded', 'false');
+        await showCreateSpaceManager();
+      };
+    }
     refreshSpaceIndicator();
 
     document.getElementById('lc-modal-close-btn').onclick = closeModal;
     document.getElementById('lc-btn-cancel').onclick = closeModal;
     document.getElementById('lc-btn-save').onclick = saveCard;
     bindTagsInput();
+    refreshQuickSpaceSelector();
   }
 
   /**
@@ -355,6 +513,7 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     syncThemeClass();
     const overlay = document.getElementById('lc-modal-overlay');
     if (!overlay) return;
+    lockPageScroll();
     overlay.style.display = 'flex';
     clearError();
     refreshSpaceIndicator();
@@ -367,6 +526,9 @@ import { defaultType, activeTypeForNew } from './card-types.js';
       : defaultType(null);
     state.editingType = type;
     if (state.editingVersion === 3) state.activeType = type;
+    const quickSelect = document.getElementById('lc-space-select');
+    if (quickSelect) quickSelect.style.display = state.editingMemoName ? 'none' : '';
+    refreshQuickSpaceSelector();
 
     const titleText = document.getElementById('lc-modal-title-text');
     if (titleText) {
@@ -418,6 +580,7 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     hideTagAutocomplete();
     const overlay = document.getElementById('lc-modal-overlay');
     if (overlay) overlay.style.display = 'none';
+    unlockPageScroll();
   }
 
   function buildCardPayload() {

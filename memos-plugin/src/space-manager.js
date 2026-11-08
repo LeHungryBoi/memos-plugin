@@ -4,13 +4,13 @@ import {
   getMemosAuthToken, createSpace, updateSpaceDescription, listMemosForSpace, patchMemoContent
 } from './api.js';
 import {
-  V3_VERSION, defaultType, markerFromType, sectionKeys, mapSectionKeys, typeForSpace
+  V3_VERSION, defaultType, markerFromType, sectionKeys, mapSectionKeys
 } from './card-types.js';
 import { parseCardV3, parseCardMemo } from './card-model.js';
 import { escapeHtml, copyText, getCurrentSpace } from './utils.js';
 
 /**
- * R4: the green space indicator opens this panel. It lists every card type,
+ * R4: the separate management button opens this panel. It lists every card type,
  * edits its section definitions (add / remove / reorder), reorders types,
  * declares unmarked spaces and assists migration of incompatible notes.
  *
@@ -93,7 +93,6 @@ function typeEditorHtml() {
   return `
     <div class="lc-manager-grid">
       <label class="lc-form-label">Name <input id="lc-type-name" class="lc-form-input" value="${escapeHtml(type.name)}" /></label>
-      <label class="lc-form-label">Order <input id="lc-type-order" class="lc-form-input" type="number" value="${type.order}" /></label>
       <span class="lc-manager-hint">Cards support per-language explanations and one unified explanation.</span>
     </div>
     <div class="lc-editor-block">
@@ -125,7 +124,7 @@ function renderTypeList() {
   const host = document.getElementById('lc-type-list');
   if (!host) return;
   const types = state.types;
-  const inUseType = typeForSpace(types, getCurrentSpace()) || state.activeType || types[0];
+  const inUseType = state.activeType || types[0];
   host.innerHTML = types.map((t, i) => typeCardHtml(t, i, types.length, inUseType && inUseType.id)).join('')
     || '<li>No card types yet — declare a space below.</li>';
 }
@@ -157,10 +156,8 @@ async function writeTypeMarker(type, successMessage) {
 
 function collectDraft() {
   const name = document.getElementById('lc-type-name');
-  const order = document.getElementById('lc-type-order');
   if (!draftType) return null;
   if (name && name.value) draftType.name = name.value;
-  if (order && order.value !== '') draftType.order = Number(order.value) || 0;
   // sectionAliases are produced by the migration wizard only — keep them as-is.
   draftType.sections = draftType.sections.filter(s => s && s.key);
   if (!draftType.sections.length) {
@@ -515,6 +512,9 @@ async function createSpaceFromManager() {
       throw new Error('The space was created, but its card type was not returned by the space list. Reload the page to refresh.');
     }
     setActiveType(createdType.id);
+    if (typeof state.onQuickTypeSelected === 'function') {
+      state.onQuickTypeSelected(createdType);
+    }
     await refreshSpaceIndicator(true);
     await renderManager();
     status(`Created "${title}" with the current language sections. It will be used for new cards; your open draft is unchanged.`);
@@ -566,8 +566,8 @@ async function renderManager() {
     const [types, spaces] = await Promise.all([getCardTypes({ force: true }), getAllSpaces(true)]);
     const marked = new Set(types.map(t => t.spaceName));
     const unmarked = spaces.filter(s => !marked.has(s.name));
-    // "In use" = the type of the space the editor is on.
-    const inUseType = typeForSpace(types, getCurrentSpace()) || state.activeType || types[0];
+    // "In use" = the currently selected target for new cards.
+    const inUseType = state.activeType || types[0];
     bodyEl.innerHTML = `
       <div class="lc-manager">
         <p class="lc-manager-hint">Each marked space defines one card type. Click a card to edit its definition inline &mdash; the open card is the one being edited. Definitions live only in the space description, never in notes.</p>
@@ -616,4 +616,13 @@ async function showTypeManager() {
   await renderManager();
 }
 
-export { showTypeManager, renderManager, migratedContent };
+async function showCreateSpaceManager() {
+  await showTypeManager();
+  const input = document.getElementById('lc-new-space-title');
+  if (input) {
+    input.scrollIntoView({ block: 'center' });
+    input.focus();
+  }
+}
+
+export { showTypeManager, showCreateSpaceManager, renderManager, migratedContent };

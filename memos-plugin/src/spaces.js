@@ -65,10 +65,9 @@ import {
   async function getCardTypes(options) {
     const force = Boolean(options && options.force);
     if (!force && state.types.length) {
-      // The URL may have changed since the cache was filled: keep "In use"
-      // in sync with the current space unless a target was explicitly selected.
-      const urlType = typeForSpace(state.types, getCurrentSpace());
-      if (urlType && !state.activeTypeManuallySelected) state.activeType = urlType;
+      if (!state.activeTypeManuallySelected) {
+        state.activeType = sortTypes(state.types)[0] || activeTypeForNew(state.types, getCurrentSpace());
+      }
       return state.types;
     }
     const spaces = await getAllSpaces(force);
@@ -78,23 +77,16 @@ import {
     }).filter(Boolean));
     state.types = types;
 
-    // The URL type is the default unless the user explicitly picked a target
-    // for new cards from the manager.
-    const urlType = typeForSpace(types, getCurrentSpace());
+    // Keep an explicit selection; otherwise the first ordered type is the
+    // default, independent of the page's current Space URL.
     const cached = readCachedTargetSpace();
     const cachedType = cached && typeForSpace(types, cached.name);
     state.activeTypeManuallySelected = Boolean(cached && cached.manual);
     if (state.activeTypeManuallySelected && cachedType) {
       state.activeType = cachedType;
-    } else if (urlType) {
+    } else {
       state.activeTypeManuallySelected = false;
-      state.activeType = urlType;
-    } else if (cachedType) {
-      state.activeTypeManuallySelected = false;
-      state.activeType = cachedType;
-    } else if (!state.activeType || !types.some(t => t.id === state.activeType.id)) {
-      state.activeTypeManuallySelected = false;
-      state.activeType = activeTypeForNew(types, getCurrentSpace());
+      state.activeType = sortTypes(types)[0] || activeTypeForNew(types, getCurrentSpace());
     }
     return types;
   }
@@ -109,6 +101,51 @@ import {
     return type;
   }
 
+  function refreshQuickSpaceSelector() {
+    const text = document.getElementById('lc-space-select-text');
+    const options = document.getElementById('lc-space-select-options');
+    if (!text || !options) return;
+    const active = state.activeType || sortTypes(state.types)[0];
+    text.innerText = active ? (active.spaceTitle || active.name) : 'No card spaces';
+    options.innerHTML = '';
+
+    state.types.forEach(type => {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = `lc-space-select-option${active && active.id === type.id ? ' active' : ''}`;
+      option.setAttribute('data-type-id', type.id);
+      option.innerText = type.spaceTitle || type.name;
+      option.title = type.spaceName || type.name;
+      option.onclick = (event) => {
+        event.stopPropagation();
+        const selected = setActiveType(type.id);
+        if (!selected) return;
+        const panel = document.getElementById('lc-space-select-panel');
+        const trigger = document.getElementById('lc-space-select-btn');
+        if (panel) panel.hidden = true;
+        if (trigger) trigger.setAttribute('aria-expanded', 'false');
+        refreshQuickSpaceSelector();
+        if (typeof state.onQuickTypeSelected === 'function') {
+          state.onQuickTypeSelected(selected);
+        }
+      };
+      options.appendChild(option);
+    });
+  }
+
+  function swipeQuickSpaceSelector(delta) {
+    const types = sortTypes(state.types);
+    if (types.length < 2) return;
+    const currentIndex = types.findIndex(type => state.activeType && type.id === state.activeType.id);
+    const startIndex = currentIndex < 0 ? 0 : currentIndex;
+    const nextIndex = (startIndex + delta + types.length) % types.length;
+    const selected = setActiveType(types[nextIndex].id);
+    refreshQuickSpaceSelector();
+    if (selected && typeof state.onQuickTypeSelected === 'function') {
+      state.onQuickTypeSelected(selected);
+    }
+  }
+
   /**
    * Resolve the target space. Multiple types are normal in V3 (the old
    * "only one space may carry the header" rule is gone). The returned shape
@@ -118,7 +155,7 @@ import {
     const force = Boolean(options && options.force);
     if (!force) {
       const cached = readCachedTargetSpace();
-      if (cached) {
+      if (cached && cached.manual && typeForSpace(state.types, cached.name)) {
         return {
           space: cached.name, title: cached.title, matches: state.types,
           fromCache: true, type: typeForSpace(state.types, cached.name) || state.activeType
@@ -138,7 +175,7 @@ import {
     return { space: null, title: '', matches: types, fromCache: false, type: active };
   }
 
-  // --- Space / type indicator (the green element is now the manager entry) ---
+  // --- Space / type indicator (the separate button opens management) ---
 
   function setSpaceIndicatorState(stateName, text) {
     const btn = document.getElementById('lc-space-indicator');
@@ -146,8 +183,8 @@ import {
     if (!btn || !textEl) return;
     btn.classList.remove('lc-si-loading', 'lc-si-ok', 'lc-si-warn', 'lc-si-missing');
     btn.classList.add(`lc-si-${stateName}`);
-    textEl.innerText = text;
-    btn.title = `${text} — click to manage card types`;
+    textEl.innerText = '⚙ Manage';
+    btn.title = `${text} — manage card types and spaces`;
   }
 
   function updateSpaceHint(spaceName, spaceTitle) {
@@ -175,6 +212,7 @@ import {
           setSpaceIndicatorState('missing', '⛔ No card types yet');
         }
         updateSpaceHint(result.space, result.title);
+        refreshQuickSpaceSelector();
         return result;
       } catch (err) {
         console.warn('[LanguageCard] card type resolution failed', err);
@@ -219,5 +257,5 @@ export {
   writeCachedTargetSpace, resolveTargetSpace, clearTargetSpaceCache,
   getAllSpaces, getCardTypes, setActiveType, warmMemoSpaceCache,
   setSpaceIndicatorState, updateSpaceHint, refreshSpaceIndicator,
-  hideSpaceInfoPopup
+  hideSpaceInfoPopup, refreshQuickSpaceSelector, swipeQuickSpaceSelector
 };
