@@ -12,7 +12,9 @@
   - `language-card.js`: **生成物**，合并后的完整脚本（已内联 CSS），直接粘贴到 Memos。
   - `language-card.css`: **生成物**，独立样式表，仅旧式双框安装时需要。
   - `tools/`: watcher 单实例锁、V2 契约向量、mock DOM 冒烟测试。
-  - `schema/v2.md`: **V2 数据格式规范**（当前写入版本，也是以后设计 V3 的兼容基线）。
+  - `schema/v2.md`: **V2 数据格式规范**（历史写入格式，仍是读取器的兼容基线）。
+  - `schema/v3.md`: **V3 数据格式**（当前实现：卡片类型 marker + note content）。
+  - `schema/v3-requirements.md`: **V3 需求规格**（五项需求与验收清单；已按默认决策实现）。
   - `README.md`: 使用与配置手册。
 - `/.vscode`: VS Code 打开工作区时自动启动 watcher 的任务配置（位于项目根目录）。
 - `/memos-api-docs`: 官网 API 文档快照（最新版，不代表用户服务器版本）。
@@ -40,16 +42,18 @@
 | 模块 | 职责 |
 | --- | --- |
 | `src/config.js` | 语言定义、`_t:"lc"` 标识、快捷操作配置、localStorage 键 |
-| `src/state.js` | 全局语言开关与编辑器会话状态（`state` 单例） |
-| `src/utils.js` | 主题、URL Space、转义、复制等纯工具 |
-| `src/api.js` | 双代 API（0.31 / 26.10+）请求与 token 刷新 |
-| `src/spaces.js` | 专属 Space 解析、缓存、指示器与详情弹窗 |
-| `src/card-model.js` | memo 内 JSON 的解析与旧键兼容 |
-| `src/card-render.js` | feed 卡片渲染、行内编辑入口 |
+| `src/state.js` | 编辑器会话状态、类型列表、memo→Space 缓存（`state` 单例） |
+| `src/utils.js` | 主题、URL Space、转义、复制、marker 文本等纯工具 |
+| `src/api.js` | 双代 API（0.31 / 26.10+）读写、token 刷新、Space 描述 PATCH |
+| `src/card-types.js` | V3 卡片类型：marker 解析/序列化、排序、分区别名 |
+| `src/spaces.js` | 多类型发现、指示器、memo→Space 预热 |
+| `src/space-manager.js` | 类型管理面板、分区增删排序、不兼容 note 迁移 |
+| `src/card-model.js` | V2/V3 分派、note 解析与序列化 |
+| `src/card-render.js` | feed 卡片渲染（动态分区 + 说明区）、行内编辑入口 |
 | `src/tags.js` | 标签仓库与光标跟随的自动补全下拉 |
-| `src/editor.js` | 悬浮栏、并排编辑器弹窗、预览与保存 |
-| `src/quick-actions.js` | 原生 Pin / Edit / Archive 快捷按钮 |
-| `src/main.js` | 样式注入、MutationObserver、启动 |
+| `src/editor.js` | 悬浮栏、动态并排编辑器、说明区开关、预览与保存 |
+| `src/quick-actions.js` | 原生 Pin / Edit / Archive / Copy Content 快捷按钮 |
+| `src/main.js` | 样式注入、类型预热、MutationObserver、启动 |
 | `src/styles/language-card.css` | 全部样式（构建时内联进 JS） |
 
 ```powershell
@@ -58,13 +62,14 @@ npm install          # 仅首次，安装 esbuild
 npm run build        # 生成 language-card.js + language-card.css
 npm run watch        # 监听 src/ 变化，自动重建（单实例）
 npm run build:split  # 旧式双框安装：JS 不内联 CSS
-npm test            # V2 契约向量 + mock DOM 冒烟测试
+npm test            # V2 + V3 契约向量 + mock DOM 冒烟测试
 npm run test:schema # 只跑 V2 数据格式契约向量
+npm run test:v3     # 只跑 V3 marker / payload / 迁移向量
 ```
 
-**数据格式**：卡片是 memo `content` 里的一段 JSON（`{"_t":"lc","v":2,...}`）+ 尾部 tags。
-写入/读取规则、遗留兼容、Space 标记、已知怪癖与 V3 决策清单都在 `schema/v2.md`；
-`npm run test:schema` 用真实解析器验证 21 个行为向量，改读取器后应逐条复核。
+**数据格式**：V3 卡片定义（分区、排序、说明区模式、别名）只写在 Space 的 description marker 里；
+note `content` 只存分区值、说明与尾部 tags。格式见 `schema/v3.md`，V2 兼容规则见 `schema/v2.md`。
+需求与验收清单见 `schema/v3-requirements.md`（五项需求，**已按文档中的默认决策实现**）。
 
 **VS Code 自动监听**：打开工作区根目录时，`.vscode/tasks.json` 的 `runOn: "folderOpen"` 会自动执行
 `npm run watch`（根目录 `.vscode/settings.json` 已开启 `task.allowAutomaticTasks`）。
@@ -77,21 +82,23 @@ npm run test:schema # 只跑 V2 数据格式契约向量
 
 ## 核心特性
 
+> **V3 已落地**：① Copy Content 快捷按钮；② 多 Space 卡片类型（定义只存 Space）；③ 两模式说明区 + 独立开关；④ 绿色指示器改为类型管理面板（排序 / 分区管理 / 迁移）；⑤ 移除首页无效分区开关与重复卡片头，定义不再写入每条 note。详见 `schema/v3.md`。
+
 1. **全新排布顺序与双语言并排**：
-   - 顺序统一调整为：**日本語 (JA, 左) -> English (EN, 中) -> 中文 (ZH, 右)**。
-   - **默认启用 EN + ZH**，JA 默认关闭。
-   - 关闭的语言在 X 轴上**完全不占用任何空间**（display: none）。
+   - 默认类型（V2 兼容）顺序为 **日本語 (JA, 左) -> English (EN, 中) -> 中文 (ZH, 右)**，且 JA 默认隐藏（新建卡片只开 EN+ZH，与 V2 一致）；V3 类型由 Space marker 自定义分区与顺序，每个分区可单独设定是否默认隐藏。
+   - 编辑器里关闭的分区在 X 轴上**完全不占用任何空间**（display: none）。
    - **手机端真·并排 (Side-by-Side on Phone)**：在手机窄屏上双语言依然保持 50/50 左右并排对照，不再强制单列上下堆叠。
-2. **卡片按内容显示 + 编辑器内语言开关**：
-   - **卡片视图按内容显示**：feed 里的卡片只展开它**实际含有**的语言 section（如只有日文的卡只显示日文一栏），始终按 JA → EN → ZH 的 UI 顺序排列；卡片右上角**只有编辑按钮（✏️）**，没有语言开关——每个 language section 的标题已经标明了语言，要改内容就点铅笔进编辑器。只有极少数无语言内容的旧卡片才回退到全局开关的默认组合。
-   - **外部悬浮开关（`#lc-floating-bar`）**：全局主开关（保存在 localStorage）。它决定**新建卡片时编辑器**默认展开哪些语言（默认开启 EN + ZH）。
-   - **弹窗编辑器内的语言开关**：仅作用于当次录入草稿，绝不会泄漏或改动全局配置，也不会影响其它卡片。
-   - **JSON 键序 = UI 顺序**：保存的 JSON 按 `CONFIG.languages` 的顺序（JA → EN → ZH）序列化，与编辑器左中右布局一致，新增语言时输出与 UI 会跟随配置；但读取器的语言键白名单仍硬编码在 `src/card-model.js`，加语言必须同步改（见 `schema/v2.md` §8.2）。
-3. **零冲突专属标识符 (`_t: "lc"`) & 100% 向下兼容**：
-   - 新卡片自动写入永久短标识 `{"_t":"lc","v":2,...}`，仅占几个字节。
-   - **防误判**：随手在其它笔记里贴入的杂项 JSON 或代码绝不会被误渲染成语言卡片。
-   - **向下兼容**：历史上创建的无 `_t` 卡片依然无缝渲染。
-   - **专属 Space 规则**：在 `CONFIG.dedicatedSpaceKeyword` 指定的空间内，即使卡片没有 `_t` 也会自动渲染为语言卡片。
+2. **卡片分区由类型定义 + 编辑器内分区开关**：
+   - V3 卡片的分区（名称、顺序、配色）来自所属 Space 的卡片类型；feed 卡片只展开**实际含有**的分区，右上角只有编辑按钮（✏️），不再重复显示 🔤 卡片标题。
+   - **首页悬浮栏只有 `[ 🔤 New Card ]`**：V3 移除了左侧无效的语言分区开关（分区语义属于卡片类型，不属于首页）。
+   - **弹窗编辑器内的分区开关**：按当前类型动态生成，仅作用于当次录入草稿。
+   - **说明区开关独立**：位于说明区正上方，不与分区开关合并；支持「每分区独立说明」与「全局统一说明」两种模式（由类型定义决定）。
+   - **JSON 键序 = 类型 sections 顺序**：由 `src/card-types.js` 动态生成；V2 的固定白名单只用于兼容旧卡片（见 `schema/v3.md`）。
+3. **版本标识 & 100% 向下兼容**：
+   - V3 新卡片写入 `{"_t":"lc","v":3,...}`，定义不进 note，只存分区值、说明与 tags。
+   - **防误判**：`_t` 非 `lc` 的杂项 JSON 不会被渲染。
+   - **向下兼容**：V2 卡片（`v:2` / 无 `_t`）继续按三分区渲染，21 个 V2 契约向量持续回归。
+   - **每个 Space 一种卡片类型**：多个带 marker 的 Space 是常态，不再互相冲突。
 4. **并排对照录入编辑器 (Side-by-Side Editor)**：
    - 点击右下角 `[ 🔤 New Card ]` 打开弹窗，左右扫视对照输入极其顺手。
    - 支持多行扩展输入，并支持 `Ctrl + Enter` / `Cmd + Enter` 极速保存，`Esc` 快速关闭。
@@ -104,20 +111,17 @@ npm run test:schema # 只跑 V2 数据格式契约向量
 6. **交互功能**：
    - ✏️ **行内编辑**：每张卡片标题栏右侧带编辑按钮，点击直接打开同一套并排编辑器，自动预填该卡片的 JA/EN/ZH 与 Tags；保存走 `PATCH` 更新原 memo，**不刷新页面**，卡片原地换新内容。编辑框内的语言开关只影响本次编辑会话，不会改动卡片的全局/单篇显示状态。
    - 保存成功后**不做任何整页刷新**，也不弹提示——Memos 会自行把新卡片/更新后的卡片带进 feed。
-7. **原生快捷操作（Quick Actions，v2.9 新增）**：
-   - 每张 memo 卡片（不限语言卡片，所有笔记生效）的原生标题栏右侧、三点菜单**左边**，会直接显示 **Pin / Edit / Archive** 三个图标按钮，单击即可执行，无需先展开三点菜单。
-   - 实现方式：点击时用脚本打开该卡片**原生的三点下拉菜单**并点击对应菜单项——Pin/Edit/Archive 的全部原生逻辑（API 请求、置顶状态、原生编辑器）原样复用，插件不重复实现任何 API，因此不存在状态不同步的风险。
-   - 按钮样式直接克隆原生三点按钮的 Tailwind 类，深浅色主题自动适配；菜单项匹配支持标签变化（如 `Pin` → `Unpin`）与图标类名回退，Memos 改版导致菜单结构对不上时会安静地关掉菜单、不影响任何功能。
-   - Copy（Copy Link / Copy Content）、Move to Space、Delete 等复合或破坏性操作仍保留在三菜单内；快捷集合可在 `src/config.js` 的 `CONFIG.quickActions` 中增删（`path` 支持子菜单路径，如 `['Copy', 'Copy Content']`）。
-   - 超窄手机屏（< 480px）下自动隐藏快捷图标，保留三点菜单操作路径。
-8. **Space（空间）专属模式**：
-   - **Header 标记专属 Space**：在某个 Space 的 description 里放入 language card header（`{"_t":"lc","v":2}`，弹窗底部有一键复制框），该 Space 即成为"语言卡片空间"——**在任何页面**新建卡片都会自动存入这个 Space，不再依赖 URL。
-     - 弹窗标题栏原来的 `_t:"lc"` 徽标已变成 **Space 指示器**（可点击）：
-       - `🃏 <space_id>`（绿色）= 已锁定唯一目标 Space，点击查看详情；
-       - `⚠️ N spaces with header`（黄色）= 有多个 Space 带了 header（只允许一个），此时不自动选择目标，点击弹出详情并列出所有命中的 Space；
-       - `⛔ No space with header`（红色）= 尚未设置，点击弹出引导：把 header JSON 粘到目标 Space 的 description 里。
-   - **兼容旧行为**：没有 header 标记的 Space 时，只要你在某个 Space 下（URL 为 `/s/<space_id>`），新建的卡片仍会自动归入当前 Space；否则进个人空间。
-   - 识别结果缓存于 localStorage（`memos_lc_target_space_v2`），遇到 401/403 自动失效重查。
+7. **原生快捷操作（Quick Actions）**：
+   - 每张 memo 卡片（不限语言卡片）的原生标题栏右侧、三点菜单**左边**，直接显示 **Pin / Edit / Archive / Copy Content** 四个图标按钮。
+   - Copy Content 只是把原生菜单里的 `Copy → Copy Content` 在外层再放一份；点击时脚本打开原生三点菜单并点击对应菜单项，全部原生逻辑（复制内容、置顶状态、原生编辑器）原样复用，插件不重写任何 API。
+   - 菜单项匹配支持标签变化（如 `Pin` → `Unpin`）与图标类名回退；结构对不上时安静关掉菜单。快捷集合可在 `src/config.js` 的 `CONFIG.quickActions` 中增删（`path` 支持子菜单路径）。
+   - 超窄手机屏（< 480px）下自动隐藏快捷图标；Copy Link / Move to Space / Delete 等仍留在三菜单内。
+8. **多空间卡片类型 & 管理入口**：
+   - **每个 Space 的 description 里放一个 V3 marker**，含类型名、排序、语言分区定义、说明区模式与分区名别名；该 Space 即成为一种卡片类型。marker 的预览与复制按钮在管理面板内，编辑器底部只保留 note 的 Payload Preview 一个预览窗口。
+   - 弹窗标题栏的绿色 **🃏 指示器**现在是管理入口：点击打开面板，每个类型是一张卡片，点卡片就地展开定义（正在编辑的就是展开的那张），可调整排序、增删/排序语言分区、切换说明区模式；键名映射由迁移向导逐键选择后自动保存。
+   - **无 marker 的 Space** 会单独列出，可一键声明为卡片类型；写 description 需要 Space 管理员权限，权限不足时降级为复制 marker 手动粘贴。
+   - **不兼容 note**：管理面板里只是入口按钮；点击后打开独立迁移窗口——扫描所属 Space 的 memo，逐条列出 note 及其真实键值，每个不匹配的键从当前类型分区里选择目标（或保留原样），预览确认后逐条迁移（framework 一致，只改分区名）。
+   - 混合 feed 会按 memo 所属 Space 选择类型定义；没有可用类型时回退当前 URL Space / 个人空间。缓存键沿用 `memos_lc_target_space_v2`。
 9. **双代 API 自动兼容（0.31 ↔ 最新版）**：
    - Memos 存在两代 API：**0.31**（`/api/v1/...`、Connect `/memos.api.v1.*`）与 **26.10+ 最新版**（`/api/...`、Connect `/memos.api.*`，v1 路径返回 410 Gone）。
    - 版本号说明：memos 2026-10 换了规则，`26.10` = 2026 年 10 月（CalVer），**比 0.31.0 新**；`v0.31.0`（2026-09-19）是旧 0.x 规则最后一个正式版。详见根 README「API 版本状况」。

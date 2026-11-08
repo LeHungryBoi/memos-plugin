@@ -9,8 +9,11 @@
     cardVersion: 2,
     dedicatedSpaceKeyword: null,
     // Ordered: JA (left) -> EN (middle) -> ZH (right)
+    // `defaultHidden` = the section starts closed when creating a new card
+    // (V2 behaviour: the editor opened with EN+ZH). Same idea as the marker's
+    // per-section `defaultHidden`, this one only seeds the built-in template.
     languages: [
-      { key: 'ja', label: '日本語', code: 'JA', color: '#fbbf24', ttsLang: 'ja-JP', placeholder: 'e.g. セレンディピティ' },
+      { key: 'ja', label: '日本語', code: 'JA', color: '#fbbf24', ttsLang: 'ja-JP', placeholder: 'e.g. セレンディピティ', defaultHidden: true },
       { key: 'en', label: 'English', code: 'EN', color: '#38bdf8', ttsLang: 'en-US', placeholder: 'e.g. serendipity' },
       { key: 'zh', label: '中文', code: 'ZH', color: '#34d399', ttsLang: 'zh-CN', placeholder: 'e.g. 意外发现珍宝的运气 / 缘分' }
     ],
@@ -41,6 +44,13 @@
         path: ['Archive'],
         iconName: 'lucide-archive',
         icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-archive" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>'
+      }
+    ,
+      {
+        label: 'Copy Content',
+        path: ['Copy', 'Copy Content'],
+        iconName: 'lucide-copy',
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>'
       }
     ]
   };

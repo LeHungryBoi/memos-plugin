@@ -114,4 +114,66 @@
     return null;
   }
 
-export { isLegacyFallbackStatus, fetchJsonWithFallback, fetchAllSpaces, getMemosAuthToken };
+/**
+ * Write request with the same two-generation fallback as the GET helper.
+ * Returns the response so callers can surface 401/403 to the user.
+ */
+  async function sendJsonWithFallback(paths, method, body, token) {
+    let lastRes = null;
+    for (const path of paths) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(path, {
+        method,
+        headers,
+        credentials: 'include',
+        body: JSON.stringify(body)
+      });
+      if (isLegacyFallbackStatus(res.status)) {
+        lastRes = res;
+        continue;
+      }
+      return res;
+    }
+    return lastRes;
+  }
+
+  /** PATCH a space description (requires space administrator privileges). */
+  async function updateSpaceDescription(spaceName, description, token) {
+    const id = encodeURIComponent(String(spaceName || '').replace(/^spaces\//, ''));
+    return sendJsonWithFallback(
+      [`/api/spaces/${id}?updateMask=description`, `/api/v1/spaces/${id}?updateMask=description`],
+      'PATCH',
+      { name: spaceName, description },
+      token
+    );
+  }
+
+  /** List memos inside one space (used by the compatibility scanner). */
+  async function listMemosForSpace(spaceName, token) {
+    const parent = encodeURIComponent(spaceName || '');
+    const paths = [
+      `/api/memos?parent=${parent}&pageSize=1000`,
+      `/api/v1/memos?parent=${parent}&pageSize=1000`
+    ];
+    const res = await fetchJsonWithFallback(paths, token);
+    if (!res || !res.ok) throw new Error(`ListMemos failed: HTTP ${res ? res.status : 'no response'}`);
+    const json = await res.json();
+    return Array.isArray(json.memos) ? json.memos : [];
+  }
+
+  /** PATCH only the content of one memo (V3 migration wizard). */
+  async function patchMemoContent(memoName, content, token) {
+    const id = encodeURIComponent(String(memoName || '').replace(/^memos\//, ''));
+    return sendJsonWithFallback(
+      [`/api/memos/${id}?updateMask=content`, `/api/v1/memos/${id}?updateMask=content`],
+      'PATCH',
+      { content },
+      token
+    );
+  }
+
+export {
+  isLegacyFallbackStatus, fetchJsonWithFallback, fetchAllSpaces, getMemosAuthToken,
+  sendJsonWithFallback, updateSpaceDescription, listMemosForSpace, patchMemoContent
+};

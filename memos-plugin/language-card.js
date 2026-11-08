@@ -77,15 +77,7 @@
   padding: 0 2px;
 }
 
-.lc-card-note-title {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--lc-text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  opacity: 0.8;
-}
+/* R5.2: the duplicate 🔤 Card title was removed; the editor owns the header. */
 
 /* Right-side controls group: edit button */
 .lc-card-note-controls {
@@ -227,7 +219,7 @@
   border: 1px solid var(--lc-chip-border);
 }
 
-/* --- Floating Action Bar (Pills + Button) --- */
+/* --- Floating Action Bar (V3: New Card only, R5.1 removed the pills) --- */
 .lc-floating-bar {
   position: fixed;
   bottom: 20px;
@@ -236,35 +228,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.lc-lang-toggles {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 4px;
-  background: var(--lc-modal-bg);
-  border: 1px solid var(--lc-modal-border);
-  border-radius: 30px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  gap: 2px;
-}
-
-.lc-lang-btn {
-  padding: 3px 8px;
-  border-radius: 20px;
-  border: 1px solid transparent;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-  background: transparent;
-  color: var(--lc-text-muted);
-  transition: all 0.15s ease;
-  user-select: none;
-}
-
-.lc-lang-btn.active {
-  background: rgba(140, 140, 140, 0.15);
-  color: var(--lc-text-primary);
 }
 
 .lc-fab {
@@ -917,6 +880,306 @@
 .lc-theme-dark .lc-space-info-name {
   color: #34d399;
 }
+
+/* --- V3: Explanation area (below sections, own toggle above) --- */
+.lc-card-explanations {
+  display: grid;
+  grid-template-columns: repeat(var(--lc-cols, 1), minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.lc-card-explanation {
+  padding: 8px 10px;
+  border-left: 2px solid var(--lc-border-card);
+  border-radius: 0 6px 6px 0;
+  background: var(--lc-bg-card);
+  color: var(--lc-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.lc-card-explanation-global {
+  margin-top: 8px;
+}
+
+.lc-explanation-panel {
+  margin-top: 10px;
+}
+
+.lc-explanation-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.lc-explanation-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+
+.lc-explanation-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lc-explanation-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 1px solid var(--lc-border-card);
+  border-radius: 8px;
+  background: var(--lc-input-bg);
+  color: var(--lc-input-text);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.lc-explanation-input:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.45);
+  outline-offset: 1px;
+}
+
+/* --- V3: Card type / space manager (R4) --- */
+.lc-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lc-manager-section {
+  padding: 10px 12px;
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-bg-card);
+}
+
+.lc-manager-section h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+}
+
+.lc-manager-hint {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--lc-text-muted);
+}
+
+.lc-type-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lc-type-card {
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-modal-bg);
+  overflow: hidden;
+}
+
+.lc-type-card.lc-type-in-use {
+  border-color: #34d399;
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.25);
+}
+
+.lc-type-card.lc-type-open {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
+.lc-type-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.lc-type-card-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  color: var(--lc-text-primary);
+}
+
+.lc-type-card-title b {
+  font-size: 13px;
+}
+
+.lc-type-meta {
+  font-size: 10px;
+  color: var(--lc-text-muted);
+}
+
+.lc-type-badge-use {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+}
+
+.lc-type-card-body {
+  padding: 4px 10px 12px;
+  border-top: 1px solid var(--lc-border-card);
+}
+
+.lc-type-row-actions,
+.lc-manager-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lc-manager-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lc-editor-block {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-modal-bg);
+}
+
+.lc-editor-block h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+}
+
+/* --- V3: migration wizard (own window) --- */
+.lc-migration-dialog {
+  max-width: 820px;
+  max-height: 86vh;
+  overflow: auto;
+}
+
+.lc-migration-note {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-modal-bg);
+}
+
+.lc-migration-note-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--lc-text-primary);
+}
+
+.lc-migration-key-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.lc-migration-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: var(--lc-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lc-migration-target {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.lc-migration-sample {
+  font-size: 11px;
+  color: var(--lc-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lc-migration-save {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--lc-text-muted);
+}
+
+@media (max-width: 640px) {
+  .lc-migration-key-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lc-section-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(4, 28px);
+  gap: 4px;
+  margin-bottom: 5px;
+}
+
+.lc-section-row .lc-form-input {
+  min-width: 0;
+  padding: 5px 7px;
+  font-size: 11px;
+}
+
+.lc-manager-status {
+  font-size: 12px;
+  color: #059669;
+  min-height: 16px;
+}
+
+.lc-manager-error,
+.lc-manager-status.lc-manager-error {
+  color: #ef4444;
+}
+
+.lc-space-info-dialog {
+  max-width: 860px;
+}
+
+@media (max-width: 640px) {
+  .lc-section-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) repeat(4, 28px);
+  }
+  .lc-type-card-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 `;
 
   // src/config.js
@@ -925,8 +1188,11 @@
     cardVersion: 2,
     dedicatedSpaceKeyword: null,
     // Ordered: JA (left) -> EN (middle) -> ZH (right)
+    // `defaultHidden` = the section starts closed when creating a new card
+    // (V2 behaviour: the editor opened with EN+ZH). Same idea as the marker's
+    // per-section `defaultHidden`, this one only seeds the built-in template.
     languages: [
-      { key: "ja", label: "日本語", code: "JA", color: "#fbbf24", ttsLang: "ja-JP", placeholder: "e.g. セレンディピティ" },
+      { key: "ja", label: "日本語", code: "JA", color: "#fbbf24", ttsLang: "ja-JP", placeholder: "e.g. セレンディピティ", defaultHidden: true },
       { key: "en", label: "English", code: "EN", color: "#38bdf8", ttsLang: "en-US", placeholder: "e.g. serendipity" },
       { key: "zh", label: "中文", code: "ZH", color: "#34d399", ttsLang: "zh-CN", placeholder: "e.g. 意外发现珍宝的运气 / 缘分" }
     ],
@@ -957,10 +1223,181 @@
         path: ["Archive"],
         iconName: "lucide-archive",
         icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-archive" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></svg>'
+      },
+      {
+        label: "Copy Content",
+        path: ["Copy", "Copy Content"],
+        iconName: "lucide-copy",
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>'
       }
     ]
   };
   var LS_GLOBAL_LANGS_KEY = "memos_lc_enabled_langs_v2";
+
+  // src/state.js
+  var state = {
+    modalActiveLangs: ["en", "zh"],
+    editingMemoName: null,
+    spaceResolutionInFlight: null,
+    types: [],
+    allSpaces: [],
+    activeType: null,
+    memoSpaceCache: /* @__PURE__ */ new Map(),
+    memoSpaceWarmed: false,
+    editingVersion: 2,
+    editingType: null,
+    explanationEnabled: true
+  };
+  function getGlobalEnabledLangs() {
+    try {
+      const saved = localStorage.getItem(LS_GLOBAL_LANGS_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+    }
+    return ["en", "zh"];
+  }
+
+  // src/card-types.js
+  var V3_VERSION = 3;
+  function stripSpacePrefix(name) {
+    return String(name || "").replace(/^spaces\//, "");
+  }
+  function defaultSections() {
+    return CONFIG.languages.map((l) => ({
+      key: l.key,
+      label: l.label,
+      code: l.code,
+      color: l.color,
+      defaultHidden: l.defaultHidden === true,
+      placeholder: l.placeholder || ""
+    }));
+  }
+  function extractMarker(description) {
+    if (!description || !description.includes("{")) return null;
+    const start = description.indexOf("{");
+    const end = description.lastIndexOf("}");
+    if (end <= start) return null;
+    try {
+      const data = JSON.parse(description.substring(start, end + 1));
+      if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+      return data._t === CONFIG.typeIdentifier ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function deriveCode(label, key) {
+    const words = String(label || "").trim().split(/\s+/).filter(Boolean);
+    const initials = words.map((w) => (w.match(/[A-Za-z0-9]/) || [])[0]).filter(Boolean);
+    if (initials.length >= 2) return (initials[0] + initials[1]).toUpperCase();
+    const alnum = String(label || key).match(/[A-Za-z0-9]{1,2}/);
+    return String(alnum ? alnum[0] : key).slice(0, 2).toUpperCase();
+  }
+  function normalizeSection(section) {
+    if (!section || !section.key) return null;
+    const key = String(section.key).trim();
+    if (!key) return null;
+    const label = String(section.label || key);
+    return {
+      key,
+      label,
+      code: deriveCode(label, key),
+      color: String(section.color || "#38bdf8"),
+      defaultHidden: section.defaultHidden === true,
+      placeholder: String(section.placeholder || "")
+    };
+  }
+  function normalizeType(marker, space) {
+    if (!marker || marker._t !== CONFIG.typeIdentifier) return null;
+    const isV3 = marker.v === V3_VERSION || marker.v === String(V3_VERSION);
+    const spaceName = space && space.name || "";
+    const spaceTitle = space && space.title || "";
+    const hasSections = isV3 && Array.isArray(marker.sections);
+    const rawSections = hasSections ? marker.sections : [];
+    const sections = hasSections ? rawSections.map(normalizeSection).filter(Boolean) : defaultSections();
+    const aliases = isV3 && marker.sectionAliases && typeof marker.sectionAliases === "object" ? marker.sectionAliases : {};
+    return {
+      id: String(isV3 && marker.typeId || spaceName || "default"),
+      name: String(isV3 && marker.name || spaceTitle || stripSpacePrefix(spaceName) || "Language Card"),
+      order: Number.isFinite(Number(marker.order)) ? Number(marker.order) : 0,
+      spaceName,
+      spaceTitle,
+      version: isV3 ? V3_VERSION : 2,
+      explanationMode: marker.explanationMode === "global" ? "global" : "per-section",
+      sections,
+      sectionAliases: { ...aliases },
+      marker
+    };
+  }
+  function defaultType(space) {
+    const type = normalizeType({ _t: CONFIG.typeIdentifier, v: 2 }, space || { name: "", title: "" });
+    type.id = "default";
+    type.name = space && space.title || "Default language card";
+    type.order = -1;
+    return type;
+  }
+  function markerFromType(type) {
+    return JSON.stringify({
+      _t: CONFIG.typeIdentifier,
+      v: V3_VERSION,
+      typeId: type.id,
+      name: type.name,
+      order: type.order,
+      explanationMode: type.explanationMode,
+      sections: type.sections.map((s) => {
+        const out = { key: s.key, label: s.label, color: s.color };
+        if (s.defaultHidden) out.defaultHidden = true;
+        return out;
+      }),
+      sectionAliases: type.sectionAliases
+    });
+  }
+  function sortTypes(types) {
+    return [...types].sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+  }
+  function sectionKeys(type) {
+    return type.sections.map((s) => s.key);
+  }
+  function typeForSpace(types, spaceName) {
+    if (!spaceName) return null;
+    return types.find((t) => t.spaceName === spaceName) || null;
+  }
+  function activeTypeForNew(types, currentSpace) {
+    return typeForSpace(types, currentSpace) || sortTypes(types)[0] || defaultType(null);
+  }
+  function typeForMemo(types, memoName, currentSpace, memoSpaceCache) {
+    const cachedSpace = memoName && memoSpaceCache ? memoSpaceCache.get(memoName) : null;
+    return typeForSpace(types, cachedSpace) || typeForSpace(types, currentSpace) || activeTypeForNew(types, currentSpace);
+  }
+  function valueForSection(values, type, key) {
+    if (values[key] !== void 0 && values[key] !== null) return values[key];
+    for (const [oldKey, newKey] of Object.entries(type.sectionAliases || {})) {
+      if (newKey === key && values[oldKey] !== void 0) return values[oldKey];
+    }
+    return "";
+  }
+  function mapSectionKeys(data, aliasMap, keepUnknown = true) {
+    const out = {};
+    for (const [key, value] of Object.entries(data || {})) {
+      if (key === "_e") {
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          const mapped = {};
+          for (const [k, v] of Object.entries(value)) mapped[aliasMap[k] || k] = v;
+          out._e = mapped;
+        } else {
+          out._e = value;
+        }
+        continue;
+      }
+      const target = aliasMap[key] || key;
+      if (target !== key || keepUnknown || ["_t", "v", "_x"].includes(key)) {
+        out[target] = value;
+      }
+    }
+    return out;
+  }
 
   // src/utils.js
   function syncThemeClass() {
@@ -983,11 +1420,8 @@
     }
     return null;
   }
-  function stripSpacePrefix(name) {
+  function stripSpacePrefix2(name) {
     return String(name || "").replace(/^spaces\//, "");
-  }
-  function getCardHeaderJson() {
-    return JSON.stringify({ _t: CONFIG.typeIdentifier, v: CONFIG.cardVersion });
   }
   function escapeHtml(str) {
     return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -1020,9 +1454,163 @@
     }
   }
 
+  // src/card-model.js
+  function parseCardMemo(rawText, currentSpace) {
+    if (!rawText || !rawText.includes("{")) return null;
+    const startIdx = rawText.indexOf("{");
+    const endIdx = rawText.lastIndexOf("}");
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
+    const jsonCandidate = rawText.substring(startIdx, endIdx + 1);
+    const tagsCandidate = rawText.substring(endIdx + 1);
+    let cardData = null;
+    try {
+      cardData = JSON.parse(jsonCandidate);
+    } catch (e) {
+      const fields = {};
+      const reg = /"(_t|en|ja|jp|zh|cn|v)"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/g;
+      let m;
+      while ((m = reg.exec(jsonCandidate)) !== null) {
+        fields[m[1]] = m[2].replace(/\\n/g, "\n").replace(/\\"/g, '"');
+      }
+      if (Object.keys(fields).length > 0) {
+        cardData = fields;
+      }
+    }
+    if (!cardData || typeof cardData !== "object") return null;
+    if (cardData._t && cardData._t !== CONFIG.typeIdentifier) return null;
+    const hasLang = ["en", "ja", "jp", "zh", "cn"].some((k) => k in cardData);
+    const isExplicitCard = cardData._t === CONFIG.typeIdentifier;
+    const isDedicatedSpace = Boolean(
+      CONFIG.dedicatedSpaceKeyword && currentSpace && currentSpace.toLowerCase().includes(CONFIG.dedicatedSpaceKeyword.toLowerCase())
+    );
+    const isLegacyCard = (cardData.v || cardData.v === 0) && hasLang;
+    if (!isExplicitCard && !isDedicatedSpace && !isLegacyCard) {
+      return null;
+    }
+    const tags = tagsCandidate.match(/#[^\s#]+/g) || [];
+    const hasValues = ["en", "ja", "jp", "zh", "cn"].some(
+      (k) => cardData[k] && String(cardData[k]).trim().length > 0
+    );
+    if (!hasValues && tags.length === 0) {
+      return null;
+    }
+    return { data: cardData, tags, rawText };
+  }
+  function cardLangValue(data, langKey) {
+    if (!data) return "";
+    const legacy = langKey === "ja" ? data["jp"] : langKey === "zh" ? data["cn"] : null;
+    const val = data[langKey] || legacy || "";
+    return String(val).trim();
+  }
+  function cardPresentLangs(data) {
+    return CONFIG.languages.filter((lang) => cardLangValue(data, lang.key)).map((lang) => lang.key);
+  }
+  function normalizeTags(rawTags) {
+    const raw = String(rawTags || "").trim();
+    return raw ? raw.split(/[\s,]+/).map((t) => t.startsWith("#") ? t : `#${t}`).filter((t) => t.length > 1).join(" ") : "";
+  }
+  function parseCardV3(rawText) {
+    if (!rawText || !rawText.includes("{")) return null;
+    const start = rawText.indexOf("{");
+    const end = rawText.lastIndexOf("}");
+    if (end <= start) return null;
+    let data;
+    try {
+      data = JSON.parse(rawText.substring(start, end + 1));
+    } catch (e) {
+      return null;
+    }
+    if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+    if (data._t !== CONFIG.typeIdentifier || data.v !== V3_VERSION) return null;
+    const tags = rawText.substring(end + 1).match(/#[^\s#]+/g) || [];
+    const values = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (!["_t", "v", "_e", "_x"].includes(key)) values[key] = value;
+    }
+    const hasValues = Object.values(values).some((v) => v && String(v).trim().length > 0);
+    if (!hasValues && tags.length === 0) return null;
+    return {
+      version: V3_VERSION,
+      data,
+      values,
+      tags,
+      explanations: data._e === void 0 ? {} : data._e,
+      showExplanation: data._x !== false,
+      rawText
+    };
+  }
+  function parseAnyCard(rawText, currentSpace) {
+    const v3 = parseCardV3(rawText);
+    if (v3) return v3;
+    const legacy = parseCardMemo(rawText, currentSpace);
+    if (!legacy) return null;
+    return {
+      version: 2,
+      data: legacy.data,
+      values: legacy.data,
+      tags: legacy.tags,
+      explanations: {},
+      showExplanation: false,
+      rawText: legacy.rawText
+    };
+  }
+  function buildCardContentV3(type, values, explanations, showExplanation, tags) {
+    const data = { _t: CONFIG.typeIdentifier, v: V3_VERSION };
+    let hasAny = false;
+    type.sections.forEach((section) => {
+      const val = String(values && values[section.key] || "").trim();
+      if (val) {
+        data[section.key] = val;
+        hasAny = true;
+      }
+    });
+    let explanationPayload = null;
+    if (type.explanationMode === "global") {
+      const text = String(explanations || "").trim();
+      if (text) explanationPayload = text;
+    } else {
+      const mapped = {};
+      type.sections.forEach((section) => {
+        const text = String(explanations && explanations[section.key] || "").trim();
+        if (text) mapped[section.key] = text;
+      });
+      if (Object.keys(mapped).length) explanationPayload = mapped;
+    }
+    if (explanationPayload !== null) data._e = explanationPayload;
+    if (showExplanation === false) data._x = false;
+    const normalizedTags = normalizeTags(tags);
+    const content = JSON.stringify(data) + (normalizedTags ? `
+${normalizedTags}` : "");
+    return { data, content, tags: normalizedTags, hasAny };
+  }
+  function valuesFor(parsed, type) {
+    const out = {};
+    type.sections.forEach((section) => {
+      out[section.key] = String(valueForSection(parsed.values || parsed.data || {}, type, section.key) || "").trim();
+    });
+    return out;
+  }
+  function explanationsFor(parsed, type) {
+    const raw = parsed.explanations || {};
+    if (type.explanationMode === "global") {
+      return typeof raw === "string" ? raw : Object.values(raw).join("\n");
+    }
+    const out = {};
+    type.sections.forEach((section) => {
+      let text = raw && typeof raw === "object" && raw[section.key] || "";
+      for (const [oldKey, newKey] of Object.entries(type.sectionAliases || {})) {
+        if (newKey === section.key && raw && typeof raw === "object" && raw[oldKey]) {
+          text = raw[oldKey];
+        }
+      }
+      out[section.key] = String(text).trim();
+    });
+    return out;
+  }
+
   // src/api.js
-  function isLegacyFallbackStatus(status) {
-    return status === 404 || status === 410;
+  function isLegacyFallbackStatus(status2) {
+    return status2 === 404 || status2 === 410;
   }
   async function fetchJsonWithFallback(paths, token) {
     let lastRes = null;
@@ -1106,178 +1694,53 @@
     }
     return null;
   }
-
-  // src/spaces.js
-  var LS_TARGET_SPACE_KEY = "memos_lc_target_space_v2";
-  function parseSpaceHeader(description) {
-    if (!description || !description.includes("{")) return null;
-    const start = description.indexOf("{");
-    const end = description.lastIndexOf("}");
-    if (start === -1 || end <= start) return null;
-    try {
-      const data = JSON.parse(description.substring(start, end + 1));
-      return data && data._t === CONFIG.typeIdentifier ? data : null;
-    } catch (e) {
-      return null;
-    }
-  }
-  async function findDedicatedSpaces() {
-    const token = await getMemosAuthToken();
-    const spaces = await fetchAllSpaces(token);
-    return spaces.filter((space) => parseSpaceHeader(space.description)).sort((a, b) => String(a.name).localeCompare(String(b.name)));
-  }
-  function readCachedTargetSpace() {
-    try {
-      const raw = localStorage.getItem(LS_TARGET_SPACE_KEY);
-      if (!raw) return null;
-      if (raw.startsWith("{")) {
-        const parsed = JSON.parse(raw);
-        return parsed && parsed.name ? { name: parsed.name, title: parsed.title || "" } : null;
+  async function sendJsonWithFallback(paths, method, body, token) {
+    let lastRes = null;
+    for (const path of paths) {
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(path, {
+        method,
+        headers,
+        credentials: "include",
+        body: JSON.stringify(body)
+      });
+      if (isLegacyFallbackStatus(res.status)) {
+        lastRes = res;
+        continue;
       }
-      return { name: raw, title: "" };
-    } catch (e) {
-      return null;
+      return res;
     }
+    return lastRes;
   }
-  function writeCachedTargetSpace(name, title) {
-    try {
-      localStorage.setItem(LS_TARGET_SPACE_KEY, JSON.stringify({ name, title: title || "" }));
-    } catch (e) {
-    }
+  async function updateSpaceDescription(spaceName, description, token) {
+    const id = encodeURIComponent(String(spaceName || "").replace(/^spaces\//, ""));
+    return sendJsonWithFallback(
+      [`/api/spaces/${id}?updateMask=description`, `/api/v1/spaces/${id}?updateMask=description`],
+      "PATCH",
+      { name: spaceName, description },
+      token
+    );
   }
-  async function resolveTargetSpace(options) {
-    const force = Boolean(options && options.force);
-    if (!force) {
-      const cached = readCachedTargetSpace();
-      if (cached) return { space: cached.name, title: cached.title, matches: null, fromCache: true };
-    }
-    const matches = await findDedicatedSpaces();
-    if (matches.length === 1) {
-      writeCachedTargetSpace(matches[0].name, matches[0].title || "");
-      return { space: matches[0].name, title: matches[0].title || "", matches, fromCache: false };
-    }
-    clearTargetSpaceCache();
-    return { space: null, title: "", matches, fromCache: false };
+  async function listMemosForSpace(spaceName, token) {
+    const parent = encodeURIComponent(spaceName || "");
+    const paths = [
+      `/api/memos?parent=${parent}&pageSize=1000`,
+      `/api/v1/memos?parent=${parent}&pageSize=1000`
+    ];
+    const res = await fetchJsonWithFallback(paths, token);
+    if (!res || !res.ok) throw new Error(`ListMemos failed: HTTP ${res ? res.status : "no response"}`);
+    const json = await res.json();
+    return Array.isArray(json.memos) ? json.memos : [];
   }
-  function clearTargetSpaceCache() {
-    try {
-      localStorage.removeItem(LS_TARGET_SPACE_KEY);
-    } catch (e) {
-    }
-  }
-  function setSpaceIndicatorState(state2, text) {
-    const btn = document.getElementById("lc-space-indicator");
-    const textEl = document.getElementById("lc-space-indicator-text");
-    if (!btn || !textEl) return;
-    btn.classList.remove("lc-si-loading", "lc-si-ok", "lc-si-warn", "lc-si-missing");
-    btn.classList.add(`lc-si-${state2}`);
-    textEl.innerText = text;
-    btn.title = `${text} — click for details`;
-  }
-  function updateSpaceHint(spaceName, spaceTitle) {
-    const hint = document.getElementById("lc-space-hint");
-    if (!hint) return;
-    const label = spaceTitle || (spaceName ? stripSpacePrefix(spaceName) : "");
-    hint.innerText = spaceName ? `Target Space: ${label}` : "Target Space: Personal Space";
-  }
-  async function refreshSpaceIndicator(force) {
-    if (state.spaceResolutionInFlight) return state.spaceResolutionInFlight;
-    state.spaceResolutionInFlight = (async () => {
-      setSpaceIndicatorState("loading", "⏳ Checking spaces…");
-      try {
-        const result = await resolveTargetSpace({ force: Boolean(force) });
-        if (result.space) {
-          setSpaceIndicatorState("ok", `🃏 ${result.title || stripSpacePrefix(result.space)}`);
-        } else if (result.matches && result.matches.length > 1) {
-          setSpaceIndicatorState("warn", `⚠️ ${result.matches.length} spaces with header`);
-        } else if (result.matches) {
-          setSpaceIndicatorState("missing", "⛔ No space with header");
-        } else {
-          setSpaceIndicatorState("missing", "⛔ Space check failed");
-        }
-        if (result.space) {
-          updateSpaceHint(result.space, result.title);
-        } else {
-          updateSpaceHint(getCurrentSpace(), "");
-        }
-        return result;
-      } catch (err) {
-        console.warn("[LanguageCard] space resolution failed", err);
-        setSpaceIndicatorState("missing", "⛔ Space check failed");
-        return null;
-      } finally {
-        state.spaceResolutionInFlight = null;
-      }
-    })();
-    return state.spaceResolutionInFlight;
-  }
-  function spaceHeaderCodeHtml() {
-    return `<div class="lc-header-box">
-      <code class="lc-header-json">${escapeHtml(getCardHeaderJson())}</code>
-      <button type="button" class="lc-header-copy-btn" id="lc-space-info-copy-btn" title="Copy header JSON">📋</button>
-    </div>`;
-  }
-  function showSpaceInfoPopup(result) {
-    const overlay = document.getElementById("lc-space-info-overlay");
-    const titleEl = document.getElementById("lc-space-info-title");
-    const bodyEl = document.getElementById("lc-space-info-body");
-    if (!overlay || !titleEl || !bodyEl) return;
-    let title = "Language Card Space";
-    let bodyHtml = "";
-    if (!result) {
-      title = "⚠️ Space check failed";
-      bodyHtml = `<p>The space list could not be read from the server. This usually means the access token expired — reload the page and click the indicator again.</p>`;
-    } else if (result.space) {
-      title = "🃏 Language card space";
-      const displayTitle = result.title || stripSpacePrefix(result.space);
-      bodyHtml = `
-        <p>New cards are saved into this space:</p>
-        <div class="lc-space-info-name">${escapeHtml(displayTitle)}</div>
-        ${result.title ? `<div class="lc-space-info-uid">uid: ${escapeHtml(stripSpacePrefix(result.space))}</div>` : ""}
-        <p>It is identified by this header in its description:</p>
-        ${spaceHeaderCodeHtml()}`;
-    } else if (result.matches && result.matches.length > 1) {
-      title = `⚠️ ${result.matches.length} spaces carry the header`;
-      bodyHtml = `
-        <p><b>Only one space</b> may carry the language card header, so no target space is selected. Remove the header from the description of all but one space:</p>
-        <ul class="lc-space-info-list">
-          ${result.matches.map((s) => `<li><b>${escapeHtml(s.title || stripSpacePrefix(s.name))}</b><span class="lc-space-info-uid">${escapeHtml(stripSpacePrefix(s.name))}</span></li>`).join("")}
-        </ul>
-        <p>This is the header to look for:</p>
-        ${spaceHeaderCodeHtml()}`;
-    } else {
-      title = "⛔ No language card space found";
-      bodyHtml = `
-        <p>No space carries the language card header yet, so new cards go to the current space (or your personal space).</p>
-        <p>To choose the space that receives new cards:</p>
-        <ol>
-          <li>Open the space you want to use.</li>
-          <li>Edit its description and paste this header into it:</li>
-        </ol>
-        ${spaceHeaderCodeHtml()}
-        <p>Only one space should carry this header.</p>`;
-    }
-    titleEl.innerText = title;
-    bodyEl.innerHTML = bodyHtml;
-    const copyBtn = document.getElementById("lc-space-info-copy-btn");
-    if (copyBtn) {
-      copyBtn.onclick = (e) => {
-        e.stopPropagation();
-        copyText(getCardHeaderJson(), copyBtn);
-      };
-    }
-    overlay.style.display = "flex";
-    const onKey = (ev) => {
-      if (ev.key === "Escape") {
-        hideSpaceInfoPopup();
-        document.removeEventListener("keydown", onKey, true);
-      }
-    };
-    document.addEventListener("keydown", onKey, true);
-  }
-  function hideSpaceInfoPopup() {
-    const overlay = document.getElementById("lc-space-info-overlay");
-    if (overlay) overlay.style.display = "none";
+  async function patchMemoContent(memoName, content, token) {
+    const id = encodeURIComponent(String(memoName || "").replace(/^memos\//, ""));
+    return sendJsonWithFallback(
+      [`/api/memos/${id}?updateMask=content`, `/api/v1/memos/${id}?updateMask=content`],
+      "PATCH",
+      { content },
+      token
+    );
   }
 
   // src/tags.js
@@ -1738,50 +2201,831 @@
     return false;
   }
 
+  // src/spaces.js
+  var LS_TARGET_SPACE_KEY = "memos_lc_target_space_v2";
+  function readCachedTargetSpace() {
+    try {
+      const raw = localStorage.getItem(LS_TARGET_SPACE_KEY);
+      if (!raw) return null;
+      if (raw.startsWith("{")) {
+        const parsed = JSON.parse(raw);
+        return parsed && parsed.name ? { name: parsed.name, title: parsed.title || "" } : null;
+      }
+      return { name: raw, title: "" };
+    } catch (e) {
+      return null;
+    }
+  }
+  function writeCachedTargetSpace(name, title) {
+    try {
+      localStorage.setItem(LS_TARGET_SPACE_KEY, JSON.stringify({ name, title: title || "" }));
+    } catch (e) {
+    }
+  }
+  function clearTargetSpaceCache() {
+    try {
+      localStorage.removeItem(LS_TARGET_SPACE_KEY);
+    } catch (e) {
+    }
+  }
+  async function getAllSpaces(force) {
+    if (!force && state.allSpaces.length) return state.allSpaces;
+    const token = await getMemosAuthToken();
+    const spaces = await fetchAllSpaces(token);
+    state.allSpaces = spaces;
+    return spaces;
+  }
+  async function getCardTypes(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.types.length) {
+      const urlType2 = typeForSpace(state.types, getCurrentSpace());
+      if (urlType2) state.activeType = urlType2;
+      return state.types;
+    }
+    const spaces = await getAllSpaces(force);
+    const types = sortTypes(spaces.map((space) => {
+      const marker = extractMarker(space.description);
+      return marker ? normalizeType(marker, space) : null;
+    }).filter(Boolean));
+    state.types = types;
+    const urlType = typeForSpace(types, getCurrentSpace());
+    const cached = readCachedTargetSpace();
+    const cachedType = cached && typeForSpace(types, cached.name);
+    if (urlType) {
+      state.activeType = urlType;
+    } else if (cachedType) {
+      state.activeType = cachedType;
+    } else if (!state.activeType || !types.some((t) => t.id === state.activeType.id)) {
+      state.activeType = activeTypeForNew(types, getCurrentSpace());
+    }
+    return types;
+  }
+  function setActiveType(typeId) {
+    const type = state.types.find((t) => t.id === typeId);
+    if (!type) return null;
+    state.activeType = type;
+    if (type.spaceName) writeCachedTargetSpace(type.spaceName, type.spaceTitle);
+    return type;
+  }
+  async function resolveTargetSpace(options) {
+    const force = Boolean(options && options.force);
+    if (!force) {
+      const cached = readCachedTargetSpace();
+      if (cached) {
+        return {
+          space: cached.name,
+          title: cached.title,
+          matches: state.types,
+          fromCache: true,
+          type: typeForSpace(state.types, cached.name) || state.activeType
+        };
+      }
+    }
+    const types = await getCardTypes({ force });
+    const active = typeForSpace(types, getCurrentSpace()) || state.activeType || activeTypeForNew(types, getCurrentSpace());
+    if (active && active.spaceName) {
+      writeCachedTargetSpace(active.spaceName, active.spaceTitle);
+      return {
+        space: active.spaceName,
+        title: active.spaceTitle,
+        matches: types,
+        fromCache: false,
+        type: active
+      };
+    }
+    clearTargetSpaceCache();
+    return { space: null, title: "", matches: types, fromCache: false, type: active };
+  }
+  function setSpaceIndicatorState(stateName, text) {
+    const btn = document.getElementById("lc-space-indicator");
+    const textEl = document.getElementById("lc-space-indicator-text");
+    if (!btn || !textEl) return;
+    btn.classList.remove("lc-si-loading", "lc-si-ok", "lc-si-warn", "lc-si-missing");
+    btn.classList.add(`lc-si-${stateName}`);
+    textEl.innerText = text;
+    btn.title = `${text} — click to manage card types`;
+  }
+  function updateSpaceHint(spaceName, spaceTitle) {
+    const hint = document.getElementById("lc-space-hint");
+    if (!hint) return;
+    const label = spaceTitle || (spaceName ? stripSpacePrefix2(spaceName) : "");
+    hint.innerText = state.activeType ? `Type: ${state.activeType.name}` + (spaceName ? ` · ${label}` : "") : spaceName ? `Target Space: ${label}` : "Target Space: Personal Space";
+  }
+  async function refreshSpaceIndicator(force) {
+    if (state.spaceResolutionInFlight) return state.spaceResolutionInFlight;
+    state.spaceResolutionInFlight = (async () => {
+      setSpaceIndicatorState("loading", "⏳ Checking card types…");
+      try {
+        const result = await resolveTargetSpace({ force: Boolean(force) });
+        const count = state.types.length;
+        if (count > 0) {
+          const suffix = count > 1 ? ` · ${count} types` : "";
+          setSpaceIndicatorState("ok", `🃏 ${state.activeType ? state.activeType.name : "Card types"}${suffix}`);
+        } else if (result.space) {
+          setSpaceIndicatorState("ok", `🃏 ${result.title || stripSpacePrefix2(result.space)}`);
+        } else {
+          setSpaceIndicatorState("missing", "⛔ No card types yet");
+        }
+        updateSpaceHint(result.space, result.title);
+        return result;
+      } catch (err) {
+        console.warn("[LanguageCard] card type resolution failed", err);
+        setSpaceIndicatorState("missing", "⛔ Card type check failed");
+        return null;
+      } finally {
+        state.spaceResolutionInFlight = null;
+      }
+    })();
+    return state.spaceResolutionInFlight;
+  }
+  function hideSpaceInfoPopup() {
+    const overlay = document.getElementById("lc-space-info-overlay");
+    if (overlay) overlay.style.display = "none";
+  }
+  async function warmMemoSpaceCache() {
+    if (state.memoSpaceWarmed) return;
+    state.memoSpaceWarmed = true;
+    const token = await getMemosAuthToken();
+    await Promise.all(state.types.map(async (type) => {
+      if (!type.spaceName) return;
+      try {
+        const memos = await listMemosForSpace(type.spaceName, token);
+        memos.forEach((memo) => {
+          if (memo && memo.name) state.memoSpaceCache.set(memo.name, type.spaceName);
+        });
+      } catch (e) {
+      }
+    }));
+  }
+
+  // src/space-manager.js
+  var draftType = null;
+  var migrationPlan = [];
+  var migrationType = null;
+  function status(message, isError) {
+    const el = document.getElementById("lc-manager-status");
+    if (!el) return;
+    el.innerText = message;
+    el.className = `lc-manager-status${isError ? " lc-manager-error" : ""}`;
+  }
+  function spaceDescriptionFor(name) {
+    const space = state.allSpaces.find((s) => s.name === name);
+    return space ? space.description || "" : "";
+  }
+  function replaceMarker(description, marker) {
+    const text = String(description || "");
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start === -1 || end <= start) return `${text.trim()}
+${marker}`.trim();
+    return `${text.substring(0, start)}${marker}${text.substring(end + 1)}`;
+  }
+  function sectionRowHtml(section, index) {
+    return `
+    <div class="lc-section-row" data-sec-row="${index}">
+      <input class="lc-form-input" data-field="key" data-sec-index="${index}" value="${escapeHtml(section.key)}" placeholder="key" title="the key stored in the note" />
+      <input class="lc-form-input" data-field="label" data-sec-index="${index}" value="${escapeHtml(section.label)}" placeholder="label" title="display label (the chip code is derived from this)" />
+      <input class="lc-form-input" data-field="color" data-sec-index="${index}" value="${escapeHtml(section.color)}" placeholder="#38bdf8" title="colour" />
+      <button type="button" class="lc-btn-icon" data-action="section-toggle-hidden" data-sec-index="${index}" title="${section.defaultHidden ? "Hidden by default — click to show by default" : "Shown by default — click to hide by default"}">${section.defaultHidden ? "🚫" : "👁"}</button>
+      <button type="button" class="lc-btn-icon" data-action="section-up" data-sec-index="${index}" title="Move up">↑</button>
+      <button type="button" class="lc-btn-icon" data-action="section-down" data-sec-index="${index}" title="Move down">↓</button>
+      <button type="button" class="lc-btn-icon" data-action="section-remove" data-sec-index="${index}" title="Remove">✕</button>
+    </div>`;
+  }
+  function typeCardHtml(type, index, total, inUseId) {
+    const inUse = type.id === inUseId;
+    const open = Boolean(draftType && draftType.id === type.id);
+    const aliasCount = Object.keys(type.sectionAliases || {}).length;
+    return `
+    <li class="lc-type-card${inUse ? " lc-type-in-use" : ""}${open ? " lc-type-open" : ""}">
+      <div class="lc-type-card-head">
+        <button type="button" class="lc-type-card-title" data-action="type-edit" data-type-id="${escapeHtml(type.id)}" title="Click to edit this type">
+          <b>${escapeHtml(type.name)}</b>
+          ${inUse ? '<span class="lc-type-badge-use">In use</span>' : ""}
+          <span class="lc-type-meta">
+            ${escapeHtml(type.spaceName || "no space")} &middot;
+            ${type.sections.length ? type.sections.map((s) => escapeHtml(s.label)).join(" · ") : "no sections yet"} &middot;
+            ${type.explanationMode === "global" ? "global explanation" : "per-section explanation"}
+            ${aliasCount ? ` &middot; ${aliasCount} name alias${aliasCount > 1 ? "es" : ""}` : ""}
+          </span>
+        </button>
+        <div class="lc-type-row-actions">
+          <button type="button" class="lc-btn-icon" data-action="type-up" data-type-id="${escapeHtml(type.id)}" ${index === 0 ? "disabled" : ""} title="Move up">↑</button>
+          <button type="button" class="lc-btn-icon" data-action="type-down" data-type-id="${escapeHtml(type.id)}" ${index === total - 1 ? "disabled" : ""} title="Move down">↓</button>
+          ${inUse ? "" : `<button type="button" class="lc-btn lc-btn-secondary" data-action="type-use" data-type-id="${escapeHtml(type.id)}">Use for new cards</button>`}
+          <button type="button" class="lc-btn lc-btn-secondary" data-action="type-edit" data-type-id="${escapeHtml(type.id)}">${open ? "Close" : "Edit"}</button>
+        </div>
+      </div>
+      ${open ? `<div class="lc-type-card-body">${typeEditorHtml()}</div>` : ""}
+    </li>`;
+  }
+  function typeEditorHtml() {
+    const type = draftType;
+    return `
+    <div class="lc-manager-grid">
+      <label class="lc-form-label">Name <input id="lc-type-name" class="lc-form-input" value="${escapeHtml(type.name)}" /></label>
+      <label class="lc-form-label">Order <input id="lc-type-order" class="lc-form-input" type="number" value="${type.order}" /></label>
+      <label class="lc-form-label">Explanation mode
+        <select id="lc-type-mode" class="lc-form-input">
+          <option value="per-section" ${type.explanationMode !== "global" ? "selected" : ""}>per section</option>
+          <option value="global" ${type.explanationMode === "global" ? "selected" : ""}>global</option>
+        </select>
+      </label>
+    </div>
+    <div class="lc-editor-block">
+      <h4>Language sections</h4>
+      <p class="lc-manager-hint">Each section = one key stored in the note + its display label (the short chip code is derived from the label) + colour. The order below is the left-to-right order in cards and the JSON key order. The 👁 / 🚫 button decides whether the section starts open or closed when creating a new card.</p>
+      <div id="lc-section-rows">${type.sections.map(sectionRowHtml).join("") || '<p class="lc-manager-hint">No sections yet — add one below.</p>'}</div>
+      <button type="button" class="lc-btn lc-btn-secondary" id="lc-add-section-btn">+ Add section</button>
+    </div>
+    <div class="lc-manager-actions">
+      <button type="button" class="lc-btn lc-btn-primary" id="lc-save-type-btn">Save to space description</button>
+      <button type="button" class="lc-btn lc-btn-secondary" id="lc-copy-marker-btn">Copy marker JSON</button>
+    </div>
+    <pre id="lc-marker-preview" class="lc-preview-box">${escapeHtml(markerFromType(draftType))}</pre>
+    <p class="lc-manager-hint">Writing requires space administrator rights; otherwise copy this marker into the space description manually.</p>`;
+  }
+  function openTypeEditor(typeId) {
+    if (draftType && draftType.id === typeId) {
+      draftType = null;
+    } else {
+      const type = state.types.find((t) => t.id === typeId);
+      draftType = type ? JSON.parse(JSON.stringify(type)) : null;
+    }
+    renderTypeList();
+  }
+  function renderTypeList() {
+    const host = document.getElementById("lc-type-list");
+    if (!host) return;
+    const types = state.types;
+    const inUseType = typeForSpace(types, getCurrentSpace()) || state.activeType || types[0];
+    host.innerHTML = types.map((t, i) => typeCardHtml(t, i, types.length, inUseType && inUseType.id)).join("") || "<li>No card types yet — declare a space below.</li>";
+  }
+  async function writeTypeMarker(type, successMessage) {
+    const marker = markerFromType(type);
+    const description = replaceMarker(spaceDescriptionFor(type.spaceName), marker);
+    const token = await getMemosAuthToken();
+    const res = await updateSpaceDescription(type.spaceName, description, token);
+    if (res && res.ok) {
+      status(successMessage || "Marker saved.");
+      await getCardTypes({ force: true });
+      await refreshSpaceIndicator(true);
+      await renderManager();
+      return true;
+    }
+    const code = res ? res.status : "no response";
+    status(
+      `Could not write the space description (HTTP ${code}). ` + (code === 401 || code === 403 ? "Admin rights are required — copy the marker below into the space description yourself." : "The marker JSON is shown below for manual use."),
+      true
+    );
+    const preview = document.getElementById("lc-marker-preview");
+    if (preview) preview.innerText = marker;
+    return false;
+  }
+  function collectDraft() {
+    const name = document.getElementById("lc-type-name");
+    const order = document.getElementById("lc-type-order");
+    const mode = document.getElementById("lc-type-mode");
+    if (!draftType) return null;
+    if (name && name.value) draftType.name = name.value;
+    if (order && order.value !== "") draftType.order = Number(order.value) || 0;
+    if (mode && mode.value) draftType.explanationMode = mode.value === "global" ? "global" : "per-section";
+    draftType.sections = draftType.sections.filter((s) => s && s.key);
+    if (!draftType.sections.length) {
+      status("A card type needs at least one section.", true);
+      return null;
+    }
+    const preview = document.getElementById("lc-marker-preview");
+    if (preview) preview.innerText = markerFromType(draftType);
+    return draftType;
+  }
+  function migrationOverlay() {
+    let overlay = document.getElementById("lc-migration-overlay");
+    if (overlay) return overlay;
+    overlay = document.createElement("div");
+    overlay.id = "lc-migration-overlay";
+    overlay.className = "lc-modal-overlay lc-migration-overlay";
+    overlay.style.display = "none";
+    overlay.onclick = (e) => {
+      if (e.target === overlay) closeMigrationWizard();
+    };
+    overlay.innerHTML = `
+    <div class="lc-modal-dialog lc-migration-dialog">
+      <div class="lc-modal-header">
+        <div class="lc-modal-title-row">
+          <h3 class="lc-modal-title"><span>🔧</span><span id="lc-migration-title">Migrate incompatible notes</span></h3>
+        </div>
+        <div class="lc-modal-header-actions">
+          <button type="button" class="lc-modal-close" id="lc-migration-close-btn" title="Close (Esc)">&times;</button>
+        </div>
+      </div>
+      <div class="lc-modal-body" id="lc-migration-body">
+        <p class="lc-manager-hint">Scanning…</p>
+      </div>
+      <div class="lc-modal-footer">
+        <label class="lc-migration-save" title="Persist the choices so future notes / renders match automatically">
+          <input type="checkbox" id="lc-migration-save-aliases" checked />
+          Save chosen mappings as section aliases
+        </label>
+        <div style="display:flex; gap:10px;">
+          <button type="button" class="lc-btn lc-btn-secondary" id="lc-migration-preview-btn">Preview</button>
+          <button type="button" class="lc-btn lc-btn-primary" id="lc-migration-apply-btn">Migrate</button>
+        </div>
+      </div>
+    </div>
+  `;
+    document.body.appendChild(overlay);
+    const closeBtn = document.getElementById("lc-migration-close-btn");
+    if (closeBtn) closeBtn.onclick = closeMigrationWizard;
+    const previewBtn = document.getElementById("lc-migration-preview-btn");
+    if (previewBtn) previewBtn.onclick = showMigrationPreview;
+    const applyBtn = document.getElementById("lc-migration-apply-btn");
+    if (applyBtn) applyBtn.onclick = runMigration;
+    const body = document.getElementById("lc-migration-body");
+    if (body) {
+      body.addEventListener("change", (e) => {
+        const noteIndex = e.target && e.target.getAttribute ? Number(e.target.getAttribute("data-mig-note")) : NaN;
+        const rowIndex = e.target && e.target.getAttribute ? Number(e.target.getAttribute("data-mig-row")) : NaN;
+        if (Number.isNaN(noteIndex) || Number.isNaN(rowIndex)) return;
+        const row = migrationPlan[noteIndex] && migrationPlan[noteIndex].rows[rowIndex];
+        if (row) row.target = e.target.value || "__keep";
+      });
+    }
+    document.addEventListener("keydown", (ev) => {
+      const el = document.getElementById("lc-migration-overlay");
+      if (ev.key === "Escape" && el && el.style.display !== "none") {
+        closeMigrationWizard();
+      }
+    }, true);
+    return overlay;
+  }
+  function closeMigrationWizard() {
+    const overlay = document.getElementById("lc-migration-overlay");
+    if (overlay) overlay.style.display = "none";
+  }
+  function migrationStatus(message, isError) {
+    const el = document.getElementById("lc-migration-status");
+    if (!el) return;
+    el.innerText = message;
+    el.className = `lc-manager-status${isError ? " lc-manager-error" : ""}`;
+  }
+  function collectMigrationMapping() {
+    const mapping = {};
+    migrationPlan.forEach((note) => note.rows.forEach((row) => {
+      if (row.target && row.target !== "__keep") mapping[row.key] = row.target;
+    }));
+    return mapping;
+  }
+  function renderMigrationList() {
+    const body = document.getElementById("lc-migration-body");
+    if (!body) return;
+    const type = migrationType;
+    if (!migrationPlan.length) {
+      body.innerHTML = '<p class="lc-manager-hint">No incompatible notes found in this space.</p>';
+      return;
+    }
+    body.innerHTML = `
+    <p class="lc-manager-hint">Every note below carries keys that don't match a section of <b>${escapeHtml(type ? type.name : "")}</b>. Choose, per key, which section it should become &mdash; you can see the actual value next to it. "keep as-is" leaves the key untouched. Nothing is written until you press Migrate.</p>
+    ${migrationPlan.map((note, ni) => `
+      <div class="lc-migration-note">
+        <div class="lc-migration-note-head">
+          <b>${escapeHtml(note.memoName || "memo")}</b>
+          <span class="lc-space-info-uid">${escapeHtml(note.kind)}</span>
+        </div>
+        ${note.rows.map((row, ri) => `
+          <div class="lc-migration-key-row">
+            <code class="lc-migration-key">${escapeHtml(row.key)}</code>
+            <select class="lc-form-input lc-migration-target" data-mig-note="${ni}" data-mig-row="${ri}">
+              <option value="__keep" ${row.target === "__keep" ? "selected" : ""}>keep as-is</option>
+              ${(type ? type.sections : []).map((s) => `<option value="${escapeHtml(s.key)}" ${row.target === s.key ? "selected" : ""}>${escapeHtml(s.label)} (${escapeHtml(s.key)})</option>`).join("")}
+            </select>
+            <span class="lc-migration-sample">"${escapeHtml(row.sample)}"</span>
+          </div>`).join("")}
+      </div>`).join("")}
+    <pre id="lc-migration-preview" class="lc-preview-box"></pre>
+    <div id="lc-migration-status" class="lc-manager-status"></div>`;
+  }
+  function showMigrationPreview() {
+    const mapping = collectMigrationMapping();
+    const host = document.getElementById("lc-migration-preview");
+    if (!host) return;
+    host.innerText = migrationPlan.map((note) => {
+      const before = note.raw.slice(0, 140);
+      const after = migratedContent(note.raw, mapping) || "(unparseable)";
+      return `${note.memoName}
+  before: ${before}
+  after:  ${after.slice(0, 140)}`;
+    }).join("\n\n") || "Nothing to preview.";
+  }
+  function migratedContent(rawText, mapping) {
+    const start = rawText.indexOf("{");
+    const end = rawText.lastIndexOf("}");
+    if (start === -1 || end <= start) return null;
+    let data;
+    try {
+      data = JSON.parse(rawText.substring(start, end + 1));
+    } catch (e) {
+      return null;
+    }
+    const mapped = mapSectionKeys(data, mapping);
+    mapped._t = data._t || "lc";
+    mapped.v = V3_VERSION;
+    return `${rawText.substring(0, start)}${JSON.stringify(mapped)}${rawText.substring(end + 1)}`;
+  }
+  async function openMigrationWizard() {
+    const type = state.activeType || state.types[0];
+    if (!type || !type.spaceName) {
+      status("Pick a card type bound to a space first.", true);
+      return;
+    }
+    migrationType = type;
+    const overlay = migrationOverlay();
+    overlay.style.display = "flex";
+    const title = document.getElementById("lc-migration-title");
+    if (title) title.innerText = `Migrate notes — ${type.name} (${type.spaceName})`;
+    const body = document.getElementById("lc-migration-body");
+    if (body) body.innerHTML = '<p class="lc-manager-hint">Scanning notes in this space…</p>';
+    try {
+      const token = await getMemosAuthToken();
+      const memos = await listMemosForSpace(type.spaceName, token);
+      const keys = sectionKeys(type);
+      migrationPlan = memos.map((memo) => {
+        const raw = String(memo.content || "");
+        const v3 = parseCardV3(raw);
+        const legacy = v3 ? null : parseCardMemo(raw, type.spaceName);
+        const values = v3 ? v3.values : legacy ? legacy.data : null;
+        if (!values) return null;
+        const rows = Object.keys(values).filter((k) => !["_t", "v", "_e", "_x"].includes(k) && !keys.includes(k)).map((k) => ({
+          key: k,
+          sample: String(values[k] || "").replace(/\s+/g, " ").slice(0, 40),
+          // Default to a saved alias when it matches a section; otherwise leave
+          // "keep as-is" so the user makes an explicit, visible choice.
+          target: type.sectionAliases[k] && keys.includes(type.sectionAliases[k]) ? type.sectionAliases[k] : "__keep"
+        }));
+        return rows.length ? { memoName: memo.name || "", raw, kind: v3 ? "V3, unknown keys" : "V2 / legacy keys", rows } : null;
+      }).filter(Boolean);
+      renderMigrationList();
+    } catch (err) {
+      migrationPlan = [];
+      if (body) {
+        body.innerHTML = `<p class="lc-manager-error">Could not list memos: ${escapeHtml(err.message)}. Check your token / space permissions.</p>`;
+      }
+    }
+  }
+  async function runMigration() {
+    const mapping = collectMigrationMapping();
+    if (!migrationPlan.length) return;
+    const token = await getMemosAuthToken();
+    let done = 0;
+    let failed = 0;
+    for (const note of migrationPlan) {
+      const content = migratedContent(note.raw, mapping);
+      if (!content) {
+        failed++;
+        continue;
+      }
+      try {
+        const res = await patchMemoContent(note.memoName, content, token);
+        if (res && res.ok) done++;
+        else failed++;
+      } catch (e) {
+        failed++;
+      }
+    }
+    let aliasNote = "";
+    const saveBox = document.getElementById("lc-migration-save-aliases");
+    if (saveBox && saveBox.checked && migrationType && Object.keys(mapping).length && done > 0) {
+      migrationType.sectionAliases = { ...migrationType.sectionAliases, ...mapping };
+      const ok = await writeTypeMarkerSilently(migrationType);
+      if (ok) {
+        await getCardTypes({ force: true });
+        aliasNote = " Mappings saved as section aliases.";
+      } else {
+        aliasNote = " (mappings were NOT saved to the type definition)";
+      }
+    }
+    migrationStatus(`Migrated ${done} note(s), ${failed} failed.${aliasNote}`, failed > 0);
+    migrationPlan = [];
+    renderMigrationList();
+  }
+  function bindManagerEvents(bodyEl) {
+    bodyEl.onclick = async (e) => {
+      const target = e.target && e.target.closest ? e.target.closest("button") : null;
+      if (!target) return;
+      const action = target.getAttribute("data-action") || target.id;
+      const typeId = target.getAttribute("data-type-id");
+      const index = Number(target.getAttribute("data-sec-index"));
+      if (action === "type-edit") return openTypeEditor(typeId);
+      if (action === "type-use") {
+        setActiveType(typeId);
+        await refreshSpaceIndicator(true);
+        return renderManager();
+      }
+      if (action === "type-up" || action === "type-down") return reorderTypes(typeId, action === "type-up" ? -1 : 1);
+      if (action === "declare-space") {
+        const space = state.allSpaces.find((s) => s.name === typeId);
+        if (!space) return;
+        const type = defaultType(space);
+        type.id = `type-${String(space.name).replace(/^spaces\//, "")}`;
+        type.order = state.types.length * 10 + 10;
+        type.sections = [];
+        return writeTypeMarker(type, `Declared ${space.title || space.name} as a card type.`);
+      }
+      if (action === "section-toggle-hidden") {
+        if (!draftType || !draftType.sections[index]) return;
+        draftType.sections[index].defaultHidden = !draftType.sections[index].defaultHidden;
+        return renderTypeList();
+      }
+      if (action === "section-up" || action === "section-down" || action === "section-remove") {
+        if (!draftType) return;
+        const sections = draftType.sections;
+        if (action === "section-remove") sections.splice(index, 1);
+        else {
+          const swap = index + (action === "section-up" ? -1 : 1);
+          if (swap < 0 || swap >= sections.length) return;
+          [sections[index], sections[swap]] = [sections[swap], sections[index]];
+        }
+        return renderTypeList();
+      }
+      if (action === "add-section" || target.id === "lc-add-section-btn") {
+        if (!draftType) return;
+        draftType.sections.push({ key: `section${draftType.sections.length + 1}`, label: "New section", color: "#38bdf8", defaultHidden: false });
+        return renderTypeList();
+      }
+      if (action === "save-type" || target.id === "lc-save-type-btn") {
+        const type = collectDraft();
+        if (type) return writeTypeMarker(type, `Saved ${type.name}.`);
+      }
+      if (action === "copy-marker" || target.id === "lc-copy-marker-btn") {
+        const type = collectDraft() || draftType;
+        if (type) return copyText(markerFromType(type), target);
+      }
+      if (action === "open-migration" || target.id === "lc-migration-open-btn") return openMigrationWizard();
+    };
+    bodyEl.addEventListener("input", (e) => {
+      const secField = e.target && e.target.getAttribute ? e.target.getAttribute("data-field") : null;
+      if (!secField || !draftType) return;
+      const index = Number(e.target.getAttribute("data-sec-index"));
+      if (draftType.sections[index]) draftType.sections[index][secField] = e.target.value || "";
+      const preview = document.getElementById("lc-marker-preview");
+      if (preview) preview.innerText = markerFromType(draftType);
+    });
+  }
+  async function reorderTypes(typeId, delta) {
+    const types = [...state.types];
+    const index = types.findIndex((t) => t.id === typeId);
+    const swap = index + delta;
+    if (index < 0 || swap < 0 || swap >= types.length) return;
+    [types[index], types[swap]] = [types[swap], types[index]];
+    const changed = [types[index], types[swap]];
+    types.forEach((type, i) => {
+      type.order = i * 10;
+    });
+    state.types = types;
+    for (const type of changed) {
+      const ok = await writeTypeMarkerSilently(type);
+      if (!ok) return;
+    }
+    await renderManager();
+    status("Type order updated.");
+  }
+  async function writeTypeMarkerSilently(type) {
+    const marker = markerFromType(type);
+    const token = await getMemosAuthToken();
+    const res = await updateSpaceDescription(
+      type.spaceName,
+      replaceMarker(spaceDescriptionFor(type.spaceName), marker),
+      token
+    );
+    if (!res || !res.ok) {
+      status(`Could not reorder (HTTP ${res ? res.status : "no response"}). Admin rights are required.`, true);
+      return false;
+    }
+    return true;
+  }
+  async function renderManager() {
+    const bodyEl = document.getElementById("lc-space-info-body");
+    if (!bodyEl) return;
+    bodyEl.innerHTML = '<p class="lc-manager-hint">Loading spaces…</p>';
+    try {
+      const [types, spaces] = await Promise.all([getCardTypes({ force: true }), getAllSpaces(true)]);
+      const marked = new Set(types.map((t) => t.spaceName));
+      const unmarked = spaces.filter((s) => !marked.has(s.name));
+      const inUseType = typeForSpace(types, getCurrentSpace()) || state.activeType || types[0];
+      bodyEl.innerHTML = `
+      <div class="lc-manager">
+        <p class="lc-manager-hint">Each marked space defines one card type. Click a card to edit its definition inline &mdash; the open card is the one being edited. Definitions live only in the space description, never in notes.</p>
+        <div class="lc-manager-section">
+          <h4>Card types (${types.length})</h4>
+          <ul class="lc-type-list" id="lc-type-list"></ul>
+        </div>
+        <div class="lc-manager-section">
+          <h4>Spaces without a marker (${unmarked.length})</h4>
+          <ul class="lc-space-info-list">
+            ${unmarked.map((s) => `<li><b>${escapeHtml(s.title || s.name)}</b><span class="lc-space-info-uid">${escapeHtml(s.name)}</span><button type="button" class="lc-btn lc-btn-secondary" data-action="declare-space" data-type-id="${escapeHtml(s.name)}">Declare as card type</button></li>`).join("") || "<li>None</li>"}
+          </ul>
+        </div>
+        <div class="lc-manager-section">
+          <h4>Incompatible notes</h4>
+          <p class="lc-manager-hint">Notes whose keys don't match this type can be migrated in a dedicated window: the scanner lists each note with its real key values, and you choose per key which section it should become.</p>
+          <button type="button" class="lc-btn lc-btn-secondary" id="lc-migration-open-btn" data-action="open-migration">Open migration wizard…</button>
+        </div>
+        <div id="lc-manager-status" class="lc-manager-status"></div>
+      </div>`;
+      bindManagerEvents(bodyEl);
+      if (!draftType || !types.some((t) => t.id === draftType.id)) {
+        draftType = inUseType ? JSON.parse(JSON.stringify(inUseType)) : null;
+      }
+      renderTypeList();
+    } catch (err) {
+      bodyEl.innerHTML = `<p class="lc-manager-error">Could not load spaces: ${escapeHtml(err.message)}. Reload the page and try again.</p>`;
+    }
+  }
+  async function showTypeManager() {
+    const overlay = document.getElementById("lc-space-info-overlay");
+    const titleEl = document.getElementById("lc-space-info-title");
+    if (!overlay) return;
+    if (titleEl) titleEl.innerText = "🃏 Card types & spaces";
+    overlay.style.display = "flex";
+    status("");
+    await renderManager();
+  }
+
   // src/editor.js
+  function currentSections() {
+    return state.editingType && state.editingType.sections || CONFIG.languages;
+  }
   function toggleModalLocalLang(key) {
     if (state.modalActiveLangs.includes(key)) {
       if (state.modalActiveLangs.length <= 1) return;
       state.modalActiveLangs = state.modalActiveLangs.filter((k) => k !== key);
     } else {
       const next = [...state.modalActiveLangs, key];
-      state.modalActiveLangs = CONFIG.languages.map((l) => l.key).filter((k) => next.includes(k));
+      state.modalActiveLangs = currentSections().map((s) => s.key).filter((k) => next.includes(k));
     }
     updateModalEditorSlots();
   }
-  function updateFloatingBar() {
-    const bar = document.getElementById("lc-floating-bar");
-    if (!bar) return;
-    const globalEnabled = getGlobalEnabledLangs();
-    CONFIG.languages.forEach((l) => {
-      const btn = document.getElementById(`lc-toggle-btn-${l.key}`);
-      if (btn) {
-        const isAct = globalEnabled.includes(l.key);
-        btn.classList.toggle("active", isAct);
-        btn.style.borderColor = isAct ? l.color : "transparent";
-      }
-    });
-  }
   function updateModalEditorSlots() {
-    const activeCount = CONFIG.languages.filter((l) => state.modalActiveLangs.includes(l.key)).length;
-    const editorGrid = document.querySelector(".lc-editor-grid");
+    const sections = currentSections();
+    const activeCount = sections.filter((s) => state.modalActiveLangs.includes(s.key)).length;
+    const editorGrid = document.getElementById("lc-editor-grid");
     if (editorGrid) {
       editorGrid.style.setProperty("--lc-editor-cols", Math.max(1, activeCount));
     }
-    CONFIG.languages.forEach((l) => {
-      const slotEl = document.getElementById(`lc-editor-col-${l.key}`);
-      const pillBtn = document.getElementById(`lc-modal-toggle-${l.key}`);
-      const isAct = state.modalActiveLangs.includes(l.key);
+    sections.forEach((s) => {
+      const slotEl = document.getElementById(`lc-editor-col-${s.key}`);
+      const pillBtn = document.getElementById(`lc-modal-toggle-${s.key}`);
+      const isAct = state.modalActiveLangs.includes(s.key);
       if (slotEl) {
         slotEl.style.display = isAct ? "flex" : "none";
       }
       if (pillBtn) {
         pillBtn.classList.toggle("active", isAct);
-        pillBtn.style.borderColor = isAct ? l.color : "transparent";
-        pillBtn.style.color = isAct ? l.color : "var(--lc-text-muted)";
+        pillBtn.style.borderColor = isAct ? s.color : "transparent";
+        pillBtn.style.color = isAct ? s.color : "var(--lc-text-muted)";
       }
     });
     updatePreview();
+  }
+  function renderExplanationArea(type, explanations, enabled) {
+    const host = document.getElementById("lc-explanation-area");
+    if (!host) return;
+    if (state.editingVersion !== 3) {
+      host.innerHTML = "";
+      return;
+    }
+    const isGlobal = type.explanationMode === "global";
+    let inputsHtml;
+    if (isGlobal) {
+      const value = typeof explanations === "string" ? explanations : "";
+      inputsHtml = `<textarea id="lc-explain-global" class="lc-explanation-input" rows="2" placeholder="Explanation for the whole card">${escapeHtml(value)}</textarea>`;
+    } else {
+      inputsHtml = currentSections().map((s) => `
+        <div class="lc-explanation-slot" data-lc-explanation-slot="${escapeHtml(s.key)}">
+          <label class="lc-form-label">${escapeHtml(s.label)}</label>
+          <textarea id="lc-explain-${escapeHtml(s.key)}" class="lc-explanation-input" rows="2" placeholder="Explanation for ${escapeHtml(s.label)}">${escapeHtml(explanations && explanations[s.key] || "")}</textarea>
+        </div>`).join("");
+    }
+    host.innerHTML = `
+      <div class="lc-explanation-panel">
+        <div class="lc-explanation-toggle-row">
+          <button type="button" id="lc-explanation-toggle" class="lc-modal-lang-chip ${enabled ? "active" : ""}" title="Show / hide explanation for this card">Explanation</button>
+          <span class="lc-modal-lang-label">${isGlobal ? "one shared explanation" : "one explanation per section"}</span>
+        </div>
+        <div id="lc-explanation-inputs" class="lc-explanation-inputs" style="display:${enabled ? "grid" : "none"}">
+          ${inputsHtml}
+        </div>
+      </div>`;
+    const toggle = document.getElementById("lc-explanation-toggle");
+    if (toggle) toggle.onclick = toggleExplanation;
+  }
+  function toggleExplanation() {
+    state.explanationEnabled = !state.explanationEnabled;
+    const btn = document.getElementById("lc-explanation-toggle");
+    if (btn) btn.classList.toggle("active", state.explanationEnabled);
+    const inputs = document.getElementById("lc-explanation-inputs");
+    if (inputs) inputs.style.display = state.explanationEnabled ? "grid" : "none";
+    updatePreview();
+  }
+  function renderEditorForType(type, values, explanations, enabled) {
+    const chips = document.getElementById("lc-modal-lang-bar");
+    if (chips) {
+      chips.innerHTML = `<span class="lc-modal-lang-label">This note:</span>` + type.sections.map((s) => `
+        <button type="button" id="lc-modal-toggle-${escapeHtml(s.key)}" class="lc-modal-lang-chip active" style="border-color:${s.color}; color:${s.color}">
+          ${escapeHtml(s.code)}
+        </button>`).join("");
+      type.sections.forEach((s) => {
+        const btn = document.getElementById(`lc-modal-toggle-${s.key}`);
+        if (btn) {
+          btn.onclick = (e) => {
+            e.stopPropagation();
+            toggleModalLocalLang(s.key);
+          };
+        }
+      });
+    }
+    const grid = document.getElementById("lc-editor-grid");
+    if (grid) {
+      grid.innerHTML = type.sections.map((s) => `
+        <div class="lc-editor-slot" id="lc-editor-col-${escapeHtml(s.key)}">
+          <div class="lc-slot-header">
+            <span class="lc-slot-badge" style="color: ${s.color};">${escapeHtml(s.label)} (${escapeHtml(s.key)})</span>
+            <span class="lc-slot-hint">${escapeHtml(s.code)}</span>
+          </div>
+          <textarea id="lc-input-${escapeHtml(s.key)}" class="lc-slot-textarea" placeholder="${escapeHtml(s.placeholder || "")}" rows="3"></textarea>
+        </div>`).join("");
+      type.sections.forEach((s) => {
+        const el = document.getElementById(`lc-input-${s.key}`);
+        if (el) el.value = String(values && values[s.key] || "");
+      });
+    }
+    renderExplanationArea(type, explanations, enabled);
+    bindEditorInputs(type.sections.map((s) => s.key));
+  }
+  function bindEditorInputs(keys) {
+    const ids = [
+      ...keys.map((k) => `lc-input-${k}`),
+      ...keys.map((k) => `lc-explain-${k}`),
+      "lc-explain-global"
+    ];
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("input", () => {
+        updatePreview();
+        checkTagAutocomplete(el);
+      });
+      el.addEventListener("click", () => {
+        checkTagAutocomplete(el);
+      });
+      el.addEventListener("keyup", (e) => {
+        if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
+          checkTagAutocomplete(el);
+        }
+      });
+      el.addEventListener("blur", () => {
+        setTimeout(() => {
+          const dropdown = document.getElementById("lc-tag-dropdown");
+          if (dropdown && !dropdown.contains(document.activeElement)) {
+            hideTagAutocomplete();
+          }
+        }, 180);
+      });
+      el.addEventListener("keydown", (e) => {
+        if (handleTagAutocompleteKeydown(e, el)) return;
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          saveCard();
+        }
+        if (e.key === "Escape") closeModal();
+      });
+    });
+  }
+  function bindTagsInput() {
+    const el = document.getElementById("lc-input-tags");
+    if (!el) return;
+    el.addEventListener("input", () => {
+      updatePreview();
+      checkTagAutocomplete(el);
+    });
+    el.addEventListener("click", () => checkTagAutocomplete(el));
+    el.addEventListener("keyup", (e) => {
+      if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) checkTagAutocomplete(el);
+    });
+    el.addEventListener("blur", () => {
+      setTimeout(() => {
+        const dropdown = document.getElementById("lc-tag-dropdown");
+        if (dropdown && !dropdown.contains(document.activeElement)) hideTagAutocomplete();
+      }, 180);
+    });
+    el.addEventListener("keydown", (e) => {
+      if (handleTagAutocompleteKeydown(e, el)) return;
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+        e.preventDefault();
+        saveCard();
+      }
+      if (e.key === "Escape") closeModal();
+    });
   }
   function injectCreatorUI() {
     if (document.getElementById("lc-floating-bar")) return;
@@ -1791,33 +3035,12 @@
     const bar = document.createElement("div");
     bar.id = "lc-floating-bar";
     bar.className = "lc-floating-bar";
-    const globalEnabled = getGlobalEnabledLangs();
-    let togglesHtml = `<div class="lc-lang-toggles" title="Global language default for notes">`;
-    CONFIG.languages.forEach((l) => {
-      const isAct = globalEnabled.includes(l.key);
-      togglesHtml += `
-        <button type="button" id="lc-toggle-btn-${l.key}" class="lc-lang-btn ${isAct ? "active" : ""}" style="border-color:${isAct ? l.color : "transparent"}">
-          ${l.code}
-        </button>
-      `;
-    });
-    togglesHtml += `</div>`;
     bar.innerHTML = `
-      ${togglesHtml}
       <button id="lc-fab-btn" class="lc-fab">
         <span>🔤</span><span>New Card</span>
       </button>
     `;
     document.body.appendChild(bar);
-    CONFIG.languages.forEach((l) => {
-      const btn = document.getElementById(`lc-toggle-btn-${l.key}`);
-      if (btn) {
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          toggleGlobalLang(l.key);
-        };
-      }
-    });
     document.getElementById("lc-fab-btn").onclick = () => openModal();
     const overlay = document.createElement("div");
     overlay.id = "lc-modal-overlay";
@@ -1834,23 +3057,14 @@
               <span>🔤</span>
               <span id="lc-modal-title-text">New Language Card</span>
             </h3>
-            <!-- Space indicator: replaces the old _t badge. Shows the dedicated
-                 language card space (or warnings when it is ambiguous/missing) -->
-            <button type="button" id="lc-space-indicator" class="lc-space-indicator lc-si-loading" title="Language card target space (click for details)">
-              <span id="lc-space-indicator-text">⏳ Checking spaces…</span>
+            <!-- R4: the green element opens the card type / space manager -->
+            <button type="button" id="lc-space-indicator" class="lc-space-indicator lc-si-loading" title="Card types (click to manage)">
+              <span id="lc-space-indicator-text">⏳ Checking card types…</span>
             </button>
           </div>
 
-          <!-- Language Visibility Toggles in Modal (Local to this note) -->
           <div class="lc-modal-header-actions">
-            <div class="lc-modal-lang-bar" title="Language slots for this card only">
-              <span class="lc-modal-lang-label">This note:</span>
-              ${CONFIG.languages.map((l) => `
-                <button type="button" id="lc-modal-toggle-${l.key}" class="lc-modal-lang-chip ${globalEnabled.includes(l.key) ? "active" : ""}" style="border-color:${globalEnabled.includes(l.key) ? l.color : "transparent"}; color:${globalEnabled.includes(l.key) ? l.color : "var(--lc-text-muted)"}">
-                  ${l.code}
-                </button>
-              `).join("")}
-            </div>
+            <div class="lc-modal-lang-bar" id="lc-modal-lang-bar" title="Sections for this card only"></div>
             <button class="lc-modal-close" id="lc-modal-close-btn" title="Close (Esc)">&times;</button>
           </div>
         </div>
@@ -1858,32 +3072,8 @@
         <div class="lc-modal-body">
           <div id="lc-modal-error" style="display:none; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:8px 12px; font-size:13px;"></div>
 
-          <!-- Side-by-Side Card Editor Grid (JA on left, EN in middle, ZH on right) -->
-          <div class="lc-editor-grid">
-            <div class="lc-editor-slot lc-slot-ja" id="lc-editor-col-ja">
-              <div class="lc-slot-header">
-                <span class="lc-slot-badge ja" style="color: ${CONFIG.languages[0].color};">日本語 (ja)</span>
-                <span class="lc-slot-hint">JA</span>
-              </div>
-              <textarea id="lc-input-ja" class="lc-slot-textarea" placeholder="e.g. セレンディピティ" rows="3"></textarea>
-            </div>
-
-            <div class="lc-editor-slot lc-slot-en" id="lc-editor-col-en">
-              <div class="lc-slot-header">
-                <span class="lc-slot-badge en" style="color: ${CONFIG.languages[1].color};">English (en)</span>
-                <span class="lc-slot-hint">EN</span>
-              </div>
-              <textarea id="lc-input-en" class="lc-slot-textarea" placeholder="e.g. serendipity" rows="3"></textarea>
-            </div>
-
-            <div class="lc-editor-slot lc-slot-zh" id="lc-editor-col-zh">
-              <div class="lc-slot-header">
-                <span class="lc-slot-badge zh" style="color: ${CONFIG.languages[2].color};">中文 (zh)</span>
-                <span class="lc-slot-hint">ZH</span>
-              </div>
-              <textarea id="lc-input-zh" class="lc-slot-textarea" placeholder="e.g. 意外发现珍宝的运气 / 缘分" rows="3"></textarea>
-            </div>
-          </div>
+          <div class="lc-editor-grid" id="lc-editor-grid"></div>
+          <div id="lc-explanation-area"></div>
 
           <div class="lc-form-group" style="margin-top: 4px;">
             <label class="lc-form-label">Tags (separated by space or comma)</label>
@@ -1895,20 +3085,9 @@
               <span>Memos Payload Preview</span>
               <span id="lc-space-hint" style="font-weight: normal; font-size: 11px; opacity: 0.8;"></span>
             </label>
-            <div id="lc-json-preview" class="lc-preview-box">{"_t":"lc","v":2}</div>
+            <div id="lc-json-preview" class="lc-preview-box">{"_t":"lc","v":3}</div>
           </div>
 
-          <!-- Language card header: paste into the description of the space that should receive cards -->
-          <div class="lc-form-group">
-            <label class="lc-form-label" style="display:flex; justify-content:space-between;">
-              <span>Language Card Header (space description marker)</span>
-              <span style="font-weight: normal; font-size: 11px; opacity: 0.8;">only one space may carry it</span>
-            </label>
-            <div class="lc-header-box">
-              <code id="lc-header-json" class="lc-header-json"></code>
-              <button type="button" id="lc-header-copy-btn" class="lc-header-copy-btn" title="Copy header JSON">📋</button>
-            </div>
-          </div>
         </div>
 
         <div class="lc-modal-footer">
@@ -1934,7 +3113,7 @@
       <div class="lc-modal-dialog lc-space-info-dialog">
         <div class="lc-modal-header">
           <div class="lc-modal-title-row">
-            <h3 class="lc-modal-title"><span id="lc-space-info-title">Language Card Space</span></h3>
+            <h3 class="lc-modal-title"><span id="lc-space-info-title">Card types & spaces</span></h3>
           </div>
           <div class="lc-modal-header-actions">
             <button class="lc-modal-close" id="lc-space-info-close-btn" title="Close (Esc)">&times;</button>
@@ -1942,9 +3121,9 @@
         </div>
         <div class="lc-modal-body" id="lc-space-info-body"></div>
         <div class="lc-modal-footer">
-          <div style="font-size: 12px; color: var(--lc-text-muted);">Only one space may carry the language card header.</div>
+          <div style="font-size: 12px; color: var(--lc-text-muted);">Definitions live only in space descriptions.</div>
           <div style="display:flex; gap:10px;">
-            <button class="lc-btn lc-btn-primary" id="lc-space-info-ok-btn">Got it</button>
+            <button class="lc-btn lc-btn-primary" id="lc-space-info-ok-btn">Done</button>
           </div>
         </div>
       </div>
@@ -1952,73 +3131,19 @@
     document.body.appendChild(infoOverlay);
     document.getElementById("lc-space-info-close-btn").onclick = hideSpaceInfoPopup;
     document.getElementById("lc-space-info-ok-btn").onclick = hideSpaceInfoPopup;
-    const headerJsonEl = document.getElementById("lc-header-json");
-    if (headerJsonEl) headerJsonEl.innerText = getCardHeaderJson();
-    const headerCopyBtn = document.getElementById("lc-header-copy-btn");
-    if (headerCopyBtn) {
-      headerCopyBtn.onclick = (e) => {
-        e.stopPropagation();
-        copyText(getCardHeaderJson(), headerCopyBtn);
-      };
-    }
     const spaceIndicator = document.getElementById("lc-space-indicator");
     if (spaceIndicator) {
       spaceIndicator.onclick = async (e) => {
         e.stopPropagation();
-        const result = await refreshSpaceIndicator(true);
-        showSpaceInfoPopup(result);
+        await refreshSpaceIndicator(true);
+        showTypeManager();
       };
     }
     refreshSpaceIndicator();
-    CONFIG.languages.forEach((l) => {
-      const btn = document.getElementById(`lc-modal-toggle-${l.key}`);
-      if (btn) {
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          toggleModalLocalLang(l.key);
-        };
-      }
-    });
     document.getElementById("lc-modal-close-btn").onclick = closeModal;
     document.getElementById("lc-btn-cancel").onclick = closeModal;
     document.getElementById("lc-btn-save").onclick = saveCard;
-    [...CONFIG.languages.map((l) => `lc-input-${l.key}`), "lc-input-tags"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener("input", (e) => {
-          updatePreview();
-          checkTagAutocomplete(el);
-        });
-        el.addEventListener("click", () => {
-          checkTagAutocomplete(el);
-        });
-        el.addEventListener("keyup", (e) => {
-          if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
-            checkTagAutocomplete(el);
-          }
-        });
-        el.addEventListener("blur", () => {
-          setTimeout(() => {
-            const dropdown = document.getElementById("lc-tag-dropdown");
-            if (dropdown && !dropdown.contains(document.activeElement)) {
-              hideTagAutocomplete();
-            }
-          }, 180);
-        });
-        el.addEventListener("keydown", (e) => {
-          if (handleTagAutocompleteKeydown(e, el)) {
-            return;
-          }
-          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-            e.preventDefault();
-            saveCard();
-          }
-          if (e.key === "Escape") {
-            closeModal();
-          }
-        });
-      }
-    });
+    bindTagsInput();
   }
   function openModal(editData, initialLangs) {
     syncThemeClass();
@@ -2026,33 +3151,44 @@
     if (!overlay) return;
     overlay.style.display = "flex";
     clearError();
-    updateSpaceHint(getCurrentSpace());
     refreshSpaceIndicator();
     state.editingMemoName = editData && editData.name ? editData.name : null;
+    const isV3Edit = Boolean(editData && editData.version === 3);
+    state.editingVersion = isV3Edit ? 3 : state.editingMemoName ? 2 : 3;
+    const type = state.editingVersion === 3 ? isV3Edit && editData.type || state.activeType || activeTypeForNew(state.types, getCurrentSpace()) : defaultType(null);
+    state.editingType = type;
+    if (state.editingVersion === 3) state.activeType = type;
     const titleText = document.getElementById("lc-modal-title-text");
     if (titleText) {
-      titleText.innerText = state.editingMemoName ? "Edit Language Card" : "New Language Card";
+      titleText.innerText = state.editingMemoName ? `Edit · ${type.name}` : `New · ${type.name}`;
     }
     const saveBtn = document.getElementById("lc-btn-save");
     if (saveBtn) saveBtn.innerText = state.editingMemoName ? "Update Card" : "Save Card";
-    const values = { tags: editData && editData.tags || "" };
-    CONFIG.languages.forEach((l) => {
-      values[l.key] = editData && editData[l.key] || "";
-    });
-    [...CONFIG.languages.map((l) => l.key), "tags"].forEach((key) => {
-      const el = document.getElementById(`lc-input-${key}`);
-      if (el) el.value = values[key];
-    });
-    state.modalActiveLangs = initialLangs && initialLangs.length ? CONFIG.languages.map((l) => l.key).filter((k) => initialLangs.includes(k)) : [...getGlobalEnabledLangs()];
+    const keys = type.sections.map((s) => s.key);
+    const values = {};
+    if (isV3Edit) {
+      keys.forEach((k) => {
+        values[k] = editData.values && editData.values[k] || "";
+      });
+    } else {
+      CONFIG.languages.forEach((l) => {
+        values[l.key] = editData && editData[l.key] || "";
+      });
+    }
+    const tagsEl = document.getElementById("lc-input-tags");
+    if (tagsEl) tagsEl.value = editData && editData.tags || "";
+    state.explanationEnabled = isV3Edit ? editData.showExplanation !== false : true;
+    renderEditorForType(type, values, isV3Edit ? editData.explanations : {}, state.explanationEnabled);
+    state.modalActiveLangs = initialLangs && initialLangs.length ? keys.filter((k) => initialLangs.includes(k)) : keys.filter((k) => !type.sections.some((s) => s.key === k && s.defaultHidden));
+    if (!state.modalActiveLangs.length) state.modalActiveLangs = [...keys];
     updateModalEditorSlots();
+    updateSpaceHint(type.spaceName, type.spaceTitle);
     hideTagAutocomplete();
     tagStore.scanPage();
     tagStore.fetchServer();
-    const firstKey = state.modalActiveLangs.includes("en") ? "en" : state.modalActiveLangs[0] || "en";
+    const firstKey = state.modalActiveLangs.includes("en") ? "en" : state.modalActiveLangs[0];
     const firstInput = document.getElementById(`lc-input-${firstKey}`);
-    if (firstInput) {
-      setTimeout(() => firstInput.focus(), 60);
-    }
+    if (firstInput) setTimeout(() => firstInput.focus(), 60);
   }
   function closeModal() {
     hideTagAutocomplete();
@@ -2060,6 +3196,29 @@
     if (overlay) overlay.style.display = "none";
   }
   function buildCardPayload() {
+    const rawTags = (document.getElementById("lc-input-tags")?.value || "").trim();
+    const sections = currentSections();
+    if (state.editingVersion === 3 && state.editingType) {
+      const type = state.editingType;
+      const values = {};
+      sections.forEach((s) => {
+        values[s.key] = (document.getElementById(`lc-input-${s.key}`)?.value || "").trim();
+      });
+      let explanations = type.explanationMode === "global" ? (document.getElementById("lc-explain-global")?.value || "").trim() : {};
+      if (type.explanationMode !== "global") {
+        sections.forEach((s) => {
+          explanations[s.key] = (document.getElementById(`lc-explain-${s.key}`)?.value || "").trim();
+        });
+      }
+      const result = buildCardContentV3(
+        type,
+        values,
+        explanations,
+        state.explanationEnabled,
+        rawTags
+      );
+      return { content: result.content, tags: result.tags, hasAny: result.hasAny, data: result.data };
+    }
     const data = { _t: CONFIG.typeIdentifier, v: CONFIG.cardVersion };
     let hasAny = false;
     CONFIG.languages.forEach((lang) => {
@@ -2069,8 +3228,7 @@
         hasAny = true;
       }
     });
-    const rawTags = (document.getElementById("lc-input-tags")?.value || "").trim();
-    const tags = rawTags ? rawTags.split(/[\s,]+/).map((t) => t.startsWith("#") ? t : `#${t}`).filter((t) => t.length > 1).join(" ") : "";
+    const tags = normalizeTags(rawTags);
     const content = JSON.stringify(data) + (tags ? `
 ${tags}` : "");
     return { data, tags, content, hasAny };
@@ -2118,10 +3276,10 @@ ${tags}` : "");
       url = `/api/memos/${encodeURIComponent(bareId)}?updateMask=content`;
       method = "PATCH";
     } else {
-      let dedicatedSpace = null;
+      let dedicatedSpace = state.activeType && state.activeType.spaceName;
       try {
         const resolved = await resolveTargetSpace();
-        dedicatedSpace = resolved.space;
+        dedicatedSpace = dedicatedSpace || resolved.space;
       } catch (e) {
         console.warn("[LanguageCard] target space resolution failed", e);
       }
@@ -2192,11 +3350,11 @@ ${tags}` : "");
       if (savedRawTags) {
         savedRawTags.split(/[\s,]+/).forEach((t) => tagStore.add(t));
       }
-      CONFIG.languages.map((l) => `lc-input-${l.key}`).forEach((id) => {
-        const txt = document.getElementById(id)?.value || "";
+      currentSections().forEach((s) => {
+        const txt = document.getElementById(`lc-input-${s.key}`)?.value || "";
         (txt.match(/#[^\s#]+/g) || []).forEach((t) => tagStore.add(t));
       });
-      [...CONFIG.languages.map((l) => `lc-input-${l.key}`), "lc-input-tags"].forEach((id) => {
+      [...currentSections().map((s) => `lc-input-${s.key}`), "lc-input-tags"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.value = "";
       });
@@ -2211,100 +3369,6 @@ ${tags}` : "");
       saveBtn.disabled = false;
       saveBtn.innerText = state.editingMemoName ? "Update Card" : "Save Card";
     }
-  }
-
-  // src/state.js
-  var state = {
-    modalActiveLangs: ["en", "zh"],
-    editingMemoName: null,
-    spaceResolutionInFlight: null
-  };
-  function getGlobalEnabledLangs() {
-    try {
-      const saved = localStorage.getItem(LS_GLOBAL_LANGS_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-    }
-    return ["en", "zh"];
-  }
-  function setGlobalEnabledLangs(langs) {
-    try {
-      localStorage.setItem(LS_GLOBAL_LANGS_KEY, JSON.stringify(langs));
-    } catch (e) {
-    }
-  }
-  function toggleGlobalLang(key) {
-    const current = getGlobalEnabledLangs();
-    let next;
-    if (current.includes(key)) {
-      if (current.length <= 1) return;
-      next = current.filter((k) => k !== key);
-    } else {
-      next = [...current, key];
-      next = CONFIG.languages.map((l) => l.key).filter((k) => next.includes(k));
-    }
-    setGlobalEnabledLangs(next);
-    document.querySelectorAll("[data-lc-parsed]").forEach((el) => {
-      el.removeAttribute("data-lc-parsed");
-      el.setAttribute("data-lc-force", "1");
-    });
-    renderLanguageCards();
-    updateFloatingBar();
-  }
-
-  // src/card-model.js
-  function parseCardMemo(rawText, currentSpace) {
-    if (!rawText || !rawText.includes("{")) return null;
-    const startIdx = rawText.indexOf("{");
-    const endIdx = rawText.lastIndexOf("}");
-    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) return null;
-    const jsonCandidate = rawText.substring(startIdx, endIdx + 1);
-    const tagsCandidate = rawText.substring(endIdx + 1);
-    let cardData = null;
-    try {
-      cardData = JSON.parse(jsonCandidate);
-    } catch (e) {
-      const fields = {};
-      const reg = /"(_t|en|ja|jp|zh|cn|v)"\s*:\s*"([\s\S]*?)"(?=\s*[,}])/g;
-      let m;
-      while ((m = reg.exec(jsonCandidate)) !== null) {
-        fields[m[1]] = m[2].replace(/\\n/g, "\n").replace(/\\"/g, '"');
-      }
-      if (Object.keys(fields).length > 0) {
-        cardData = fields;
-      }
-    }
-    if (!cardData || typeof cardData !== "object") return null;
-    if (cardData._t && cardData._t !== CONFIG.typeIdentifier) return null;
-    const hasLang = ["en", "ja", "jp", "zh", "cn"].some((k) => k in cardData);
-    const isExplicitCard = cardData._t === CONFIG.typeIdentifier;
-    const isDedicatedSpace = Boolean(
-      CONFIG.dedicatedSpaceKeyword && currentSpace && currentSpace.toLowerCase().includes(CONFIG.dedicatedSpaceKeyword.toLowerCase())
-    );
-    const isLegacyCard = (cardData.v || cardData.v === 0) && hasLang;
-    if (!isExplicitCard && !isDedicatedSpace && !isLegacyCard) {
-      return null;
-    }
-    const tags = tagsCandidate.match(/#[^\s#]+/g) || [];
-    const hasValues = ["en", "ja", "jp", "zh", "cn"].some(
-      (k) => cardData[k] && String(cardData[k]).trim().length > 0
-    );
-    if (!hasValues && tags.length === 0) {
-      return null;
-    }
-    return { data: cardData, tags, rawText };
-  }
-  function cardLangValue(data, langKey) {
-    if (!data) return "";
-    const legacy = langKey === "ja" ? data["jp"] : langKey === "zh" ? data["cn"] : null;
-    const val = data[langKey] || legacy || "";
-    return String(val).trim();
-  }
-  function cardPresentLangs(data) {
-    return CONFIG.languages.filter((lang) => cardLangValue(data, lang.key)).map((lang) => lang.key);
   }
 
   // src/card-render.js
@@ -2327,6 +3391,117 @@ ${tags}` : "");
       if (match) return match[1];
     }
     return null;
+  }
+  function renderV3Card(container, parsed, tags, memoName) {
+    const baseType = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+    const known = sectionKeys(baseType);
+    const extras = Object.keys(parsed.values || {}).filter((k) => !known.includes(k));
+    const type = extras.length ? {
+      ...baseType,
+      sections: [
+        ...baseType.sections,
+        ...extras.map((k) => ({
+          key: k,
+          label: k,
+          code: String(k).slice(0, 4).toUpperCase(),
+          color: "#94a3b8"
+        }))
+      ]
+    } : baseType;
+    const values = valuesFor(parsed, type);
+    const explanations = explanationsFor(parsed, type);
+    const activeKeys = type.sections.filter((s) => values[s.key]).map((s) => s.key);
+    const visibleKeys = activeKeys.length ? activeKeys : type.sections.map((s) => s.key);
+    const wrapper = document.createElement("div");
+    wrapper.className = "lc-card-wrapper";
+    const noteBar = document.createElement("div");
+    noteBar.className = "lc-card-note-bar";
+    const controls = document.createElement("div");
+    controls.className = "lc-card-note-controls";
+    if (memoName) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "lc-btn-icon lc-card-edit-btn";
+      editBtn.title = "Edit this card";
+      editBtn.innerText = "✏️";
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        openModal({
+          name: memoName,
+          tags: tags.join(" "),
+          version: 3,
+          type,
+          values,
+          explanations,
+          showExplanation: parsed.showExplanation
+        }, visibleKeys);
+      };
+      controls.appendChild(editBtn);
+    }
+    noteBar.appendChild(controls);
+    wrapper.appendChild(noteBar);
+    const grid = document.createElement("div");
+    grid.className = "lc-card-grid";
+    grid.style.setProperty("--lc-cols", Math.max(1, visibleKeys.length));
+    type.sections.forEach((section) => {
+      const slot = document.createElement("div");
+      slot.className = "lc-card-slot";
+      slot.setAttribute("data-lc-slot", section.key);
+      slot.style.display = visibleKeys.includes(section.key) ? "flex" : "none";
+      const header = document.createElement("div");
+      header.className = "lc-card-header";
+      const badge = document.createElement("span");
+      badge.className = "lc-card-badge";
+      badge.style.color = section.color;
+      badge.innerText = section.label;
+      header.appendChild(badge);
+      slot.appendChild(header);
+      const val = values[section.key];
+      const textEl = document.createElement("div");
+      textEl.className = "lc-card-text" + (val ? "" : " lc-card-empty");
+      textEl.innerText = val || "—";
+      slot.appendChild(textEl);
+      grid.appendChild(slot);
+    });
+    wrapper.appendChild(grid);
+    if (parsed.showExplanation) {
+      if (type.explanationMode === "global") {
+        const text = typeof explanations === "string" ? explanations : "";
+        if (text) {
+          const box = document.createElement("div");
+          box.className = "lc-card-explanation lc-card-explanation-global";
+          box.innerText = text;
+          wrapper.appendChild(box);
+        }
+      } else {
+        const boxes = document.createElement("div");
+        boxes.className = "lc-card-explanations";
+        boxes.style.setProperty("--lc-cols", Math.max(1, visibleKeys.length));
+        type.sections.forEach((section) => {
+          const text = explanations[section.key];
+          if (!text) return;
+          const box = document.createElement("div");
+          box.className = "lc-card-explanation";
+          box.setAttribute("data-lc-explanation", section.key);
+          box.innerText = text;
+          boxes.appendChild(box);
+        });
+        if (boxes.children.length) wrapper.appendChild(boxes);
+      }
+    }
+    if (tags.length > 0) {
+      const tagsContainer = document.createElement("div");
+      tagsContainer.className = "lc-card-tags";
+      tags.forEach((tag) => {
+        const chip = document.createElement("span");
+        chip.className = "lc-tag-chip";
+        chip.innerText = tag;
+        tagsContainer.appendChild(chip);
+      });
+      wrapper.appendChild(tagsContainer);
+    }
+    container.innerHTML = "";
+    container.appendChild(wrapper);
   }
   function renderLanguageCards() {
     syncThemeClass();
@@ -2351,7 +3526,7 @@ ${tags}` : "");
         if (!liveText) return;
       }
       const rawText = container.getAttribute("data-lc-raw");
-      const parsed = parseCardMemo(rawText, currentSpace);
+      const parsed = parseAnyCard(rawText, currentSpace);
       if (!parsed) return;
       container.setAttribute("data-lc-parsed", "true");
       const { data, tags } = parsed;
@@ -2360,6 +3535,10 @@ ${tags}` : "");
       }
       const memoName = getMemoNameFromContainer(container);
       if (memoName) container.setAttribute("data-lc-memo-name", memoName);
+      if (parsed.version === 3) {
+        renderV3Card(container, parsed, tags, memoName);
+        return;
+      }
       const cardWrapper = document.createElement("div");
       cardWrapper.className = "lc-card-wrapper";
       const cardLangs = cardPresentLangs(data);
@@ -2370,10 +3549,6 @@ ${tags}` : "");
       );
       const noteBar = document.createElement("div");
       noteBar.className = "lc-card-note-bar";
-      const titleEl = document.createElement("div");
-      titleEl.className = "lc-card-note-title";
-      titleEl.innerHTML = `<span>🔤</span><span>Card</span>`;
-      noteBar.appendChild(titleEl);
       const noteControls = document.createElement("div");
       noteControls.className = "lc-card-note-controls";
       if (memoName) {
@@ -2384,7 +3559,7 @@ ${tags}` : "");
         editBtn.innerText = "✏️";
         editBtn.onclick = (e) => {
           e.stopPropagation();
-          const editValues = { name: memoName, tags: tags.join(" ") };
+          const editValues = { name: memoName, tags: tags.join(" "), version: 2 };
           CONFIG.languages.forEach((l) => {
             editValues[l.key] = cardLangValue(data, l.key);
           });
@@ -2440,6 +3615,12 @@ ${tags}` : "");
         el.removeAttribute("data-lc-parsed");
         el.setAttribute("data-lc-force", "1");
       }
+    });
+    renderLanguageCards();
+  }
+  function forceRerenderCards() {
+    document.querySelectorAll("[data-lc-parsed]").forEach((el) => {
+      el.setAttribute("data-lc-force", "1");
     });
     renderLanguageCards();
   }
@@ -2572,6 +3753,8 @@ ${tags}` : "");
     (document.head || document.body).appendChild(style);
   }
   injectStyles(language_card_default);
+  getCardTypes().then(() => warmMemoSpaceCache()).then(() => forceRerenderCards()).catch(() => {
+  });
   var debounceTimer = null;
   var observer = new MutationObserver(() => {
     clearTimeout(debounceTimer);

@@ -1,7 +1,8 @@
 import cssText from './styles/language-card.css';
-import { renderLanguageCards } from './card-render.js';
+import { renderLanguageCards, forceRerenderCards } from './card-render.js';
 import { injectCreatorUI } from './editor.js';
 import { injectQuickActions } from './quick-actions.js';
+import { getCardTypes, warmMemoSpaceCache } from './spaces.js';
 
 /** The single-file build inlines the stylesheet; the CSS-only build leaves it out. */
 function injectStyles(css) {
@@ -13,6 +14,14 @@ function injectStyles(css) {
 }
 
 injectStyles(cssText);
+
+  // V3: card types live in space descriptions and load asynchronously. Once
+  // they (and the memo -> space map) are ready, repaint already-rendered cards
+  // so mixed feeds use the right sections instead of the placeholder type.
+  getCardTypes()
+    .then(() => warmMemoSpaceCache())
+    .then(() => forceRerenderCards())
+    .catch(() => { /* V2 fallback rendering stays in place */ });
 
   // --- Part 4: Lifecycle & Observer ---
   let debounceTimer = null;

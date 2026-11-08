@@ -1,7 +1,10 @@
 import { CONFIG } from './config.js';
-import { getGlobalEnabledLangs } from './state.js';
+import { state, getGlobalEnabledLangs } from './state.js';
 import { syncThemeClass, getCurrentSpace } from './utils.js';
-import { parseCardMemo, cardLangValue, cardPresentLangs } from './card-model.js';
+import {
+  parseAnyCard, cardLangValue, cardPresentLangs, valuesFor, explanationsFor
+} from './card-model.js';
+import { typeForMemo, sectionKeys } from './card-types.js';
 import { tagStore } from './tags.js';
 import { openModal } from './editor.js';
 
@@ -31,6 +34,131 @@ import { openModal } from './editor.js';
       if (match) return match[1];
     }
     return null;
+  }
+
+  /**
+   * V3 card: sections and explanation layout come from the space definition.
+   * Unknown keys are still shown (labelled by key) so a card is never silently
+   * truncated while types are loading or until the user maps its names.
+   */
+  function renderV3Card(container, parsed, tags, memoName) {
+    const baseType = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+    const known = sectionKeys(baseType);
+    const extras = Object.keys(parsed.values || {}).filter(k => !known.includes(k));
+    const type = extras.length
+      ? {
+        ...baseType,
+        sections: [
+          ...baseType.sections,
+          ...extras.map(k => ({
+            key: k, label: k, code: String(k).slice(0, 4).toUpperCase(), color: '#94a3b8'
+          }))
+        ]
+      }
+      : baseType;
+    const values = valuesFor(parsed, type);
+    const explanations = explanationsFor(parsed, type);
+    const activeKeys = type.sections.filter(s => values[s.key]).map(s => s.key);
+    const visibleKeys = activeKeys.length ? activeKeys : type.sections.map(s => s.key);
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'lc-card-wrapper';
+
+    const noteBar = document.createElement('div');
+    noteBar.className = 'lc-card-note-bar';
+    const controls = document.createElement('div');
+    controls.className = 'lc-card-note-controls';
+    if (memoName) {
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'lc-btn-icon lc-card-edit-btn';
+      editBtn.title = 'Edit this card';
+      editBtn.innerText = '✏️';
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        openModal({
+          name: memoName,
+          tags: tags.join(' '),
+          version: 3,
+          type,
+          values,
+          explanations,
+          showExplanation: parsed.showExplanation
+        }, visibleKeys);
+      };
+      controls.appendChild(editBtn);
+    }
+    noteBar.appendChild(controls);
+    wrapper.appendChild(noteBar);
+
+    const grid = document.createElement('div');
+    grid.className = 'lc-card-grid';
+    grid.style.setProperty('--lc-cols', Math.max(1, visibleKeys.length));
+    type.sections.forEach((section) => {
+      const slot = document.createElement('div');
+      slot.className = 'lc-card-slot';
+      slot.setAttribute('data-lc-slot', section.key);
+      slot.style.display = visibleKeys.includes(section.key) ? 'flex' : 'none';
+
+      const header = document.createElement('div');
+      header.className = 'lc-card-header';
+      const badge = document.createElement('span');
+      badge.className = 'lc-card-badge';
+      badge.style.color = section.color;
+      badge.innerText = section.label;
+      header.appendChild(badge);
+      slot.appendChild(header);
+
+      const val = values[section.key];
+      const textEl = document.createElement('div');
+      textEl.className = 'lc-card-text' + (val ? '' : ' lc-card-empty');
+      textEl.innerText = val || '—';
+      slot.appendChild(textEl);
+      grid.appendChild(slot);
+    });
+    wrapper.appendChild(grid);
+
+    // Explanation sits BELOW the language sections (R3).
+    if (parsed.showExplanation) {
+      if (type.explanationMode === 'global') {
+        const text = typeof explanations === 'string' ? explanations : '';
+        if (text) {
+          const box = document.createElement('div');
+          box.className = 'lc-card-explanation lc-card-explanation-global';
+          box.innerText = text;
+          wrapper.appendChild(box);
+        }
+      } else {
+        const boxes = document.createElement('div');
+        boxes.className = 'lc-card-explanations';
+        boxes.style.setProperty('--lc-cols', Math.max(1, visibleKeys.length));
+        type.sections.forEach((section) => {
+          const text = explanations[section.key];
+          if (!text) return;
+          const box = document.createElement('div');
+          box.className = 'lc-card-explanation';
+          box.setAttribute('data-lc-explanation', section.key);
+          box.innerText = text;
+          boxes.appendChild(box);
+        });
+        if (boxes.children.length) wrapper.appendChild(boxes);
+      }
+    }
+
+    if (tags.length > 0) {
+      const tagsContainer = document.createElement('div');
+      tagsContainer.className = 'lc-card-tags';
+      tags.forEach((tag) => {
+        const chip = document.createElement('span');
+        chip.className = 'lc-tag-chip';
+        chip.innerText = tag;
+        tagsContainer.appendChild(chip);
+      });
+      wrapper.appendChild(tagsContainer);
+    }
+
+    container.innerHTML = '';
+    container.appendChild(wrapper);
   }
 
   function renderLanguageCards() {
@@ -65,7 +193,7 @@ import { openModal } from './editor.js';
         if (!liveText) return;
       }
       const rawText = container.getAttribute('data-lc-raw');
-      const parsed = parseCardMemo(rawText, currentSpace);
+      const parsed = parseAnyCard(rawText, currentSpace);
       if (!parsed) return;
 
       container.setAttribute('data-lc-parsed', 'true');
@@ -75,6 +203,10 @@ import { openModal } from './editor.js';
       }
       const memoName = getMemoNameFromContainer(container);
       if (memoName) container.setAttribute('data-lc-memo-name', memoName);
+      if (parsed.version === 3) {
+        renderV3Card(container, parsed, tags, memoName);
+        return;
+      }
 
       // Card wrapper
       const cardWrapper = document.createElement('div');
@@ -93,14 +225,9 @@ import { openModal } from './editor.js';
         )
       );
 
-      // 1. Header bar: card title + edit button (no language toggle pills)
+      // 1. Header bar: edit button only (R5.2: no duplicate 🔤 Card heading)
       const noteBar = document.createElement('div');
       noteBar.className = 'lc-card-note-bar';
-
-      const titleEl = document.createElement('div');
-      titleEl.className = 'lc-card-note-title';
-      titleEl.innerHTML = `<span>🔤</span><span>Card</span>`;
-      noteBar.appendChild(titleEl);
 
       const noteControls = document.createElement('div');
       noteControls.className = 'lc-card-note-controls';
@@ -115,7 +242,7 @@ import { openModal } from './editor.js';
         editBtn.onclick = (e) => {
           e.stopPropagation();
           // Pre-fill in CONFIG (UI) order; cardLangValue handles legacy jp/cn keys
-          const editValues = { name: memoName, tags: tags.join(' ') };
+          const editValues = { name: memoName, tags: tags.join(' '), version: 2 };
           CONFIG.languages.forEach(l => { editValues[l.key] = cardLangValue(data, l.key); });
           openModal(editValues, Array.from(activeLangs));
         };
@@ -190,4 +317,12 @@ import { openModal } from './editor.js';
     renderLanguageCards();
   }
 
-export { getMemoNameFromContainer, renderLanguageCards, refreshCardLocally };
+  /** Force a re-render after card types / memo→space mapping finishes loading. */
+  function forceRerenderCards() {
+    document.querySelectorAll('[data-lc-parsed]').forEach((el) => {
+      el.setAttribute('data-lc-force', '1');
+    });
+    renderLanguageCards();
+  }
+
+export { getMemoNameFromContainer, renderLanguageCards, refreshCardLocally, forceRerenderCards };

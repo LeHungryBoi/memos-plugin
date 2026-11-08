@@ -1,44 +1,29 @@
-import { CONFIG } from './config.js';
 import { state } from './state.js';
-import { getMemosAuthToken, fetchAllSpaces } from './api.js';
+import { getMemosAuthToken, fetchAllSpaces, listMemosForSpace } from './api.js';
+import { stripSpacePrefix, getCurrentSpace } from './utils.js';
 import {
-  stripSpacePrefix, getCardHeaderJson, escapeHtml, copyText, getCurrentSpace
-} from './utils.js';
+  extractMarker, normalizeType, sortTypes, activeTypeForNew, typeForSpace
+} from './card-types.js';
 
-  // --- Dedicated Space Resolution ---
-  // A space becomes "the language card space" when its description carries the
-  // language card header JSON ({"_t":"lc","v":2}). New cards are then saved
-  // there regardless of which page the editor is opened from.
+  // --- V3: every marked space defines one card type ---
+  // V2 marker {"_t":"lc","v":2} is still accepted as the "default type".
+  // The cache key is kept for backwards compatibility with existing installs.
   const LS_TARGET_SPACE_KEY = 'memos_lc_target_space_v2';
 
-  /**
-   * Extract the language card header from a space description.
-   * Tolerant: human-readable text may surround the JSON (first "{" to last
-   * "}"), the same strategy parseCardMemo uses for memo content.
-   */
+  /** Marker parser; kept export-compatible with the V2 contract vectors. */
   function parseSpaceHeader(description) {
-    if (!description || !description.includes('{')) return null;
-    const start = description.indexOf('{');
-    const end = description.lastIndexOf('}');
-    if (start === -1 || end <= start) return null;
-    try {
-      const data = JSON.parse(description.substring(start, end + 1));
-      return data && data._t === CONFIG.typeIdentifier ? data : null;
-    } catch (e) {
-      return null;
-    }
+    return extractMarker(description);
   }
 
-  /** All spaces carrying the language card header, sorted for deterministic picks */
+  /** All spaces carrying a language card marker. */
   async function findDedicatedSpaces() {
     const token = await getMemosAuthToken();
     const spaces = await fetchAllSpaces(token);
     return spaces
-      .filter((space) => parseSpaceHeader(space.description))
+      .filter(space => parseSpaceHeader(space.description))
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }
 
-  /** Read the cached dedicated space; tolerates the legacy bare-name cache format */
   function readCachedTargetSpace() {
     try {
       const raw = localStorage.getItem(LS_TARGET_SPACE_KEY);
@@ -47,8 +32,7 @@ import {
         const parsed = JSON.parse(raw);
         return parsed && parsed.name ? { name: parsed.name, title: parsed.title || '' } : null;
       }
-      // Legacy cache entry: bare resource name "spaces/xxx" (no title known)
-      return { name: raw, title: '' };
+      return { name: raw, title: '' }; // legacy bare resource name
     } catch (e) {
       return null;
     }
@@ -60,79 +44,130 @@ import {
     } catch (e) { /* ignore */ }
   }
 
+  function clearTargetSpaceCache() {
+    try { localStorage.removeItem(LS_TARGET_SPACE_KEY); } catch (e) { /* ignore */ }
+  }
+
+  /** All spaces the user belongs to (management panel needs unmarked ones too). */
+  async function getAllSpaces(force) {
+    if (!force && state.allSpaces.length) return state.allSpaces;
+    const token = await getMemosAuthToken();
+    const spaces = await fetchAllSpaces(token);
+    state.allSpaces = spaces;
+    return spaces;
+  }
+
+  /** Normalized, ordered card types; V2 markers become the default type. */
+  async function getCardTypes(options) {
+    const force = Boolean(options && options.force);
+    if (!force && state.types.length) {
+      // The URL may have changed since the cache was filled: keep "In use"
+      // in sync with the space the editor is actually on.
+      const urlType = typeForSpace(state.types, getCurrentSpace());
+      if (urlType) state.activeType = urlType;
+      return state.types;
+    }
+    const spaces = await getAllSpaces(force);
+    const types = sortTypes(spaces.map(space => {
+      const marker = extractMarker(space.description);
+      return marker ? normalizeType(marker, space) : null;
+    }).filter(Boolean));
+    state.types = types;
+
+    // "In use" follows the space the editor is actually on (the URL); the
+    // cached pick from "Use for new cards" only wins when no type matches it.
+    const urlType = typeForSpace(types, getCurrentSpace());
+    const cached = readCachedTargetSpace();
+    const cachedType = cached && typeForSpace(types, cached.name);
+    if (urlType) {
+      state.activeType = urlType;
+    } else if (cachedType) {
+      state.activeType = cachedType;
+    } else if (!state.activeType || !types.some(t => t.id === state.activeType.id)) {
+      state.activeType = activeTypeForNew(types, getCurrentSpace());
+    }
+    return types;
+  }
+
+  /** Choose the type used for new cards and remember its space. */
+  function setActiveType(typeId) {
+    const type = state.types.find(t => t.id === typeId);
+    if (!type) return null;
+    state.activeType = type;
+    if (type.spaceName) writeCachedTargetSpace(type.spaceName, type.spaceTitle);
+    return type;
+  }
+
   /**
-   * Resolve the dedicated language card space.
-   * Returns { space: "spaces/xxx" | null (API resource name),
-   *           title: human-readable space title ("" when unknown),
-   *           matches: Space[] | null, fromCache }.
-   * - exactly one match -> that space (name+title cached in localStorage)
-   * - multiple matches  -> null (ambiguous; the caller shows a warning)
-   * - none / fetch error -> null
+   * Resolve the target space. Multiple types are normal in V3 (the old
+   * "only one space may carry the header" rule is gone). The returned shape
+   * stays compatible with the V2 save path.
    */
   async function resolveTargetSpace(options) {
     const force = Boolean(options && options.force);
     if (!force) {
       const cached = readCachedTargetSpace();
-      if (cached) return { space: cached.name, title: cached.title, matches: null, fromCache: true };
+      if (cached) {
+        return {
+          space: cached.name, title: cached.title, matches: state.types,
+          fromCache: true, type: typeForSpace(state.types, cached.name) || state.activeType
+        };
+      }
     }
-    const matches = await findDedicatedSpaces();
-    if (matches.length === 1) {
-      writeCachedTargetSpace(matches[0].name, matches[0].title || '');
-      return { space: matches[0].name, title: matches[0].title || '', matches, fromCache: false };
+    const types = await getCardTypes({ force });
+    const active = typeForSpace(types, getCurrentSpace()) || state.activeType || activeTypeForNew(types, getCurrentSpace());
+    if (active && active.spaceName) {
+      writeCachedTargetSpace(active.spaceName, active.spaceTitle);
+      return {
+        space: active.spaceName, title: active.spaceTitle,
+        matches: types, fromCache: false, type: active
+      };
     }
     clearTargetSpaceCache();
-    return { space: null, title: '', matches, fromCache: false };
+    return { space: null, title: '', matches: types, fromCache: false, type: active };
   }
 
-  function clearTargetSpaceCache() {
-    try { localStorage.removeItem(LS_TARGET_SPACE_KEY); } catch (e) { /* ignore */ }
-  }
+  // --- Space / type indicator (the green element is now the manager entry) ---
 
-  // --- Space Indicator & Info Popup ---
-
-  function setSpaceIndicatorState(state, text) {
+  function setSpaceIndicatorState(stateName, text) {
     const btn = document.getElementById('lc-space-indicator');
     const textEl = document.getElementById('lc-space-indicator-text');
     if (!btn || !textEl) return;
     btn.classList.remove('lc-si-loading', 'lc-si-ok', 'lc-si-warn', 'lc-si-missing');
-    btn.classList.add(`lc-si-${state}`);
+    btn.classList.add(`lc-si-${stateName}`);
     textEl.innerText = text;
-    btn.title = `${text} — click for details`;
+    btn.title = `${text} — click to manage card types`;
   }
 
   function updateSpaceHint(spaceName, spaceTitle) {
     const hint = document.getElementById('lc-space-hint');
     if (!hint) return;
     const label = spaceTitle || (spaceName ? stripSpacePrefix(spaceName) : '');
-    hint.innerText = spaceName ? `Target Space: ${label}` : 'Target Space: Personal Space';
+    hint.innerText = state.activeType
+      ? `Type: ${state.activeType.name}` + (spaceName ? ` · ${label}` : '')
+      : (spaceName ? `Target Space: ${label}` : 'Target Space: Personal Space');
   }
 
-  /** Resolve the dedicated space and paint the indicator (cached unless force) */
   async function refreshSpaceIndicator(force) {
     if (state.spaceResolutionInFlight) return state.spaceResolutionInFlight;
     state.spaceResolutionInFlight = (async () => {
-      setSpaceIndicatorState('loading', '⏳ Checking spaces…');
+      setSpaceIndicatorState('loading', '⏳ Checking card types…');
       try {
         const result = await resolveTargetSpace({ force: Boolean(force) });
-        if (result.space) {
-          // Show the human-readable title; fall back to the bare uid
+        const count = state.types.length;
+        if (count > 0) {
+          const suffix = count > 1 ? ` · ${count} types` : '';
+          setSpaceIndicatorState('ok', `🃏 ${state.activeType ? state.activeType.name : 'Card types'}${suffix}`);
+        } else if (result.space) {
           setSpaceIndicatorState('ok', `🃏 ${result.title || stripSpacePrefix(result.space)}`);
-        } else if (result.matches && result.matches.length > 1) {
-          setSpaceIndicatorState('warn', `⚠️ ${result.matches.length} spaces with header`);
-        } else if (result.matches) {
-          setSpaceIndicatorState('missing', '⛔ No space with header');
         } else {
-          setSpaceIndicatorState('missing', '⛔ Space check failed');
+          setSpaceIndicatorState('missing', '⛔ No card types yet');
         }
-        if (result.space) {
-          updateSpaceHint(result.space, result.title);
-        } else {
-          updateSpaceHint(getCurrentSpace(), '');
-        }
+        updateSpaceHint(result.space, result.title);
         return result;
       } catch (err) {
-        console.warn('[LanguageCard] space resolution failed', err);
-        setSpaceIndicatorState('missing', '⛔ Space check failed');
+        console.warn('[LanguageCard] card type resolution failed', err);
+        setSpaceIndicatorState('missing', '⛔ Card type check failed');
         return null;
       } finally {
         state.spaceResolutionInFlight = null;
@@ -141,80 +176,37 @@ import {
     return state.spaceResolutionInFlight;
   }
 
-  function spaceHeaderCodeHtml() {
-    return `<div class="lc-header-box">
-      <code class="lc-header-json">${escapeHtml(getCardHeaderJson())}</code>
-      <button type="button" class="lc-header-copy-btn" id="lc-space-info-copy-btn" title="Copy header JSON">📋</button>
-    </div>`;
-  }
-
-  function showSpaceInfoPopup(result) {
-    const overlay = document.getElementById('lc-space-info-overlay');
-    const titleEl = document.getElementById('lc-space-info-title');
-    const bodyEl = document.getElementById('lc-space-info-body');
-    if (!overlay || !titleEl || !bodyEl) return;
-
-    let title = 'Language Card Space';
-    let bodyHtml = '';
-
-    if (!result) {
-      title = '⚠️ Space check failed';
-      bodyHtml = `<p>The space list could not be read from the server. This usually means the access token expired — reload the page and click the indicator again.</p>`;
-    } else if (result.space) {
-      title = '🃏 Language card space';
-      const displayTitle = result.title || stripSpacePrefix(result.space);
-      bodyHtml = `
-        <p>New cards are saved into this space:</p>
-        <div class="lc-space-info-name">${escapeHtml(displayTitle)}</div>
-        ${result.title ? `<div class="lc-space-info-uid">uid: ${escapeHtml(stripSpacePrefix(result.space))}</div>` : ''}
-        <p>It is identified by this header in its description:</p>
-        ${spaceHeaderCodeHtml()}`;
-    } else if (result.matches && result.matches.length > 1) {
-      title = `⚠️ ${result.matches.length} spaces carry the header`;
-      bodyHtml = `
-        <p><b>Only one space</b> may carry the language card header, so no target space is selected. Remove the header from the description of all but one space:</p>
-        <ul class="lc-space-info-list">
-          ${result.matches.map((s) => `<li><b>${escapeHtml(s.title || stripSpacePrefix(s.name))}</b><span class="lc-space-info-uid">${escapeHtml(stripSpacePrefix(s.name))}</span></li>`).join('')}
-        </ul>
-        <p>This is the header to look for:</p>
-        ${spaceHeaderCodeHtml()}`;
-    } else {
-      title = '⛔ No language card space found';
-      bodyHtml = `
-        <p>No space carries the language card header yet, so new cards go to the current space (or your personal space).</p>
-        <p>To choose the space that receives new cards:</p>
-        <ol>
-          <li>Open the space you want to use.</li>
-          <li>Edit its description and paste this header into it:</li>
-        </ol>
-        ${spaceHeaderCodeHtml()}
-        <p>Only one space should carry this header.</p>`;
-    }
-
-    titleEl.innerText = title;
-    bodyEl.innerHTML = bodyHtml;
-
-    const copyBtn = document.getElementById('lc-space-info-copy-btn');
-    if (copyBtn) {
-      copyBtn.onclick = (e) => {
-        e.stopPropagation();
-        copyText(getCardHeaderJson(), copyBtn);
-      };
-    }
-
-    overlay.style.display = 'flex';
-    const onKey = (ev) => {
-      if (ev.key === 'Escape') {
-        hideSpaceInfoPopup();
-        document.removeEventListener('keydown', onKey, true);
-      }
-    };
-    document.addEventListener('keydown', onKey, true);
-  }
-
   function hideSpaceInfoPopup() {
     const overlay = document.getElementById('lc-space-info-overlay');
     if (overlay) overlay.style.display = 'none';
   }
 
-export { parseSpaceHeader, findDedicatedSpaces, readCachedTargetSpace, writeCachedTargetSpace, resolveTargetSpace, clearTargetSpaceCache, setSpaceIndicatorState, updateSpaceHint, refreshSpaceIndicator, spaceHeaderCodeHtml, showSpaceInfoPopup, hideSpaceInfoPopup };
+  /**
+   * Mixed feeds contain memos from several spaces. Build memoName -> space
+   * once so renderV3Card() can pick the right type per memo. Failures are
+   * silent: rendering falls back to the current URL space / default type.
+   */
+  async function warmMemoSpaceCache() {
+    if (state.memoSpaceWarmed) return;
+    state.memoSpaceWarmed = true;
+    const token = await getMemosAuthToken();
+    await Promise.all(state.types.map(async (type) => {
+      if (!type.spaceName) return;
+      try {
+        const memos = await listMemosForSpace(type.spaceName, token);
+        memos.forEach(memo => {
+          if (memo && memo.name) state.memoSpaceCache.set(memo.name, type.spaceName);
+        });
+      } catch (e) {
+        // No permission or old API: keep the URL-based fallback.
+      }
+    }));
+  }
+
+export {
+  parseSpaceHeader, findDedicatedSpaces, readCachedTargetSpace,
+  writeCachedTargetSpace, resolveTargetSpace, clearTargetSpaceCache,
+  getAllSpaces, getCardTypes, setActiveType, warmMemoSpaceCache,
+  setSpaceIndicatorState, updateSpaceHint, refreshSpaceIndicator,
+  hideSpaceInfoPopup
+};

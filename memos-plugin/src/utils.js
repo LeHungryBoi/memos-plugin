@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { defaultType, markerFromType } from './card-types.js';
 
   /** Check if Memos is currently in dark mode */
   function syncThemeClass() {
@@ -32,9 +32,9 @@ import { CONFIG } from './config.js';
     return String(name || '').replace(/^spaces\//, '');
   }
 
-  /** The header JSON that marks a space (and a memo) as a language card */
-  function getCardHeaderJson() {
-    return JSON.stringify({ _t: CONFIG.typeIdentifier, v: CONFIG.cardVersion });
+  /** V3 space marker JSON for a card type (defaults to the built-in type). */
+  function getCardHeaderJson(type) {
+    return markerFromType(type || defaultType(null));
   }
 
   function escapeHtml(str) {

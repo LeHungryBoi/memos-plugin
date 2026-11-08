@@ -235,6 +235,8 @@ async function runScript(file, label) {
     await tick(30); // space indicator / tag stats requests
     await env.click('lc-fab-btn'); // open editor
     await tick(20);
+    if (env.ids.has('lc-toggle-btn-ja')) throw new Error('R5.1: homepage language pills must be gone');
+    if (!env.ids.has('lc-explanation-toggle')) throw new Error('R3: independent explanation switch missing');
 
     const tagsInput = env.ids.get('lc-input-tags');
     tagsInput.value = '#vo';
@@ -248,10 +250,13 @@ async function runScript(file, label) {
     await env.click('lc-btn-save'); // POST /api/memos
     await tick(20);
 
-    await env.click('lc-toggle-btn-ja'); // global language switch
-    await env.click('lc-header-copy-btn'); // clipboard helper
-    await env.click('lc-space-indicator'); // async space info popup
+    await env.click('lc-explanation-toggle'); // R3: switch is independent of section chips
+    if (env.ids.has('lc-header-json')) throw new Error('editor must not show a second marker preview');
+    const previewText = env.ids.get('lc-json-preview').innerText || '';
+    if (!previewText.includes('"_t":"lc"')) throw new Error('the only preview must show the note content');
+    await env.click('lc-space-indicator'); // R4: opens card type manager
     await tick(30);
+    if (!env.ids.has('lc-migration-open-btn')) throw new Error('R4: migration wizard entry is missing');
 
     return summarize(env);
 }
@@ -262,6 +267,12 @@ console.log(`Bundle smoke test passed: ${bundle.ids.length} DOM ids, ${bundle.fe
 const inlineStyle = readFileSync(bundlePath, 'utf8');
 if (!inlineStyle.includes('lc-injected-style') || !inlineStyle.includes('--lc-bg-card')) {
     throw new Error('the single-file build must inline the stylesheet');
+}
+if (!inlineStyle.includes('Copy Content')) {
+    throw new Error('R1: Copy Content quick action is missing');
+}
+if (!inlineStyle.includes('lc-explanation-toggle')) {
+    throw new Error('R3: explanation switch is missing');
 }
 if (/\b(?:import|export)\s+(?:\{|\*|default|\w+\s+from)/.test(inlineStyle.replace(/^.*\*\//gm, ''))) {
     throw new Error('the bundle still contains ES module statements');
