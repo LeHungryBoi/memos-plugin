@@ -92,12 +92,12 @@ import {
   }
 
   /** Choose the type used for new cards and remember its space. */
-  function setActiveType(typeId) {
+  function setActiveType(typeId, manualSelection = true) {
     const type = state.types.find(t => t.id === typeId);
     if (!type) return null;
     state.activeType = type;
-    state.activeTypeManuallySelected = true;
-    if (type.spaceName) writeCachedTargetSpace(type.spaceName, type.spaceTitle, true);
+    state.activeTypeManuallySelected = manualSelection;
+    if (type.spaceName) writeCachedTargetSpace(type.spaceName, type.spaceTitle, manualSelection);
     return type;
   }
 

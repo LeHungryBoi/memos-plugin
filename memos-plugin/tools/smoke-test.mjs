@@ -265,6 +265,12 @@ async function runScript(file, label) {
     if (!env.ids.has('lc-space-select-btn') || !env.ids.has('lc-space-indicator')) {
         throw new Error('space selection and space management must have separate controls');
     }
+    if (!/^#1\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
+        throw new Error('the first new card must show counter 1 in the title');
+    }
+    if (!env.ids.has('lc-space-select')) {
+        throw new Error('the quick Space dropdown wrapper must be available to its dismissal handler');
+    }
     if (env.ids.get('lc-space-select-text').innerText !== 'Language Cards') {
         throw new Error('the first ordered type must be the default even when the page is in another space');
     }
@@ -300,7 +306,8 @@ async function runScript(file, label) {
     if (!editorSwipeMove.defaultPrevented ||
         JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/other' ||
         !env.ids.get('lc-space-select-panel').hidden ||
-        !env.ids.get('lc-modal-header').classList.contains('lc-space-swipe-next')) {
+        !env.ids.get('lc-modal-header').classList.contains('lc-space-swipe-next') ||
+        !/^#1\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
         throw new Error('swiping the editor itself must switch spaces without opening its dropdown');
     }
     const typeBeforeBodySwipe = JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name;
@@ -343,6 +350,16 @@ async function runScript(file, label) {
         env.sandbox.document.documentElement.style.overflow !== undefined) {
         throw new Error('closing the editor must restore page scrolling');
     }
+    await env.click('lc-fab-btn');
+    await tick(20);
+    if (env.ids.get('lc-space-select-text').innerText !== 'Language Cards' ||
+        JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/lc') {
+        throw new Error('each new card editor must default to the first ordered Space');
+    }
+    if (!/^#2\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
+        throw new Error('each new card editor opening must increment the title counter');
+    }
+    await env.click('lc-btn-cancel');
 
     await env.click('lc-explanation-toggle'); // R3: switch is independent of section chips
     if (env.ids.has('lc-header-json')) throw new Error('editor must not show a second marker preview');

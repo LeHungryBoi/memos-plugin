@@ -5,7 +5,7 @@ import { isLegacyFallbackStatus, getMemosAuthToken } from './api.js';
 import {
   clearTargetSpaceCache, resolveTargetSpace, refreshSpaceIndicator,
   hideSpaceInfoPopup, updateSpaceHint, refreshQuickSpaceSelector,
-  swipeQuickSpaceSelector
+  swipeQuickSpaceSelector, setActiveType
 } from './spaces.js';
 import { showTypeManager, showCreateSpaceManager } from './space-manager.js';
 import {
@@ -17,6 +17,7 @@ import { defaultType, activeTypeForNew } from './card-types.js';
 
 let pageScrollLock = null;
 let spaceSwipeAnimationTimer = null;
+let newCardSequence = 0;
 
 function animateSpaceSwipe(direction) {
   const header = document.getElementById('lc-modal-header');
@@ -238,7 +239,7 @@ function unlockPageScroll() {
     updateModalEditorSlots();
     updateSpaceHint(type.spaceName, type.spaceTitle);
     const title = document.getElementById('lc-modal-title-text');
-    if (title) title.innerText = `New · ${type.name}`;
+    if (title) title.innerText = `#${newCardSequence} · ${type.name}`;
     refreshQuickSpaceSelector();
   }
 
@@ -391,7 +392,7 @@ function unlockPageScroll() {
               <button type="button" id="lc-space-indicator" class="lc-space-indicator lc-si-loading" title="Manage card types and spaces">
               <span id="lc-space-indicator-text">⏳ Checking card types…</span>
               </button>
-              <div class="lc-space-select">
+              <div id="lc-space-select" class="lc-space-select">
                 <button type="button" id="lc-space-select-btn" class="lc-space-select-btn" aria-expanded="false" aria-controls="lc-space-select-panel">
                   <span id="lc-space-select-text">Loading spaces…</span><span aria-hidden="true">⌄</span>
                 </button>
@@ -534,6 +535,10 @@ function unlockPageScroll() {
     refreshSpaceIndicator();
 
     state.editingMemoName = editData && editData.name ? editData.name : null;
+    if (!state.editingMemoName) newCardSequence += 1;
+    if (!state.editingMemoName && state.types.length) {
+      setActiveType(state.types[0].id, false);
+    }
     const isV3Edit = Boolean(editData && editData.version === 3);
     state.editingVersion = isV3Edit ? 3 : (state.editingMemoName ? 2 : 3);
     const type = state.editingVersion === 3
@@ -549,7 +554,7 @@ function unlockPageScroll() {
     if (titleText) {
       titleText.innerText = state.editingMemoName
         ? `Edit · ${type.name}`
-        : `New · ${type.name}`;
+        : `#${newCardSequence} · ${type.name}`;
     }
     const saveBtn = document.getElementById('lc-btn-save');
     if (saveBtn) saveBtn.innerText = state.editingMemoName ? 'Update Card' : 'Save Card';

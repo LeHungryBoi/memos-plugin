@@ -534,10 +534,9 @@ async function reorderTypes(typeId, delta) {
   const swap = index + delta;
   if (index < 0 || swap < 0 || swap >= types.length) return;
   [types[index], types[swap]] = [types[swap], types[index]];
-  const changed = [types[index], types[swap]];
   types.forEach((type, i) => { type.order = i * 10; });
   state.types = types;
-  for (const type of changed) {
+  for (const type of types) {
     const ok = await writeTypeMarkerSilently(type);
     if (!ok) return;
   }
