@@ -1,0 +1,281 @@
+/**
+ * Build smoke test: runs the generated single-file plugin in a minimal mock
+ * DOM and exercises the main interaction paths. With --baseline <legacy.js>
+ * it also compares DOM output, fetch traffic and storage writes against the
+ * pre-refactor monolith.
+ *
+ *   npm test
+ *   node tools/smoke-test.mjs --baseline path/to/legacy-language-card.js
+ */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const bundlePath = path.join(root, 'language-card.js');
+const baselineFlag = process.argv.indexOf('--baseline');
+const baselinePath = baselineFlag === -1 ? null : path.resolve(root, process.argv[baselineFlag + 1]);
+
+function makeEnvironment() {
+    const ids = new Map();
+    const htmlById = new Map();
+    const created = [];
+    const fetchCalls = [];
+    const storageWrites = {};
+    const storage = new Map([
+        ['memos_access_token', 'test-token']
+    ]);
+    const listeners = new Map();
+
+    const classList = () => {
+        const set = new Set();
+        return {
+            add: (...c) => c.forEach(x => set.add(x)),
+            remove: (...c) => c.forEach(x => set.delete(x)),
+            contains: c => set.has(c),
+            toggle: (c, force) => {
+                const on = force === undefined ? !set.has(c) : Boolean(force);
+                if (on) set.add(c); else set.delete(c);
+                return on;
+            }
+        };
+    };
+
+    class El {
+        constructor(tag = 'div') {
+            this.tagName = tag.toUpperCase();
+            this.nodeName = this.tagName;
+            this.id = '';
+            this.className = '';
+            this.classList = classList();
+            this.attributes = new Map();
+            this.children = [];
+            this.listeners = new Map();
+            this.style = { setProperty(k, v) { this[k] = v; } };
+            this._innerHTML = '';
+            this.innerText = '';
+            this.textContent = '';
+            this.value = '';
+            this.selectionStart = 0;
+            this.selectionEnd = 0;
+            this.offsetLeft = 0;
+            this.offsetTop = 0;
+            this.offsetWidth = 240;
+            this.offsetHeight = 200;
+            this.isConnected = true;
+        }
+        set innerHTML(value) {
+            this._innerHTML = String(value);
+            if (this.id) htmlById.set(this.id, this._innerHTML);
+            for (const m of this._innerHTML.matchAll(/id="([^"]+)"/g)) {
+                if (!ids.has(m[1])) {
+                    const child = new El();
+                    child.id = m[1];
+                    ids.set(m[1], child);
+                    created.push(m[1]);
+                }
+            }
+        }
+        get innerHTML() { return this._innerHTML; }
+        setAttribute(k, v) { this.attributes.set(k, String(v)); }
+        getAttribute(k) { return this.attributes.has(k) ? this.attributes.get(k) : null; }
+        removeAttribute(k) { this.attributes.delete(k); }
+        hasAttribute(k) { return this.attributes.has(k); }
+        appendChild(child) {
+            this.children.push(child);
+            if (child.id && !ids.has(child.id)) ids.set(child.id, child);
+            return child;
+        }
+        removeChild(child) { this.children = this.children.filter(c => c !== child); return child; }
+        insertBefore(child) { return this.appendChild(child); }
+        querySelector() { return null; }
+        querySelectorAll() { return []; }
+        closest() { return null; }
+        contains() { return false; }
+        getBoundingClientRect() { return { left: 100, top: 100, right: 300, bottom: 140, width: 200, height: 40 }; }
+        scrollIntoView() {}
+        focus() { document.activeElement = this; }
+        select() {}
+        click() {}
+        addEventListener(type, fn) {
+            if (!this.listeners.has(type)) this.listeners.set(type, []);
+            this.listeners.get(type).push(fn);
+        }
+        removeEventListener(type, fn) {
+            const list = this.listeners.get(type) || [];
+            this.listeners.set(type, list.filter(f => f !== fn));
+        }
+        dispatchEvent(event) {
+            for (const fn of this.listeners.get(event.type) || []) fn(event);
+            return true;
+        }
+    }
+
+    class StyledEvent {
+        constructor(type, init = {}) {
+            this.type = type;
+            Object.assign(this, init);
+        }
+        preventDefault() {}
+        stopPropagation() {}
+    }
+
+    const document = new El('body');
+    document.readyState = 'complete';
+    document.body = document;
+    document.head = new El('head');
+    document.documentElement = new El('html');
+    document.activeElement = null;
+    document.createElement = tag => new El(tag);
+    document.createDocumentFragment = () => new El('#fragment');
+    document.getElementById = id => ids.get(id) || null;
+    document.execCommand = () => true;
+    document.querySelector = () => null;
+    document.querySelectorAll = () => [];
+    document.addEventListener = (type, fn) => {
+        if (!listeners.has(type)) listeners.set(type, []);
+        listeners.get(type).push(fn);
+    };
+
+    const response = (status, body = {}) => ({
+        ok: status >= 200 && status < 300,
+        status,
+        statusText: status === 404 ? 'Not Found' : 'OK',
+        url: 'http://localhost/',
+        json: async () => body,
+        text: async () => JSON.stringify(body)
+    });
+
+    const fetch = async (url, options = {}) => {
+        const method = options.method || 'GET';
+        fetchCalls.push(`${method} ${url}`);
+        if (url.startsWith('/api/spaces')) {
+            return response(200, {
+                spaces: [{ name: 'spaces/lc', title: 'Language Cards', description: '{"_t":"lc","v":2}' }],
+                nextPageToken: ''
+            });
+        }
+        if (url.includes('/ListUserStats') || url.includes('/ListAllUserStats')) {
+            return response(200, { userStats: [{ tagCounts: { vocab: 5, daily: 2 } }] });
+        }
+        if (url.startsWith('/api/memos')) return response(200, { name: 'memos/abc' });
+        return response(404, { message: 'not found' });
+    };
+
+    const sandbox = {
+        document,
+        window: {
+            document,
+            getComputedStyle: () => ({ backgroundColor: 'rgb(255, 255, 255)' }),
+            matchMedia: () => ({ matches: false }),
+            addEventListener() {},
+            innerWidth: 1280,
+            innerHeight: 800,
+            location: { pathname: '/', href: 'http://localhost/' }
+        },
+        navigator: { clipboard: { writeText: async () => {} } },
+        localStorage: {
+            getItem: k => (storage.has(k) ? storage.get(k) : null),
+            setItem: (k, v) => { storage.set(k, String(v)); storageWrites[k] = String(v); },
+            removeItem: k => { storage.delete(k); delete storageWrites[k]; }
+        },
+        fetch,
+        Event: StyledEvent,
+        MouseEvent: StyledEvent,
+        MutationObserver: class {
+            constructor(callback) { this.callback = callback; }
+            observe() {}
+            disconnect() {}
+        },
+        setTimeout: (fn, ms) => globalThis.setTimeout(fn, Math.min(ms || 0, 10)),
+        clearTimeout: id => globalThis.clearTimeout(id),
+        console: {
+            log() {}, warn() {}, error(message) { throw new Error(`console.error in plugin: ${message}`); }
+        }
+    };
+    sandbox.globalThis = sandbox;
+    sandbox.self = sandbox;
+
+    const click = id => {
+        const el = ids.get(id);
+        if (!el || typeof el.onclick !== 'function') throw new Error(`missing onclick for #${id}`);
+        return el.onclick(new StyledEvent('click'));
+    };
+    const fire = (id, type, event = {}) => {
+        const el = ids.get(id);
+        if (!el) throw new Error(`missing element #${id}`);
+        return el.dispatchEvent(new StyledEvent(type, event));
+    };
+
+    return { sandbox, click, fire, ids, htmlById, created, fetchCalls, storageWrites };
+}
+
+const tick = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function summarize(env) {
+    const capturedIds = ['lc-floating-bar', 'lc-modal-overlay', 'lc-space-info-overlay', 'lc-space-info-body', 'lc-tag-dropdown'];
+    return {
+        ids: env.created.filter(id => id !== 'lc-injected-style').sort(),
+        html: capturedIds.map(id => [id, env.htmlById.get(id) || null]),
+        fetchCalls: [...env.fetchCalls].sort(),
+        storageWrites: env.storageWrites
+    };
+}
+
+async function runScript(file, label) {
+    const env = makeEnvironment();
+    const code = readFileSync(file, 'utf8');
+    vm.runInNewContext(code, env.sandbox, { filename: label, timeout: 3000 });
+
+    if (!env.ids.has('lc-floating-bar')) throw new Error('floating bar was not injected');
+    if (!env.ids.has('lc-modal-overlay')) throw new Error('editor modal was not injected');
+    if (!env.ids.has('lc-space-info-overlay')) throw new Error('space info popup was not injected');
+
+    await tick(30); // space indicator / tag stats requests
+    await env.click('lc-fab-btn'); // open editor
+    await tick(20);
+
+    const tagsInput = env.ids.get('lc-input-tags');
+    tagsInput.value = '#vo';
+    tagsInput.selectionStart = 3;
+    tagsInput.selectionEnd = 3;
+    env.fire('lc-input-tags', 'input');
+    env.fire('lc-input-tags', 'keydown', { key: 'Enter' });
+    await tick(20);
+
+    env.ids.get('lc-input-en').value = 'hello';
+    await env.click('lc-btn-save'); // POST /api/memos
+    await tick(20);
+
+    await env.click('lc-toggle-btn-ja'); // global language switch
+    await env.click('lc-header-copy-btn'); // clipboard helper
+    await env.click('lc-space-indicator'); // async space info popup
+    await tick(30);
+
+    return summarize(env);
+}
+
+const bundle = await runScript(bundlePath, 'language-card.js');
+console.log(`Bundle smoke test passed: ${bundle.ids.length} DOM ids, ${bundle.fetchCalls.length} requests.`);
+
+const inlineStyle = readFileSync(bundlePath, 'utf8');
+if (!inlineStyle.includes('lc-injected-style') || !inlineStyle.includes('--lc-bg-card')) {
+    throw new Error('the single-file build must inline the stylesheet');
+}
+if (/\b(?:import|export)\s+(?:\{|\*|default|\w+\s+from)/.test(inlineStyle.replace(/^.*\*\//gm, ''))) {
+    throw new Error('the bundle still contains ES module statements');
+}
+
+if (baselinePath) {
+    const legacy = await runScript(baselinePath, 'legacy language-card.js');
+    const a = JSON.stringify(legacy);
+    const b = JSON.stringify(bundle);
+    if (a !== b) {
+        console.error('Legacy vs bundle difference:');
+        console.error('legacy:', a.slice(0, 2000));
+        console.error('bundle:', b.slice(0, 2000));
+        throw new Error('refactor changed runtime behaviour');
+    }
+    console.log('Legacy monolith and generated bundle produce identical DOM, requests and storage writes.');
+}
