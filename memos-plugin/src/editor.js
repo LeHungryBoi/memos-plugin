@@ -17,7 +17,6 @@ import { defaultType, activeTypeForNew } from './card-types.js';
 
 let pageScrollLock = null;
 let spaceSwipeAnimationTimer = null;
-let newCardSequence = 0;
 
 function animateSpaceSwipe(direction) {
   const header = document.getElementById('lc-modal-header');
@@ -239,7 +238,7 @@ function unlockPageScroll() {
     updateModalEditorSlots();
     updateSpaceHint(type.spaceName, type.spaceTitle);
     const title = document.getElementById('lc-modal-title-text');
-    if (title) title.innerText = `#${newCardSequence} · ${type.name}`;
+    if (title) title.innerText = `#${type.order + 1} · ${type.name}`;
     refreshQuickSpaceSelector();
   }
 
@@ -535,7 +534,6 @@ function unlockPageScroll() {
     refreshSpaceIndicator();
 
     state.editingMemoName = editData && editData.name ? editData.name : null;
-    if (!state.editingMemoName) newCardSequence += 1;
     if (!state.editingMemoName && state.types.length) {
       setActiveType(state.types[0].id, false);
     }
@@ -554,7 +552,7 @@ function unlockPageScroll() {
     if (titleText) {
       titleText.innerText = state.editingMemoName
         ? `Edit · ${type.name}`
-        : `#${newCardSequence} · ${type.name}`;
+        : `#${type.order + 1} · ${type.name}`;
     }
     const saveBtn = document.getElementById('lc-btn-save');
     if (saveBtn) saveBtn.innerText = state.editingMemoName ? 'Update Card' : 'Save Card';

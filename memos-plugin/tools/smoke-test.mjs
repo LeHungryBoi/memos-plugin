@@ -307,8 +307,8 @@ async function runScript(file, label) {
         JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/other' ||
         !env.ids.get('lc-space-select-panel').hidden ||
         !env.ids.get('lc-modal-header').classList.contains('lc-space-swipe-next') ||
-        !/^#1\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
-        throw new Error('swiping the editor itself must switch spaces without opening its dropdown');
+        !/^#11\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
+        throw new Error('swiping the editor must switch spaces and show the selected Space order plus one');
     }
     const typeBeforeBodySwipe = JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name;
     env.fire('lc-modal-overlay', 'touchstart', {
@@ -356,8 +356,8 @@ async function runScript(file, label) {
         JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/lc') {
         throw new Error('each new card editor must default to the first ordered Space');
     }
-    if (!/^#2\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
-        throw new Error('each new card editor opening must increment the title counter');
+    if (!/^#1\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
+        throw new Error('reopening the first ordered Space must keep its order-based title number');
     }
     await env.click('lc-btn-cancel');
 
