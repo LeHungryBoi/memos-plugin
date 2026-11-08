@@ -30,17 +30,21 @@ import {
       if (!raw) return null;
       if (raw.startsWith('{')) {
         const parsed = JSON.parse(raw);
-        return parsed && parsed.name ? { name: parsed.name, title: parsed.title || '' } : null;
+        return parsed && parsed.name
+          ? { name: parsed.name, title: parsed.title || '', manual: parsed.manual === true }
+          : null;
       }
-      return { name: raw, title: '' }; // legacy bare resource name
+      return { name: raw, title: '', manual: false }; // legacy bare resource name
     } catch (e) {
       return null;
     }
   }
 
-  function writeCachedTargetSpace(name, title) {
+  function writeCachedTargetSpace(name, title, manual = false) {
     try {
-      localStorage.setItem(LS_TARGET_SPACE_KEY, JSON.stringify({ name: name, title: title || '' }));
+      localStorage.setItem(LS_TARGET_SPACE_KEY, JSON.stringify({
+        name: name, title: title || '', manual: Boolean(manual)
+      }));
     } catch (e) { /* ignore */ }
   }
 
@@ -62,9 +66,9 @@ import {
     const force = Boolean(options && options.force);
     if (!force && state.types.length) {
       // The URL may have changed since the cache was filled: keep "In use"
-      // in sync with the space the editor is actually on.
+      // in sync with the current space unless a target was explicitly selected.
       const urlType = typeForSpace(state.types, getCurrentSpace());
-      if (urlType) state.activeType = urlType;
+      if (urlType && !state.activeTypeManuallySelected) state.activeType = urlType;
       return state.types;
     }
     const spaces = await getAllSpaces(force);
@@ -74,16 +78,22 @@ import {
     }).filter(Boolean));
     state.types = types;
 
-    // "In use" follows the space the editor is actually on (the URL); the
-    // cached pick from "Use for new cards" only wins when no type matches it.
+    // The URL type is the default unless the user explicitly picked a target
+    // for new cards from the manager.
     const urlType = typeForSpace(types, getCurrentSpace());
     const cached = readCachedTargetSpace();
     const cachedType = cached && typeForSpace(types, cached.name);
-    if (urlType) {
+    state.activeTypeManuallySelected = Boolean(cached && cached.manual);
+    if (state.activeTypeManuallySelected && cachedType) {
+      state.activeType = cachedType;
+    } else if (urlType) {
+      state.activeTypeManuallySelected = false;
       state.activeType = urlType;
     } else if (cachedType) {
+      state.activeTypeManuallySelected = false;
       state.activeType = cachedType;
     } else if (!state.activeType || !types.some(t => t.id === state.activeType.id)) {
+      state.activeTypeManuallySelected = false;
       state.activeType = activeTypeForNew(types, getCurrentSpace());
     }
     return types;
@@ -94,7 +104,8 @@ import {
     const type = state.types.find(t => t.id === typeId);
     if (!type) return null;
     state.activeType = type;
-    if (type.spaceName) writeCachedTargetSpace(type.spaceName, type.spaceTitle);
+    state.activeTypeManuallySelected = true;
+    if (type.spaceName) writeCachedTargetSpace(type.spaceName, type.spaceTitle, true);
     return type;
   }
 
@@ -115,9 +126,9 @@ import {
       }
     }
     const types = await getCardTypes({ force });
-    const active = typeForSpace(types, getCurrentSpace()) || state.activeType || activeTypeForNew(types, getCurrentSpace());
+    const active = state.activeType || typeForSpace(types, getCurrentSpace()) || activeTypeForNew(types, getCurrentSpace());
     if (active && active.spaceName) {
-      writeCachedTargetSpace(active.spaceName, active.spaceTitle);
+      writeCachedTargetSpace(active.spaceName, active.spaceTitle, state.activeTypeManuallySelected);
       return {
         space: active.spaceName, title: active.spaceTitle,
         matches: types, fromCache: false, type: active

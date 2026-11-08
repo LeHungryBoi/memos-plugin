@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { getCardTypes, getAllSpaces, setActiveType, refreshSpaceIndicator } from './spaces.js';
 import {
-  getMemosAuthToken, updateSpaceDescription, listMemosForSpace, patchMemoContent
+  getMemosAuthToken, createSpace, updateSpaceDescription, listMemosForSpace, patchMemoContent
 } from './api.js';
 import {
   V3_VERSION, defaultType, markerFromType, sectionKeys, mapSectionKeys, typeForSpace
@@ -419,6 +419,7 @@ function bindManagerEvents(bodyEl) {
       type.sections = [];
       return writeTypeMarker(type, `Declared ${space.title || space.name} as a card type.`);
     }
+    if (action === 'create-space') return createSpaceFromManager();
     if (action === 'section-toggle-hidden') {
       if (!draftType || !draftType.sections[index]) return;
       draftType.sections[index].defaultHidden = !draftType.sections[index].defaultHidden;
@@ -459,6 +460,72 @@ function bindManagerEvents(bodyEl) {
     const preview = document.getElementById('lc-marker-preview');
     if (preview) preview.innerText = markerFromType(draftType);
   });
+}
+
+async function createSpaceFromManager() {
+  const titleInput = document.getElementById('lc-new-space-title');
+  const title = titleInput ? titleInput.value.trim() : '';
+  if (!title) {
+    status('Enter a name for the new space.', true);
+    if (titleInput) titleInput.focus();
+    return;
+  }
+
+  const button = document.getElementById('lc-create-space-btn');
+  if (button) {
+    button.disabled = true;
+    button.innerText = 'Creating…';
+  }
+
+  try {
+    const source = draftType || state.activeType || state.types[0] || defaultType(null);
+    const type = JSON.parse(JSON.stringify(source));
+    type.id = `type-new-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    type.name = title;
+    type.spaceName = '';
+    type.spaceTitle = title;
+    type.order = state.types.reduce((max, item) => Math.max(max, item.order), -10) + 10;
+    type.sectionAliases = {};
+
+    const token = await getMemosAuthToken();
+    const res = await createSpace(title, markerFromType(type), token);
+    if (!res || !res.ok) {
+      const code = res ? res.status : 'no response';
+      let detail = '';
+      if (res) {
+        const body = await res.text().catch(() => '');
+        try {
+          const parsed = JSON.parse(body);
+          detail = parsed.message || '';
+        } catch (e) {
+          detail = body.replace(/\s+/g, ' ').trim().slice(0, 160);
+        }
+      }
+      throw new Error(`HTTP ${code}${detail ? ` — ${detail}` : ''}`);
+    }
+
+    const created = await res.json();
+    if (!created || !created.name) {
+      throw new Error('The server created the space but returned no resource name. Reload the page and check the space list.');
+    }
+
+    await getCardTypes({ force: true });
+    const createdType = state.types.find(item => item.spaceName === created.name);
+    if (!createdType) {
+      throw new Error('The space was created, but its card type was not returned by the space list. Reload the page to refresh.');
+    }
+    setActiveType(createdType.id);
+    await refreshSpaceIndicator(true);
+    await renderManager();
+    status(`Created "${title}" with the current language sections. It will be used for new cards; your open draft is unchanged.`);
+  } catch (err) {
+    status(`Could not create space: ${err.message}`, true);
+    const currentButton = document.getElementById('lc-create-space-btn');
+    if (currentButton) {
+      currentButton.disabled = false;
+      currentButton.innerText = 'Create & use for new cards';
+    }
+  }
 }
 
 async function reorderTypes(typeId, delta) {
@@ -504,6 +571,14 @@ async function renderManager() {
     bodyEl.innerHTML = `
       <div class="lc-manager">
         <p class="lc-manager-hint">Each marked space defines one card type. Click a card to edit its definition inline &mdash; the open card is the one being edited. Definitions live only in the space description, never in notes.</p>
+        <div class="lc-manager-section">
+          <h4>Create a Language Card space</h4>
+          <p class="lc-manager-hint">Create a new Memos space from here. It will start with the current card type's language sections and become the target for new cards.</p>
+          <div class="lc-manager-create-space">
+            <input id="lc-new-space-title" class="lc-form-input" type="text" maxlength="100" placeholder="Space name" aria-label="New space name" />
+            <button type="button" class="lc-btn lc-btn-primary" id="lc-create-space-btn" data-action="create-space">Create &amp; use for new cards</button>
+          </div>
+        </div>
         <div class="lc-manager-section">
           <h4>Card types (${types.length})</h4>
           <ul class="lc-type-list" id="lc-type-list"></ul>

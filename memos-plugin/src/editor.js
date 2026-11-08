@@ -512,7 +512,7 @@ import { defaultType, activeTypeForNew } from './card-types.js';
       method = 'PATCH';
     } else {
       // V3: the active card type's space wins; otherwise URL space / personal space.
-      let dedicatedSpace = state.activeType && state.activeType.spaceName;
+      let dedicatedSpace = state.editingType && state.editingType.spaceName;
       try {
         const resolved = await resolveTargetSpace();
         dedicatedSpace = dedicatedSpace || resolved.space;

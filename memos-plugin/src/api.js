@@ -149,6 +149,16 @@
     );
   }
 
+  /** Create a space; the authenticated caller becomes its first administrator. */
+  async function createSpace(title, description, token) {
+    return sendJsonWithFallback(
+      ['/api/spaces', '/api/v1/spaces'],
+      'POST',
+      { title, description },
+      token
+    );
+  }
+
   /** List memos inside one space (used by the compatibility scanner). */
   async function listMemosForSpace(spaceName, token) {
     const parent = encodeURIComponent(spaceName || '');
@@ -175,5 +185,5 @@
 
 export {
   isLegacyFallbackStatus, fetchJsonWithFallback, fetchAllSpaces, getMemosAuthToken,
-  sendJsonWithFallback, updateSpaceDescription, listMemosForSpace, patchMemoContent
+  sendJsonWithFallback, updateSpaceDescription, createSpace, listMemosForSpace, patchMemoContent
 };

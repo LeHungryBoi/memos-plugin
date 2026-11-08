@@ -1073,6 +1073,24 @@
   margin-bottom: 8px;
 }
 
+.lc-manager-create-space {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lc-manager-create-space .lc-form-input {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (max-width: 520px) {
+  .lc-manager-create-space {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 .lc-editor-block {
   margin: 12px 0;
   padding: 10px 12px;

@@ -22,6 +22,9 @@ function makeEnvironment() {
     const htmlById = new Map();
     const created = [];
     const fetchCalls = [];
+    const spaces = [
+        { name: 'spaces/lc', title: 'Language Cards', description: '{"_t":"lc","v":2}' }
+    ];
     const storageWrites = {};
     const storage = new Map([
         ['memos_access_token', 'test-token']
@@ -150,11 +153,21 @@ function makeEnvironment() {
     const fetch = async (url, options = {}) => {
         const method = options.method || 'GET';
         fetchCalls.push(`${method} ${url}`);
+        if (method === 'POST' && url === '/api/spaces') {
+            return response(404, { message: 'legacy API' });
+        }
+        if (method === 'POST' && url === '/api/v1/spaces') {
+            const body = JSON.parse(options.body);
+            const space = {
+                name: 'spaces/new-vocabulary',
+                title: body.title,
+                description: body.description
+            };
+            spaces.push(space);
+            return response(200, space);
+        }
         if (url.startsWith('/api/spaces')) {
-            return response(200, {
-                spaces: [{ name: 'spaces/lc', title: 'Language Cards', description: '{"_t":"lc","v":2}' }],
-                nextPageToken: ''
-            });
+            return response(200, { spaces, nextPageToken: '' });
         }
         if (url.includes('/ListUserStats') || url.includes('/ListAllUserStats')) {
             return response(200, { userStats: [{ tagCounts: { vocab: 5, daily: 2 } }] });
@@ -208,7 +221,7 @@ function makeEnvironment() {
         return el.dispatchEvent(new StyledEvent(type, event));
     };
 
-    return { sandbox, click, fire, ids, htmlById, created, fetchCalls, storageWrites };
+    return { sandbox, click, fire, ids, htmlById, created, fetchCalls, spaces, storageWrites };
 }
 
 const tick = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -257,6 +270,27 @@ async function runScript(file, label) {
     await env.click('lc-space-indicator'); // R4: opens card type manager
     await tick(30);
     if (!env.ids.has('lc-migration-open-btn')) throw new Error('R4: migration wizard entry is missing');
+    const managerHtml = env.htmlById.get('lc-space-info-body') || '';
+    if (!managerHtml.includes('lc-create-space-btn')) throw new Error('space manager must provide a create-space action');
+    env.ids.get('lc-new-space-title').value = 'New Vocabulary';
+    const createButton = {
+        id: 'lc-create-space-btn',
+        getAttribute: name => name === 'data-action' ? 'create-space' : null
+    };
+    await env.ids.get('lc-space-info-body').onclick({
+        target: { closest: () => createButton }
+    });
+    if (!env.fetchCalls.includes('POST /api/spaces') || !env.fetchCalls.includes('POST /api/v1/spaces')) {
+        throw new Error('creating a space must fall back from the current API path to v1');
+    }
+    const createdSpace = env.spaces.find(space => space.name === 'spaces/new-vocabulary');
+    if (!createdSpace || !createdSpace.description.includes('"v":3') || !createdSpace.description.includes('"sections"')) {
+        throw new Error('new spaces must be created with a Language Card type marker and section definitions');
+    }
+    const selectedSpace = JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}');
+    if (selectedSpace.name !== createdSpace.name || selectedSpace.manual !== true) {
+        throw new Error('the newly created space must persist as the selected target for new cards');
+    }
 
     return summarize(env);
 }
