@@ -16,7 +16,7 @@
   - `schema/v3.md`: **V3 数据格式**（当前实现：卡片类型 marker + note content）。
   - `schema/v3-requirements.md`: **V3 需求规格**（五项需求与验收清单；已按默认决策实现）。
   - `README.md`: 使用与配置手册。
-- `/.vscode`: VS Code 打开工作区时自动启动 watcher 的任务配置（位于项目根目录）。
+- `/.vscode`: 打开工作区时自动启动 watcher 的任务配置（位于项目根目录）。
 - `/memos-api-docs`: 官网 API 文档快照（最新版，不代表用户服务器版本）。
 
 ---
@@ -71,12 +71,14 @@ npm run test:v3     # 只跑 V3 marker / payload / 迁移向量
 note `content` 只存分区值、说明与尾部 tags。格式见 `schema/v3.md`，V2 兼容规则见 `schema/v2.md`。
 需求与验收清单见 `schema/v3-requirements.md`（五项需求，**已按文档中的默认决策实现**）。
 
-**VS Code 自动监听**：打开工作区根目录时，`.vscode/tasks.json` 的 `runOn: "folderOpen"` 会自动执行
-`npm run watch`（根目录 `.vscode/settings.json` 已开启 `task.allowAutomaticTasks`）。
+**VS Code 自动监听**：打开工作区根目录时，`.vscode/tasks.json` 会启动 `npm run watch`。
+监听构建只写入被 Git 忽略的 `memos-plugin/.watch/`，不会改动 Git 跟踪的发布文件，因此 rebase 时无需停止 watcher。
+开发时从 `memos-plugin/.watch/language-card.js` 复制最新构建；仓库中的 `language-card.js` 保持为可直接下载和粘贴的发布版本。
 `tools/watch-lock.mjs` 保证多窗口/多次启动只有一个 watcher 写产物；改任意 `src/*.js` 或 CSS
-都会在终端打印一次构建结果，粘贴发布时始终取最新的 `language-card.js`。
+都会在终端打印一次构建结果。
 
 `language-card.js` / `language-card.css` 是**生成文件**，不要直接编辑；改 `src/` 后重新构建。
+只有显式运行 `npm run build`（或 `npm run build:split`）才会更新 Git 跟踪的发布文件。
 
 ---
 

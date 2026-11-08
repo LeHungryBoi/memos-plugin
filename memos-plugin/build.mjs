@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
@@ -6,18 +6,20 @@ import { acquireWatchLock, releaseWatchLock } from './tools/watch-lock.mjs';
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const cssSource = path.join(projectRoot, 'src/styles/language-card.css');
-const outJs = path.join(projectRoot, 'language-card.js');
-const outCss = path.join(projectRoot, 'language-card.css');
-
 const isWatch = process.argv.includes('--watch');
+const outputDir = isWatch ? path.join(projectRoot, '.watch') : projectRoot;
+const outJs = path.join(outputDir, 'language-card.js');
+const outCss = path.join(outputDir, 'language-card.css');
 // The default build inlines the CSS into the JS (one file to paste).
 // --no-inline-css keeps the classic two-box install (Additional Script + Style).
 const noInlineCss = process.argv.includes('--no-inline-css');
 
+mkdirSync(outputDir, { recursive: true });
+
 const jsBanner = `/* ============================================================================
  * Language Card Extension for Memos - GENERATED FILE, DO NOT EDIT HERE.
  * Sources: src/*.js and src/styles/language-card.css
- * Rebuild: npm run build (or npm run watch for automatic rebuilds)
+ * Rebuild published files: npm run build; watcher output: .watch/language-card.js
  * Paste this whole file into Settings -> System -> Additional Script.
  * ============================================================================ */
 "use strict";`;
@@ -107,7 +109,7 @@ if (isWatch) {
     process.once('SIGINT', shutdown);
     process.once('SIGTERM', shutdown);
     await context.watch();
-    console.log('Watching src/ for changes; output: language-card.js (single file).');
+    console.log('Watching src/ for changes; output: .watch/language-card.js (single file).');
 } else {
     await esbuild.build(options);
     console.log(`Built ${path.relative(projectRoot, outJs)} (single file, CSS ${noInlineCss ? 'kept separate' : 'inlined'})`);
