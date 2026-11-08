@@ -800,6 +800,12 @@
   cursor: pointer;
 }
 
+/* Parked far away from the action cluster (left of the timestamp) on purpose,
+   e.g. Delete — a little extra gap keeps it clear of the time text. */
+.lc-quick-action-far-left {
+  margin-right: 6px;
+}
+
 /* Very narrow phones: three icons + reaction + three-dots would cramp the
    header, so keep the three-dots menu as the only path there. */
 @media (max-width: 479px) {

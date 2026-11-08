@@ -809,6 +809,12 @@
   cursor: pointer;
 }
 
+/* Parked far away from the action cluster (left of the timestamp) on purpose,
+   e.g. Delete — a little extra gap keeps it clear of the time text. */
+.lc-quick-action-far-left {
+  margin-right: 6px;
+}
+
 /* Very narrow phones: three icons + reaction + three-dots would cramp the
    header, so keep the three-dots menu as the only path there. */
 @media (max-width: 479px) {
@@ -1204,8 +1210,23 @@
     //   icon    - lucide SVG markup shown on the button
     //   iconName- lucide class fallback used when the menu label changes
     //             (e.g. "Pin" -> "Unpin" once pinned)
+    //   menuItemSelector - optional native menu selector; label/icon matching
+    //             is always used as a fallback when it matches nothing
+    //   placement - optional 'far-left': renders the button at the far left of
+    //             the memo row (left of the timestamp), AWAY from the action
+    //             cluster, so destructive actions can't be hit by accident.
     // Add / remove entries to change the quick action set.
     quickActions: [
+      {
+        // Native DOM (0.31.0): Delete lives in the "More" submenu, not in the
+        // top-level menu, and its item has data-variant="default" (no
+        // destructive variant to select). So match it by label / lucide icon.
+        label: "Delete",
+        path: ["More", "Delete"],
+        iconName: "lucide-trash",
+        placement: "far-left",
+        icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-trash" aria-hidden="true"><path d="M3 6h18"></path><path d="M19 6v14c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V6"></path><path d="M8 6V4c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2"></path><line x1="10" x2="10" y1="11" y2="17"></line><line x1="14" x2="14" y1="11" y2="17"></line></svg>'
+      },
       {
         label: "Pin",
         path: ["Pin"],
@@ -3710,7 +3731,8 @@ ${tags}` : "");
       currentMenu = subMenu;
     }
     const leafLabel = action.path[action.path.length - 1];
-    const item = findMenuItem(currentMenu, leafLabel, action.iconName);
+    let item = action.menuItemSelector ? currentMenu.querySelector(action.menuItemSelector) : null;
+    if (!item) item = findMenuItem(currentMenu, leafLabel, action.iconName);
     if (!item) {
       console.warn('[LanguageCard] quick action "' + action.label + '": menu item not found');
       closeMenuForTrigger(trigger);
@@ -3718,29 +3740,49 @@ ${tags}` : "");
     }
     item.click();
   }
+  function buildQuickActionButton(actionsEl, action, moreBtn) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = (moreBtn.className ? moreBtn.className + " " : "") + "lc-quick-action";
+    btn.setAttribute("aria-label", action.label);
+    btn.title = action.label;
+    btn.innerHTML = action.icon;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerNativeAction(actionsEl, action);
+    });
+    return btn;
+  }
   function injectQuickActions() {
-    if (!CONFIG.quickActions || CONFIG.quickActions.length === 0) return;
+    const actions = CONFIG.quickActions || [];
+    const clusterActions = actions.filter((a) => a.placement !== "far-left");
+    const farLeftActions = actions.filter((a) => a.placement === "far-left");
+    if (!clusterActions.length && !farLeftActions.length) return;
     document.querySelectorAll('article [data-slot="memo-header-actions"]').forEach((actionsEl) => {
-      if (actionsEl.hasAttribute("data-lc-quick-actions")) return;
       const moreBtn = findMoreTrigger(actionsEl);
       if (!moreBtn) return;
-      actionsEl.setAttribute("data-lc-quick-actions", "1");
-      const fragment = document.createDocumentFragment();
-      CONFIG.quickActions.forEach((action) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = (moreBtn.className ? moreBtn.className + " " : "") + "lc-quick-action";
-        btn.setAttribute("aria-label", action.label);
-        btn.title = action.label;
-        btn.innerHTML = action.icon;
-        btn.addEventListener("click", (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          triggerNativeAction(actionsEl, action);
+      if (clusterActions.length && !actionsEl.hasAttribute("data-lc-quick-actions")) {
+        actionsEl.setAttribute("data-lc-quick-actions", "1");
+        const fragment = document.createDocumentFragment();
+        clusterActions.forEach((action) => {
+          fragment.appendChild(buildQuickActionButton(actionsEl, action, moreBtn));
         });
-        fragment.appendChild(btn);
-      });
-      actionsEl.insertBefore(fragment, moreBtn);
+        actionsEl.insertBefore(fragment, moreBtn);
+      }
+      if (farLeftActions.length) {
+        const row = actionsEl.closest("article");
+        const meta = row ? row.querySelector('[data-slot="memo-header-meta"]') : null;
+        const leftGroup = meta && meta.parentElement;
+        const anchor = leftGroup || actionsEl;
+        if (!anchor.querySelector(".lc-quick-action-far-left")) {
+          farLeftActions.forEach((action) => {
+            const btn = buildQuickActionButton(actionsEl, action, moreBtn);
+            btn.classList.add("lc-quick-action-far-left");
+            anchor.insertBefore(btn, anchor.firstChild);
+          });
+        }
+      }
     });
   }
 

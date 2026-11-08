@@ -80,9 +80,10 @@ import { CONFIG } from './config.js';
 
   /**
    * Run a native memo action by driving the card's own dropdown menu.
-   * action.path walks menu levels (e.g. ['Copy', 'Copy Content']); the last
-   * entry is the item that gets clicked. Fails quietly (menu closed again)
-   * when Memos' menu structure is not recognized.
+   * action.path walks menu levels (e.g. ['Copy', 'Copy Content'],
+   * ['More', 'Delete']); the last entry is the item that gets clicked.
+   * A configured menuItemSelector is tried first, with label/icon matching
+   * as a fallback so a stale selector never leaves the menu open.
    */
   async function triggerNativeAction(actionsEl, action) {
     const trigger = findMoreTrigger(actionsEl);
@@ -123,7 +124,12 @@ import { CONFIG } from './config.js';
     }
 
     const leafLabel = action.path[action.path.length - 1];
-    const item = findMenuItem(currentMenu, leafLabel, action.iconName);
+    let item = action.menuItemSelector
+      ? currentMenu.querySelector(action.menuItemSelector)
+      : null;
+    // A stale / over-specific selector (e.g. a data-variant that no longer
+    // exists) must not strand an open dropdown: always try label / icon too.
+    if (!item) item = findMenuItem(currentMenu, leafLabel, action.iconName);
     if (!item) {
       console.warn('[LanguageCard] quick action "' + action.label + '": menu item not found');
       closeMenuForTrigger(trigger);
@@ -132,39 +138,76 @@ import { CONFIG } from './config.js';
     item.click();
   }
 
+  /** Build one quick-action button driving the card's own dropdown menu. */
+  function buildQuickActionButton(actionsEl, action, moreBtn) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    // Reuse the native More button's utility classes so the look matches exactly
+    btn.className = (moreBtn.className ? moreBtn.className + ' ' : '') + 'lc-quick-action';
+    btn.setAttribute('aria-label', action.label);
+    btn.title = action.label;
+    btn.innerHTML = action.icon;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerNativeAction(actionsEl, action);
+    });
+    return btn;
+  }
+
   /**
-   * Inject quick-action icon buttons into every memo header actions area.
-   * Idempotent: the actions container is marked once injected, so Memos
-   * re-rendering the card simply drops the old buttons with the old DOM and
-   * the observer re-injects fresh ones.
+   * Inject quick-action icon buttons into every memo header.
+   *
+   * Per memos/web MemoHeader.tsx the row is:
+   *   <div flex justify-between>
+   *     <div flex-1>                       <- far-left actions go FIRST in here
+   *       <div data-slot="memo-header-meta">[creator]<time link>«11 hours ago»[space badge]</div>
+   *     </div>
+   *     <div data-slot="memo-header-actions">[reaction][visibility][more]</div>
+   *   </div>
+   *
+   * Cluster actions sit left of the three-dots (marked once via
+   * data-lc-quick-actions). Far-left actions (placement: 'far-left', e.g.
+   * Delete) sit at the far left of the row, left of the timestamp — React may
+   * wipe those siblings on re-render, so they are re-checked by class on every
+   * pass and re-injected when missing.
    */
   function injectQuickActions() {
-    if (!CONFIG.quickActions || CONFIG.quickActions.length === 0) return;
+    const actions = CONFIG.quickActions || [];
+    const clusterActions = actions.filter((a) => a.placement !== 'far-left');
+    const farLeftActions = actions.filter((a) => a.placement === 'far-left');
+    if (!clusterActions.length && !farLeftActions.length) return;
+
     document.querySelectorAll('article [data-slot="memo-header-actions"]').forEach((actionsEl) => {
-      if (actionsEl.hasAttribute('data-lc-quick-actions')) return;
       const moreBtn = findMoreTrigger(actionsEl);
       if (!moreBtn) return;
-      actionsEl.setAttribute('data-lc-quick-actions', '1');
 
-      const fragment = document.createDocumentFragment();
-      CONFIG.quickActions.forEach((action) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        // Reuse the native More button's utility classes so the look matches exactly
-        btn.className = (moreBtn.className ? moreBtn.className + ' ' : '') + 'lc-quick-action';
-        btn.setAttribute('aria-label', action.label);
-        btn.title = action.label;
-        btn.innerHTML = action.icon;
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          triggerNativeAction(actionsEl, action);
+      // --- cluster: left of the three-dots; survives React re-renders ---
+      if (clusterActions.length && !actionsEl.hasAttribute('data-lc-quick-actions')) {
+        actionsEl.setAttribute('data-lc-quick-actions', '1');
+        const fragment = document.createDocumentFragment();
+        clusterActions.forEach((action) => {
+          fragment.appendChild(buildQuickActionButton(actionsEl, action, moreBtn));
         });
-        fragment.appendChild(btn);
-      });
-      // Insert left of the three-dots button; React inserts its own children
-      // relative to its tracked nodes, so extra siblings here survive re-renders
-      actionsEl.insertBefore(fragment, moreBtn);
+        actionsEl.insertBefore(fragment, moreBtn);
+      }
+
+      // --- far left: left of the timestamp ("11 hours ago") ---
+      if (farLeftActions.length) {
+        const row = actionsEl.closest('article');
+        const meta = row ? row.querySelector('[data-slot="memo-header-meta"]') : null;
+        // The meta row's parent is the row's left group: its first child is the
+        // leftmost slot, i.e. immediately left of the time display.
+        const leftGroup = meta && meta.parentElement;
+        const anchor = leftGroup || actionsEl;
+        if (!anchor.querySelector('.lc-quick-action-far-left')) {
+          farLeftActions.forEach((action) => {
+            const btn = buildQuickActionButton(actionsEl, action, moreBtn);
+            btn.classList.add('lc-quick-action-far-left');
+            anchor.insertBefore(btn, anchor.firstChild);
+          });
+        }
+      }
     });
   }
 

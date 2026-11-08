@@ -52,7 +52,7 @@
 | `src/card-render.js` | feed 卡片渲染（动态分区 + 说明区）、行内编辑入口 |
 | `src/tags.js` | 标签仓库与光标跟随的自动补全下拉 |
 | `src/editor.js` | 悬浮栏、动态并排编辑器、说明区开关、预览与保存 |
-| `src/quick-actions.js` | 原生 Pin / Edit / Archive / Copy Content 快捷按钮 |
+| `src/quick-actions.js` | 原生 Pin / Edit / Archive / Copy Content / Delete 快捷按钮 |
 | `src/main.js` | 样式注入、类型预热、MutationObserver、启动 |
 | `src/styles/language-card.css` | 全部样式（构建时内联进 JS） |
 
@@ -112,10 +112,10 @@ note `content` 只存分区值、说明与尾部 tags。格式见 `schema/v3.md`
    - ✏️ **行内编辑**：每张卡片标题栏右侧带编辑按钮，点击直接打开同一套并排编辑器，自动预填该卡片的 JA/EN/ZH 与 Tags；保存走 `PATCH` 更新原 memo，**不刷新页面**，卡片原地换新内容。编辑框内的语言开关只影响本次编辑会话，不会改动卡片的全局/单篇显示状态。
    - 保存成功后**不做任何整页刷新**，也不弹提示——Memos 会自行把新卡片/更新后的卡片带进 feed。
 7. **原生快捷操作（Quick Actions）**：
-   - 每张 memo 卡片（不限语言卡片）的原生标题栏右侧、三点菜单**左边**，直接显示 **Pin / Edit / Archive / Copy Content** 四个图标按钮。
+   - 每张 memo 卡片（不限语言卡片）的原生标题栏右侧、三点菜单**左边**，直接显示 **Pin / Edit / Archive / Copy Content** 四个图标按钮；**Delete** 单独放在这一行**最左边**（时间左边），远离按钮簇防误触。
    - Copy Content 只是把原生菜单里的 `Copy → Copy Content` 在外层再放一份；点击时脚本打开原生三点菜单并点击对应菜单项，全部原生逻辑（复制内容、置顶状态、原生编辑器）原样复用，插件不重写任何 API。
    - 菜单项匹配支持标签变化（如 `Pin` → `Unpin`）与图标类名回退；结构对不上时安静关掉菜单。快捷集合可在 `src/config.js` 的 `CONFIG.quickActions` 中增删（`path` 支持子菜单路径）。
-   - 超窄手机屏（< 480px）下自动隐藏快捷图标；Copy Link / Move to Space / Delete 等仍留在三菜单内。
+   - 超窄手机屏（< 480px）下自动隐藏快捷图标；Copy Link / Move to Space 等仍留在三菜单内。Delete 走 `More → Delete` 子菜单路径（原生 0.31.0 菜单里没有 `data-variant="destructive"`），定位失败时会关掉菜单、不留残留。
 8. **多空间卡片类型 & 管理入口**：
    - **每个 Space 的 description 里放一个 V3 marker**，含类型名、排序、语言分区定义、说明区模式与分区名别名；该 Space 即成为一种卡片类型。marker 的预览与复制按钮在管理面板内，编辑器底部只保留 note 的 Payload Preview 一个预览窗口。
    - 弹窗标题栏的绿色 **🃏 指示器**现在是管理入口：点击打开面板，每个类型是一张卡片，点卡片就地展开定义（正在编辑的就是展开的那张），可调整排序、增删/排序语言分区、切换说明区模式；键名映射由迁移向导逐键选择后自动保存。
