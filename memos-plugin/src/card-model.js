@@ -90,7 +90,8 @@ import { V3_VERSION, valueForSection } from './card-types.js';
   }
 
   /**
-   * V3 content: {"_t":"lc","v":3,<section keys>, "_e": explanations, "_x": bool}
+   * V3 content: {"_t":"lc","v":3,<section keys>, "_e": explanations,
+   * "_u": unified explanation, "_s": visible sections, "_x": bool}
    * followed by optional tail tags. No sections / labels / order / mode here.
    */
   function parseCardV3(rawText) {
@@ -109,7 +110,7 @@ import { V3_VERSION, valueForSection } from './card-types.js';
     const tags = (rawText.substring(end + 1).match(/#[^\s#]+/g) || []);
     const values = {};
     for (const [key, value] of Object.entries(data)) {
-      if (!['_t', 'v', '_e', '_x'].includes(key)) values[key] = value;
+      if (!['_t', 'v', '_e', '_u', '_s', '_x'].includes(key)) values[key] = value;
     }
     const hasValues = Object.values(values).some(v => v && String(v).trim().length > 0);
     if (!hasValues && tags.length === 0) return null;
@@ -119,6 +120,12 @@ import { V3_VERSION, valueForSection } from './card-types.js';
       values,
       tags,
       explanations: data._e === undefined ? {} : data._e,
+      unifiedExplanation: typeof data._u === 'string'
+        ? data._u
+        : (typeof data._e === 'string' ? data._e : ''),
+      enabledSections: Array.isArray(data._s)
+        ? data._s.filter(key => typeof key === 'string')
+        : Object.keys(values).filter(key => values[key] && String(values[key]).trim()),
       showExplanation: data._x !== false,
       rawText
     };
@@ -136,13 +143,17 @@ import { V3_VERSION, valueForSection } from './card-types.js';
       values: legacy.data,
       tags: legacy.tags,
       explanations: {},
+      unifiedExplanation: '',
+      enabledSections: [],
       showExplanation: false,
       rawText: legacy.rawText
     };
   }
 
-  /** Serialize a V3 card. `explanations` is a string (global) or a key map. */
-  function buildCardContentV3(type, values, explanations, showExplanation, tags) {
+  /** Serialize values, section explanations, visibility and the unified explanation. */
+  function buildCardContentV3(
+    type, values, explanations, showExplanation, tags, enabledSections, unifiedExplanation
+  ) {
     const data = { _t: CONFIG.typeIdentifier, v: V3_VERSION };
     let hasAny = false;
     type.sections.forEach(section => {
@@ -153,19 +164,22 @@ import { V3_VERSION, valueForSection } from './card-types.js';
       }
     });
 
-    let explanationPayload = null;
-    if (type.explanationMode === 'global') {
-      const text = String(explanations || '').trim();
-      if (text) explanationPayload = text;
-    } else {
-      const mapped = {};
-      type.sections.forEach(section => {
-        const text = String((explanations && explanations[section.key]) || '').trim();
-        if (text) mapped[section.key] = text;
-      });
-      if (Object.keys(mapped).length) explanationPayload = mapped;
-    }
-    if (explanationPayload !== null) data._e = explanationPayload;
+    const mapped = {};
+    type.sections.forEach(section => {
+      const text = String((explanations && typeof explanations === 'object'
+        && explanations[section.key]) || '').trim();
+      if (text) mapped[section.key] = text;
+    });
+    if (Object.keys(mapped).length) data._e = mapped;
+    const unifiedText = String(
+      unifiedExplanation || (typeof explanations === 'string' ? explanations : '')
+    ).trim();
+    if (unifiedText) data._u = unifiedText;
+
+    const visible = type.sections
+      .filter(section => (enabledSections || []).includes(section.key))
+      .map(section => section.key);
+    data._s = visible;
     if (showExplanation === false) data._x = false;
 
     const normalizedTags = normalizeTags(tags);
@@ -201,8 +215,30 @@ import { V3_VERSION, valueForSection } from './card-types.js';
     return out;
   }
 
+  /** Per-section explanations, retaining support for older global-only cards. */
+  function sectionExplanationsFor(parsed, type) {
+    const raw = parsed.explanations || {};
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      return Object.fromEntries(type.sections.map(section => [section.key, '']));
+    }
+    return explanationsFor({ ...parsed, explanations: raw }, { ...type, explanationMode: 'per-section' });
+  }
+
+  /** Unified text includes legacy global `_e` strings as well as current `_u`. */
+  function unifiedExplanationFor(parsed, type) {
+    if (typeof parsed.unifiedExplanation === 'string' && parsed.unifiedExplanation) {
+      return parsed.unifiedExplanation;
+    }
+    if (typeof parsed.explanations === 'string') return parsed.explanations;
+    if (type && type.explanationMode === 'global' && parsed.explanations
+      && typeof parsed.explanations === 'object') {
+      return Object.values(parsed.explanations).join('\n');
+    }
+    return '';
+  }
+
 export {
   parseCardMemo, cardLangValue, cardPresentLangs,
   parseCardV3, parseAnyCard, buildCardContentV3, normalizeTags,
-  valuesFor, explanationsFor
+  valuesFor, explanationsFor, sectionExplanationsFor, unifiedExplanationFor
 };

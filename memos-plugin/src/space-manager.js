@@ -73,7 +73,7 @@ function typeCardHtml(type, index, total, inUseId) {
           <span class="lc-type-meta">
             ${escapeHtml(type.spaceName || 'no space')} &middot;
             ${type.sections.length ? type.sections.map(s => escapeHtml(s.label)).join(' · ') : 'no sections yet'} &middot;
-            ${type.explanationMode === 'global' ? 'global explanation' : 'per-section explanation'}
+            per-language + unified explanations
             ${aliasCount ? ` &middot; ${aliasCount} name alias${aliasCount > 1 ? 'es' : ''}` : ''}
           </span>
         </button>
@@ -94,12 +94,7 @@ function typeEditorHtml() {
     <div class="lc-manager-grid">
       <label class="lc-form-label">Name <input id="lc-type-name" class="lc-form-input" value="${escapeHtml(type.name)}" /></label>
       <label class="lc-form-label">Order <input id="lc-type-order" class="lc-form-input" type="number" value="${type.order}" /></label>
-      <label class="lc-form-label">Explanation mode
-        <select id="lc-type-mode" class="lc-form-input">
-          <option value="per-section" ${type.explanationMode !== 'global' ? 'selected' : ''}>per section</option>
-          <option value="global" ${type.explanationMode === 'global' ? 'selected' : ''}>global</option>
-        </select>
-      </label>
+      <span class="lc-manager-hint">Cards support per-language explanations and one unified explanation.</span>
     </div>
     <div class="lc-editor-block">
       <h4>Language sections</h4>
@@ -163,11 +158,9 @@ async function writeTypeMarker(type, successMessage) {
 function collectDraft() {
   const name = document.getElementById('lc-type-name');
   const order = document.getElementById('lc-type-order');
-  const mode = document.getElementById('lc-type-mode');
   if (!draftType) return null;
   if (name && name.value) draftType.name = name.value;
   if (order && order.value !== '') draftType.order = Number(order.value) || 0;
-  if (mode && mode.value) draftType.explanationMode = mode.value === 'global' ? 'global' : 'per-section';
   // sectionAliases are produced by the migration wizard only — keep them as-is.
   draftType.sections = draftType.sections.filter(s => s && s.key);
   if (!draftType.sections.length) {

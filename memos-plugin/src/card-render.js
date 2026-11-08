@@ -2,7 +2,8 @@ import { CONFIG } from './config.js';
 import { state, getGlobalEnabledLangs } from './state.js';
 import { syncThemeClass, getCurrentSpace } from './utils.js';
 import {
-  parseAnyCard, cardLangValue, cardPresentLangs, valuesFor, explanationsFor
+  parseAnyCard, cardLangValue, cardPresentLangs, valuesFor,
+  sectionExplanationsFor, unifiedExplanationFor
 } from './card-model.js';
 import { typeForMemo, sectionKeys } from './card-types.js';
 import { tagStore } from './tags.js';
@@ -57,9 +58,13 @@ import { openModal } from './editor.js';
       }
       : baseType;
     const values = valuesFor(parsed, type);
-    const explanations = explanationsFor(parsed, type);
-    const activeKeys = type.sections.filter(s => values[s.key]).map(s => s.key);
-    const visibleKeys = activeKeys.length ? activeKeys : type.sections.map(s => s.key);
+    const explanations = sectionExplanationsFor(parsed, type);
+    const unifiedExplanation = unifiedExplanationFor(parsed, type);
+    const activeKeys = (parsed.enabledSections || []).filter(key => known.includes(key) || extras.includes(key));
+    const valueKeys = type.sections.filter(s => values[s.key]).map(s => s.key);
+    const visibleKeys = activeKeys.length
+      ? activeKeys
+      : (valueKeys.length ? valueKeys : type.sections.map(s => s.key));
 
     const wrapper = document.createElement('div');
     wrapper.className = 'lc-card-wrapper';
@@ -83,6 +88,7 @@ import { openModal } from './editor.js';
           type,
           values,
           explanations,
+          unifiedExplanation,
           showExplanation: parsed.showExplanation
         }, visibleKeys);
       };
@@ -118,30 +124,28 @@ import { openModal } from './editor.js';
     });
     wrapper.appendChild(grid);
 
-    // Explanation sits BELOW the language sections (R3).
+    // Per-language explanations mirror the visible language columns.
     if (parsed.showExplanation) {
-      if (type.explanationMode === 'global') {
-        const text = typeof explanations === 'string' ? explanations : '';
-        if (text) {
-          const box = document.createElement('div');
-          box.className = 'lc-card-explanation lc-card-explanation-global';
-          box.innerText = text;
-          wrapper.appendChild(box);
-        }
-      } else {
-        const boxes = document.createElement('div');
-        boxes.className = 'lc-card-explanations';
-        boxes.style.setProperty('--lc-cols', Math.max(1, visibleKeys.length));
-        type.sections.forEach((section) => {
-          const text = explanations[section.key];
-          if (!text) return;
-          const box = document.createElement('div');
-          box.className = 'lc-card-explanation';
-          box.setAttribute('data-lc-explanation', section.key);
-          box.innerText = text;
-          boxes.appendChild(box);
-        });
-        if (boxes.children.length) wrapper.appendChild(boxes);
+      const boxes = document.createElement('div');
+      boxes.className = 'lc-card-explanations';
+      boxes.style.setProperty('--lc-cols', Math.max(1, visibleKeys.length));
+      type.sections.forEach((section) => {
+        const text = explanations[section.key];
+        if (!text || !visibleKeys.includes(section.key)) return;
+        const box = document.createElement('div');
+        box.className = 'lc-card-explanation';
+        box.setAttribute('data-lc-explanation', section.key);
+        box.style.gridColumn = String(visibleKeys.indexOf(section.key) + 1);
+        box.innerText = text;
+        boxes.appendChild(box);
+      });
+      if (boxes.children.length) wrapper.appendChild(boxes);
+
+      if (unifiedExplanation) {
+        const box = document.createElement('div');
+        box.className = 'lc-card-explanation lc-card-explanation-global';
+        box.innerText = unifiedExplanation;
+        wrapper.appendChild(box);
       }
     }
 

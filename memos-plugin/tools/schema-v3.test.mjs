@@ -9,7 +9,8 @@ import {
   sectionKeys, activeTypeForNew, valueForSection, mapSectionKeys
 } from '../src/card-types.js';
 import {
-  parseCardV3, parseAnyCard, buildCardContentV3, valuesFor, explanationsFor
+  parseCardV3, parseAnyCard, buildCardContentV3, valuesFor, explanationsFor,
+  sectionExplanationsFor, unifiedExplanationFor
 } from '../src/card-model.js';
 import { migratedContent } from '../src/space-manager.js';
 
@@ -93,34 +94,47 @@ const built = buildCardContentV3(
   { en: 'cat', zh: '猫' },
   { en: 'an animal', zh: '一种动物' },
   true,
-  '#vocab, #daily'
+  '#vocab, #daily',
+  ['en', 'zh'],
+  'A shared note'
 );
 const parsed = parseCardV3(built.content);
 check('V3 payload parses', Boolean(parsed));
 check('V3 version detected', parsed.version === 3 && parseAnyCard(built.content).version === 3);
 check('section values', eq(valuesFor(parsed, perSection), { en: 'cat', zh: '猫' }));
 check('per-section explanations', eq(explanationsFor(parsed, perSection), { en: 'an animal', zh: '一种动物' }));
+check('unified explanation', unifiedExplanationFor(parsed) === 'A shared note');
+check('visible sections persisted', eq(parsed.enabledSections, ['en', 'zh']));
 check('tags normalized', eq(parsed.tags, ['#vocab', '#daily']));
 check('definitions never stored in note',
   !/sections|explanationMode|"order"|"label"/.test(built.content));
 check('V2 reader still sees the card', parseAnyCard('{"_t":"lc","v":2,"en":"x"}').version === 2);
 
-const hidden = buildCardContentV3(perSection, { en: 'x' }, { en: 'note' }, false, '');
+const hidden = buildCardContentV3(
+  perSection, { en: 'x' }, { en: 'note' }, false, '', ['en'], 'shared'
+);
 check('hidden explanation flag', JSON.parse(hidden.content)._x === false);
 check('hidden explanation keeps value', parseCardV3(hidden.content).showExplanation === false);
-check('global explanation string', (() => {
-  const b = buildCardContentV3(newSpeak, { en: 'x' }, 'shared note', true, '');
-  return explanationsFor(parseCardV3(b.content), newSpeak) === 'shared note';
+check('hidden section state and explanations persist', (() => {
+  const parsedHidden = parseCardV3(hidden.content);
+  return eq(parsedHidden.enabledSections, ['en'])
+    && eq(sectionExplanationsFor(parsedHidden, perSection), { en: 'note', zh: '' })
+    && unifiedExplanationFor(parsedHidden) === 'shared';
+})());
+check('legacy global explanation remains readable', (() => {
+  const legacyGlobal = parseCardV3('{"_t":"lc","v":3,"en":"x","_e":"shared note"}');
+  return unifiedExplanationFor(legacyGlobal) === 'shared note'
+    && eq(sectionExplanationsFor(legacyGlobal, newSpeak), { en: '', newSpeak: '' });
 })());
 check('empty card rejected', parseCardV3('{"_t":"lc","v":3}') === null);
 check('wrong version rejected', parseCardV3('{"_t":"lc","v":2,"en":"x"}') === null);
 
 const mapped = mapSectionKeys(
-  { _t: 'lc', v: 2, personal: 'x', _e: { personal: 'note' }, other: 'keep' },
+  { _t: 'lc', v: 2, personal: 'x', _e: { personal: 'note' }, _s: ['personal'], other: 'keep' },
   { personal: 'in room' }
 );
 check('migration renames section keys only', eq(mapped, {
-  _t: 'lc', v: 2, 'in room': 'x', _e: { 'in room': 'note' }, other: 'keep'
+  _t: 'lc', v: 2, 'in room': 'x', _e: { 'in room': 'note' }, _s: ['in room'], other: 'keep'
 }));
 const migrated = migratedContent(
   '{"_t":"lc","v":2,"personal":"x","_e":{"personal":"note"}}\n#tag',

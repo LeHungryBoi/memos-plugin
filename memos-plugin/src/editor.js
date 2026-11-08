@@ -39,10 +39,15 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     if (editorGrid) {
       editorGrid.style.setProperty('--lc-editor-cols', Math.max(1, activeCount));
     }
+    const explanationGrid = document.getElementById('lc-explanation-inputs');
+    if (explanationGrid) {
+      explanationGrid.style.setProperty('--lc-explanation-cols', Math.max(1, activeCount));
+    }
 
     sections.forEach(s => {
       const slotEl = document.getElementById(`lc-editor-col-${s.key}`);
       const pillBtn = document.getElementById(`lc-modal-toggle-${s.key}`);
+      const explanationSlot = document.getElementById(`lc-explanation-slot-${s.key}`);
       const isAct = state.modalActiveLangs.includes(s.key);
       if (slotEl) {
         // If toggled off in this modal, takes NO space on the x-axis!
@@ -53,42 +58,40 @@ import { defaultType, activeTypeForNew } from './card-types.js';
         pillBtn.style.borderColor = isAct ? s.color : 'transparent';
         pillBtn.style.color = isAct ? s.color : 'var(--lc-text-muted)';
       }
+      if (explanationSlot) explanationSlot.style.display = isAct ? 'flex' : 'none';
     });
 
     updatePreview();
   }
 
   /**
-   * R3: explanation is BELOW the language sections, with its own toggle
-   * directly above it. It is deliberately not part of lc-modal-lang-bar.
+   * Per-section explanations follow their language columns; the unified
+   * explanation is a separate full-width row beneath them.
    */
-  function renderExplanationArea(type, explanations, enabled) {
+  function renderExplanationArea(type, explanations, unifiedExplanation, enabled) {
     const host = document.getElementById('lc-explanation-area');
     if (!host) return;
     if (state.editingVersion !== 3) {
       host.innerHTML = '';
       return;
     }
-    const isGlobal = type.explanationMode === 'global';
-    let inputsHtml;
-    if (isGlobal) {
-      const value = typeof explanations === 'string' ? explanations : '';
-      inputsHtml = `<textarea id="lc-explain-global" class="lc-explanation-input" rows="2" placeholder="Explanation for the whole card">${escapeHtml(value)}</textarea>`;
-    } else {
-      inputsHtml = currentSections().map(s => `
-        <div class="lc-explanation-slot" data-lc-explanation-slot="${escapeHtml(s.key)}">
-          <label class="lc-form-label">${escapeHtml(s.label)}</label>
-          <textarea id="lc-explain-${escapeHtml(s.key)}" class="lc-explanation-input" rows="2" placeholder="Explanation for ${escapeHtml(s.label)}">${escapeHtml((explanations && explanations[s.key]) || '')}</textarea>
-        </div>`).join('');
-    }
+    const sectionInputs = currentSections().map(s => `
+      <div id="lc-explanation-slot-${escapeHtml(s.key)}" class="lc-explanation-slot" data-lc-explanation-slot="${escapeHtml(s.key)}">
+        <label class="lc-form-label">${escapeHtml(s.label)}</label>
+        <textarea id="lc-explain-${escapeHtml(s.key)}" class="lc-explanation-input" rows="2" placeholder="Explanation for ${escapeHtml(s.label)}">${escapeHtml((explanations && explanations[s.key]) || '')}</textarea>
+      </div>`).join('');
     host.innerHTML = `
       <div class="lc-explanation-panel">
         <div class="lc-explanation-toggle-row">
           <button type="button" id="lc-explanation-toggle" class="lc-modal-lang-chip ${enabled ? 'active' : ''}" title="Show / hide explanation for this card">Explanation</button>
-          <span class="lc-modal-lang-label">${isGlobal ? 'one shared explanation' : 'one explanation per section'}</span>
+          <span class="lc-modal-lang-label">per-language + unified</span>
         </div>
-        <div id="lc-explanation-inputs" class="lc-explanation-inputs" style="display:${enabled ? 'grid' : 'none'}">
-          ${inputsHtml}
+        <div id="lc-explanation-inputs" class="lc-explanation-inputs" style="display:${enabled ? 'grid' : 'none'}; --lc-explanation-cols:${Math.max(1, currentSections().length)}">
+          ${sectionInputs}
+        </div>
+        <div class="lc-unified-explanation-slot" style="display:${enabled ? 'flex' : 'none'}">
+          <label class="lc-form-label">Unified explanation</label>
+          <textarea id="lc-explain-unified" class="lc-explanation-input" rows="2" placeholder="Explanation for the whole card">${escapeHtml(unifiedExplanation || '')}</textarea>
         </div>
       </div>`;
     const toggle = document.getElementById('lc-explanation-toggle');
@@ -101,11 +104,13 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     if (btn) btn.classList.toggle('active', state.explanationEnabled);
     const inputs = document.getElementById('lc-explanation-inputs');
     if (inputs) inputs.style.display = state.explanationEnabled ? 'grid' : 'none';
+    const unifiedSlot = document.querySelector('.lc-unified-explanation-slot');
+    if (unifiedSlot) unifiedSlot.style.display = state.explanationEnabled ? 'flex' : 'none';
     updatePreview();
   }
 
   /** Build the section chips + inputs from the active card type. */
-  function renderEditorForType(type, values, explanations, enabled) {
+  function renderEditorForType(type, values, explanations, unifiedExplanation, enabled) {
     const chips = document.getElementById('lc-modal-lang-bar');
     if (chips) {
       chips.innerHTML = `<span class="lc-modal-lang-label">This note:</span>` + type.sections.map(s => `
@@ -139,7 +144,7 @@ import { defaultType, activeTypeForNew } from './card-types.js';
       });
     }
 
-    renderExplanationArea(type, explanations, enabled);
+    renderExplanationArea(type, explanations, unifiedExplanation, enabled);
     bindEditorInputs(type.sections.map(s => s.key));
   }
 
@@ -148,7 +153,7 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     const ids = [
       ...keys.map(k => `lc-input-${k}`),
       ...keys.map(k => `lc-explain-${k}`),
-      'lc-explain-global'
+      'lc-explain-unified'
     ];
     ids.forEach((id) => {
       const el = document.getElementById(id);
@@ -383,8 +388,6 @@ import { defaultType, activeTypeForNew } from './card-types.js';
     if (tagsEl) tagsEl.value = (editData && editData.tags) || '';
 
     state.explanationEnabled = isV3Edit ? editData.showExplanation !== false : true;
-    renderEditorForType(type, values, isV3Edit ? editData.explanations : {}, state.explanationEnabled);
-
     // New cards open with the sections the type shows by default; sections
     // flagged hidden-by-default (e.g. JA in the stock three-section type)
     // start closed. Editing a card shows what that card actually holds.
@@ -392,6 +395,13 @@ import { defaultType, activeTypeForNew } from './card-types.js';
       ? keys.filter(k => initialLangs.includes(k))
       : keys.filter(k => !type.sections.some(s => s.key === k && s.defaultHidden));
     if (!state.modalActiveLangs.length) state.modalActiveLangs = [...keys];
+    renderEditorForType(
+      type,
+      values,
+      isV3Edit ? editData.explanations : {},
+      isV3Edit ? editData.unifiedExplanation : '',
+      state.explanationEnabled
+    );
     updateModalEditorSlots();
     updateSpaceHint(type.spaceName, type.spaceTitle);
 
@@ -420,16 +430,19 @@ import { defaultType, activeTypeForNew } from './card-types.js';
       sections.forEach(s => {
         values[s.key] = (document.getElementById(`lc-input-${s.key}`)?.value || '').trim();
       });
-      let explanations = type.explanationMode === 'global'
-        ? (document.getElementById('lc-explain-global')?.value || '').trim()
-        : {};
-      if (type.explanationMode !== 'global') {
-        sections.forEach(s => {
-          explanations[s.key] = (document.getElementById(`lc-explain-${s.key}`)?.value || '').trim();
-        });
-      }
+      const explanations = {};
+      sections.forEach(s => {
+        explanations[s.key] = (document.getElementById(`lc-explain-${s.key}`)?.value || '').trim();
+      });
+      const unifiedExplanation = (document.getElementById('lc-explain-unified')?.value || '').trim();
       const result = buildCardContentV3(
-        type, values, explanations, state.explanationEnabled, rawTags
+        type,
+        values,
+        explanations,
+        state.explanationEnabled,
+        rawTags,
+        state.modalActiveLangs,
+        unifiedExplanation
       );
       return { content: result.content, tags: result.tags, hasAny: result.hasAny, data: result.data };
     }

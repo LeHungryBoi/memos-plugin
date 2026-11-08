@@ -67,8 +67,8 @@ npm run test:schema # 只跑 V2 数据格式契约向量
 npm run test:v3     # 只跑 V3 marker / payload / 迁移向量
 ```
 
-**数据格式**：V3 卡片定义（分区、排序、说明区模式、别名）只写在 Space 的 description marker 里；
-note `content` 只存分区值、说明与尾部 tags。格式见 `schema/v3.md`，V2 兼容规则见 `schema/v2.md`。
+**数据格式**：V3 卡片定义（分区、排序、别名）只写在 Space 的 description marker 里；
+note `content` 存分区值、启用分区、每语言与统一说明及尾部 tags。格式见 `schema/v3.md`，V2 兼容规则见 `schema/v2.md`。
 需求与验收清单见 `schema/v3-requirements.md`（五项需求，**已按文档中的默认决策实现**）。
 
 **VS Code 自动监听**：打开工作区根目录时，`.vscode/tasks.json` 会启动 `npm run watch`。
@@ -84,7 +84,7 @@ note `content` 只存分区值、说明与尾部 tags。格式见 `schema/v3.md`
 
 ## 核心特性
 
-> **V3 已落地**：① Copy Content 快捷按钮；② 多 Space 卡片类型（定义只存 Space）；③ 两模式说明区 + 独立开关；④ 绿色指示器改为类型管理面板（排序 / 分区管理 / 迁移）；⑤ 移除首页无效分区开关与重复卡片头，定义不再写入每条 note。详见 `schema/v3.md`。
+> **V3 已落地**：① Copy Content 快捷按钮；② 多 Space 卡片类型（定义只存 Space）；③ 每语言说明 + 统一说明及独立显示开关；④ 绿色指示器改为类型管理面板（排序 / 分区管理 / 迁移）；⑤ 移除首页无效分区开关与重复卡片头，定义不再写入每条 note。详见 `schema/v3.md`。
 
 1. **全新排布顺序与双语言并排**：
    - 默认类型（V2 兼容）顺序为 **日本語 (JA, 左) -> English (EN, 中) -> 中文 (ZH, 右)**，且 JA 默认隐藏（新建卡片只开 EN+ZH，与 V2 一致）；V3 类型由 Space marker 自定义分区与顺序，每个分区可单独设定是否默认隐藏。
@@ -94,7 +94,7 @@ note `content` 只存分区值、说明与尾部 tags。格式见 `schema/v3.md`
    - V3 卡片的分区（名称、顺序、配色）来自所属 Space 的卡片类型；feed 卡片只展开**实际含有**的分区，右上角只有编辑按钮（✏️），不再重复显示 🔤 卡片标题。
    - **首页悬浮栏只有 `[ 🔤 New Card ]`**：V3 移除了左侧无效的语言分区开关（分区语义属于卡片类型，不属于首页）。
    - **弹窗编辑器内的分区开关**：按当前类型动态生成，仅作用于当次录入草稿。
-   - **说明区开关独立**：位于说明区正上方，不与分区开关合并；支持「每分区独立说明」与「全局统一说明」两种模式（由类型定义决定）。
+   - **说明区与语言分区联动**：语言分区 Toggle 同时开关对应 explanation；统一 explanation 位于各语言 explanation 下方。独立的说明总开关可隐藏所有 explanation，但不删除内容。
    - **JSON 键序 = 类型 sections 顺序**：由 `src/card-types.js` 动态生成；V2 的固定白名单只用于兼容旧卡片（见 `schema/v3.md`）。
 3. **版本标识 & 100% 向下兼容**：
    - V3 新卡片写入 `{"_t":"lc","v":3,...}`，定义不进 note，只存分区值、说明与 tags。
