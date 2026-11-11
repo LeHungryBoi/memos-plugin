@@ -24,6 +24,7 @@ npm install          # 仅首次安装 esbuild
 npm run build        # 生成 dist/language-card.js 和 dist/language-card.css
 npm run watch        # 监听 src/，构建到 .watch/ 并按 .env 配置自动上传
 npm run deploy       # 手动上传 dist/ 中的两个文件
+npm run verify:deploy # 最终收尾：重建 dist、同步上传并读回核验后才返回成功
 npm test             # 数据格式、部署逻辑、CSS 与 mock DOM 测试
 ```
 
@@ -35,6 +36,8 @@ MEMOS_ADMIN_TOKEN=replace-with-admin-bearer-token
 ```
 
 将占位值换成自己的实例地址和管理员 Bearer token。watcher 每次成功构建后会上传 `.watch/` 中的 JavaScript 和 CSS。上传脚本只针对 Memos 0.31.0 的 `PATCH /api/v1/instance/settings/GENERAL`：先读取完整 GENERAL 设置，仅替换 `additionalScript` / `additionalStyle`，原样保留其余设置，再 GET 回来核验保存结果。不要提交或分享 `.env`。
+
+完成功能修改并通过 `npm test` 后，执行 `npm run verify:deploy` 作为发布确认门槛。它会重新构建 `dist/`，同步上传两份文件并读回确认；只有上传和核验都完成才会输出 `VERIFY_DEPLOY_OK` 并以成功状态退出。随后刷新 Chrome 中的 Memos 页面，用 Chrome MCP 验证实际功能；不要把 watcher 的异步构建日志当作部署完成证明。
 
 正式构建输出 `dist/`；watcher 输出 `.watch/`，避免开发过程覆盖正式产物。两个文件都是生成物，不要直接编辑；改 `src/` 后重新构建。
 

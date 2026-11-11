@@ -7,6 +7,7 @@
     "watch": "node build.mjs --watch",
     "build:split": "node build.mjs --no-inline-css",
     "deploy": "node tools/deploy.mjs",
+    "verify:deploy": "node tools/verify-deploy.mjs",
     "test": "node tools/schema-v2.test.mjs && node tools/schema-v3.test.mjs && node tools/api-migration.test.mjs && node tools/deploy.test.mjs && node tools/css-modules.test.mjs && node tools/smoke-test.mjs",
     "test:schema": "node tools/schema-v2.test.mjs",
     "test:v3": "node tools/schema-v3.test.mjs"
