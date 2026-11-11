@@ -1779,7 +1779,7 @@
       unifiedExplanation || (typeof explanations === "string" ? explanations : "")
     ).trim();
     if (unifiedText) data._u = unifiedText;
-    const visible = type.sections.filter((section) => (enabledSections || []).includes(section.key)).map((section) => section.key);
+    const visible = type.sections.filter((section) => (enabledSections || []).includes(section.key) && data[section.key]).map((section) => section.key);
     data._s = visible;
     if (showExplanation === false) data._x = false;
     const normalizedTags = normalizeTags(tags);

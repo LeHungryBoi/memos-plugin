@@ -177,7 +177,7 @@ import { V3_VERSION, valueForSection } from './card-types.js';
     if (unifiedText) data._u = unifiedText;
 
     const visible = type.sections
-      .filter(section => (enabledSections || []).includes(section.key))
+      .filter(section => (enabledSections || []).includes(section.key) && data[section.key])
       .map(section => section.key);
     data._s = visible;
     if (showExplanation === false) data._x = false;

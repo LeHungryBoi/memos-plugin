@@ -129,6 +129,12 @@ check('legacy global explanation remains readable', (() => {
 check('empty card rejected', parseCardV3('{"_t":"lc","v":3}') === null);
 check('wrong version rejected', parseCardV3('{"_t":"lc","v":2,"en":"x"}') === null);
 
+const partialFilled = buildCardContentV3(
+  perSection, { en: 'hello', zh: '' }, {}, true, '', ['en', 'zh'], ''
+);
+const parsedPartial = parseCardV3(partialFilled.content);
+check('empty section excluded from _s', eq(parsedPartial.enabledSections, ['en']));
+
 const mapped = mapSectionKeys(
   { _t: 'lc', v: 2, personal: 'x', _e: { personal: 'note' }, _s: ['personal'], other: 'keep' },
   { personal: 'in room' }
