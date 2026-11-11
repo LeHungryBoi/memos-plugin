@@ -1268,6 +1268,105 @@
   overflow: auto;
 }
 
+.lc-v2-migration-dialog {
+  width: min(100%, 1040px);
+  max-width: 1040px;
+}
+
+.lc-v2-migration-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lc-v2-migration-header .lc-modal-title {
+  min-width: 0;
+}
+
+.lc-v2-migration-close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 22px;
+}
+
+.lc-v2-migration-body {
+  display: block;
+  overflow: auto;
+}
+
+.lc-migration-preview-notice {
+  margin: 0 0 12px;
+  color: var(--lc-text-muted);
+  font-size: 13px;
+}
+
+.lc-migration-preview-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lc-migration-preview-column {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+}
+
+.lc-migration-preview-column h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+}
+
+.lc-migration-preview-column h5 {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lc-text-muted);
+}
+
+.lc-migration-raw-content {
+  max-height: 180px;
+  overflow: auto;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 6px;
+  background: var(--lc-input-bg);
+  color: var(--lc-preview-text);
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lc-v2-migration-footer {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.lc-migration-preview-error {
+  margin-top: 8px;
+  color: #ef4444;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .lc-migration-preview-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .lc-v2-migration-dialog {
+    width: 100%;
+  }
+}
+
 .lc-migration-note {
   margin-bottom: 10px;
   padding: 10px 12px;
@@ -1328,7 +1427,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 .lc-section-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(4, 28px);
@@ -1800,6 +1898,52 @@
     const content = JSON.stringify(data) + (normalizedTags ? `
 ${normalizedTags}` : "");
     return { data, content, tags: normalizedTags, hasAny };
+  }
+  function buildV3Migration(parsed, type) {
+    if (!parsed || parsed.version !== 2) {
+      throw new Error("Only V2 cards can be migrated.");
+    }
+    const migrationType2 = { ...type, sections: [...type.sections] };
+    const values = {};
+    const aliases = type.sectionAliases || {};
+    const legacyKeys = /* @__PURE__ */ new Set(["ja", "jp", "en", "zh", "cn"]);
+    const metadataKeys = /* @__PURE__ */ new Set(["_t", "v", "_e", "_u", "_s", "_x", "_eh"]);
+    CONFIG.languages.forEach((language) => {
+      const text = cardLangValue(parsed.data, language.key);
+      if (!text) return;
+      const legacyKey = language.key === "ja" ? "jp" : language.key === "zh" ? "cn" : "";
+      const target = migrationType2.sections.find((section) => section.key === language.key || section.key === aliases[language.key] || legacyKey && section.key === legacyKey);
+      const key = target ? target.key : aliases[language.key] || language.key;
+      values[key] = text;
+    });
+    for (const [key, value] of Object.entries(parsed.data || {})) {
+      if (metadataKeys.has(key) || legacyKeys.has(key) || !String(value || "").trim()) continue;
+      const target = aliases[key] || key;
+      if (values[target] === void 0) values[target] = String(value).trim();
+    }
+    Object.keys(values).forEach((key) => {
+      if (migrationType2.sections.some((section) => section.key === key)) return;
+      migrationType2.sections.push({
+        key,
+        label: key,
+        code: String(key).slice(0, 4).toUpperCase(),
+        color: "#94a3b8",
+        defaultHidden: false,
+        placeholder: ""
+      });
+    });
+    const enabledSections = migrationType2.sections.filter((section) => values[section.key]).map((section) => section.key);
+    const result = buildCardContentV3(
+      migrationType2,
+      values,
+      {},
+      true,
+      parsed.tags.join(" "),
+      enabledSections,
+      "",
+      []
+    );
+    return { ...result, type: migrationType2 };
   }
   function valuesFor(parsed, type) {
     const out = {};
@@ -3966,8 +4110,8 @@ ${tags}` : "");
     }
     return null;
   }
-  function renderV3Card(container, parsed, tags, memoName) {
-    const baseType = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+  function renderV3Card(container, parsed, tags, memoName, typeOverride, showControls = true) {
+    const baseType = typeOverride || typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
     const known = sectionKeys(baseType);
     const extras = Object.keys(parsed.values || {}).filter((k) => !known.includes(k));
     const type = extras.length ? {
@@ -3994,7 +4138,7 @@ ${tags}` : "");
     noteBar.className = "lc-card-note-bar";
     const controls = document.createElement("div");
     controls.className = "lc-card-note-controls";
-    if (memoName) {
+    if (memoName && showControls) {
       const editBtn = document.createElement("button");
       editBtn.type = "button";
       editBtn.className = "lc-btn-icon lc-card-edit-btn";
@@ -4076,6 +4220,159 @@ ${tags}` : "");
     container.innerHTML = "";
     container.appendChild(wrapper);
   }
+  function renderV2Card(container, parsed, activeLangs, memoName, showControls = true) {
+    const { data, tags } = parsed;
+    const cardWrapper = document.createElement("div");
+    cardWrapper.className = "lc-card-wrapper";
+    const noteBar = document.createElement("div");
+    noteBar.className = "lc-card-note-bar";
+    const controls = document.createElement("div");
+    controls.className = "lc-card-note-controls";
+    if (memoName && showControls) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "lc-btn-icon lc-card-edit-btn";
+      editBtn.title = "Edit this card";
+      editBtn.setAttribute("aria-label", "Edit this card");
+      editBtn.innerText = "✏️";
+      editBtn.onclick = (event) => {
+        event.stopPropagation();
+        const editValues = { name: memoName, tags: tags.join(" "), version: 2 };
+        CONFIG.languages.forEach((language) => {
+          editValues[language.key] = cardLangValue(data, language.key);
+        });
+        openModal(editValues, Array.from(activeLangs));
+      };
+      controls.appendChild(editBtn);
+      const migrateBtn = document.createElement("button");
+      migrateBtn.type = "button";
+      migrateBtn.className = "lc-btn-icon lc-card-migrate-btn";
+      migrateBtn.title = "Migrate this V2 card to V3";
+      migrateBtn.setAttribute("aria-label", "Migrate this V2 card to V3");
+      migrateBtn.innerText = "⬆️";
+      migrateBtn.onclick = (event) => {
+        event.stopPropagation();
+        const type = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+        openMigrationPreview({ memoName, parsed, activeLangs, type });
+      };
+      controls.appendChild(migrateBtn);
+    }
+    noteBar.appendChild(controls);
+    cardWrapper.appendChild(noteBar);
+    const grid = document.createElement("div");
+    grid.className = "lc-card-grid";
+    grid.style.setProperty("--lc-cols", Math.max(1, activeLangs.size));
+    CONFIG.languages.forEach((language) => {
+      const slot = document.createElement("div");
+      slot.className = "lc-card-slot";
+      slot.setAttribute("data-lc-slot", language.key);
+      slot.style.display = activeLangs.has(language.key) ? "flex" : "none";
+      const header = document.createElement("div");
+      header.className = "lc-card-header";
+      const badge = document.createElement("span");
+      badge.className = "lc-card-badge";
+      badge.style.color = language.color;
+      badge.innerText = language.label;
+      header.appendChild(badge);
+      slot.appendChild(header);
+      const value = cardLangValue(data, language.key);
+      const text = document.createElement("div");
+      text.className = "lc-card-text" + (value ? "" : " lc-card-empty");
+      text.innerText = value || "—";
+      slot.appendChild(text);
+      grid.appendChild(slot);
+    });
+    cardWrapper.appendChild(grid);
+    if (tags.length) {
+      const tagsContainer = document.createElement("div");
+      tagsContainer.className = "lc-card-tags";
+      tags.forEach((tag) => {
+        const chip = document.createElement("span");
+        chip.className = "lc-tag-chip";
+        chip.innerText = tag;
+        tagsContainer.appendChild(chip);
+      });
+      cardWrapper.appendChild(tagsContainer);
+    }
+    container.innerHTML = "";
+    container.appendChild(cardWrapper);
+  }
+  function closeMigrationPreview(overlay) {
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+  function openMigrationPreview({ memoName, parsed, activeLangs, type }) {
+    const migration = buildV3Migration(parsed, type);
+    const migratedParsed = parseCardV3(migration.content);
+    if (!migratedParsed) throw new Error("Could not parse the generated V3 preview.");
+    const overlay = document.createElement("div");
+    overlay.className = "lc-modal-overlay lc-migration-preview-overlay";
+    overlay.id = "lc-migration-preview-overlay";
+    overlay.innerHTML = `
+      <div class="lc-modal-dialog lc-v2-migration-dialog" role="dialog" aria-modal="true" aria-labelledby="lc-migration-preview-title">
+        <div class="lc-modal-header lc-v2-migration-header">
+          <h3 class="lc-modal-title" id="lc-migration-preview-title">Migrate V2 card to V3?</h3>
+          <button type="button" class="lc-modal-close lc-v2-migration-close" id="lc-migration-preview-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="lc-modal-body lc-v2-migration-body">
+          <p class="lc-migration-preview-notice">Review the rendered card before confirming. Only this note will be migrated.</p>
+          <div class="lc-migration-preview-columns">
+            <section class="lc-migration-preview-column">
+              <h4>Current · V2</h4>
+              <div id="lc-migration-preview-v2"></div>
+              <h5>Raw note content</h5>
+              <pre class="lc-migration-raw-content" id="lc-migration-raw-v2"></pre>
+            </section>
+            <section class="lc-migration-preview-column">
+              <h4>After migration · V3</h4>
+              <div id="lc-migration-preview-v3"></div>
+              <h5>Raw note content</h5>
+              <pre class="lc-migration-raw-content" id="lc-migration-raw-v3"></pre>
+            </section>
+          </div>
+          <div id="lc-migration-preview-error" class="lc-migration-preview-error" role="status"></div>
+        </div>
+        <div class="lc-modal-footer lc-v2-migration-footer">
+          <button type="button" class="lc-btn lc-btn-secondary" id="lc-migration-preview-cancel">Cancel</button>
+          <button type="button" class="lc-btn lc-btn-primary" id="lc-migration-preview-confirm">Migrate to V3</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const v2Preview = document.getElementById("lc-migration-preview-v2");
+    const v3Preview = document.getElementById("lc-migration-preview-v3");
+    if (v2Preview) renderV2Card(v2Preview, parsed, activeLangs, null, false);
+    if (v3Preview) renderV3Card(v3Preview, migratedParsed, migratedParsed.tags, null, migration.type, false);
+    const rawV2 = document.getElementById("lc-migration-raw-v2");
+    const rawV3 = document.getElementById("lc-migration-raw-v3");
+    if (rawV2) rawV2.textContent = parsed.rawText;
+    if (rawV3) rawV3.textContent = migration.content;
+    const close = () => closeMigrationPreview(overlay);
+    overlay.onclick = (event) => {
+      if (event.target === overlay) close();
+    };
+    document.getElementById("lc-migration-preview-close").onclick = close;
+    document.getElementById("lc-migration-preview-cancel").onclick = close;
+    document.getElementById("lc-migration-preview-confirm").onclick = async (event) => {
+      const button = event.currentTarget;
+      const error = document.getElementById("lc-migration-preview-error");
+      button.disabled = true;
+      button.innerText = "Migrating…";
+      if (error) error.innerText = "";
+      try {
+        const token = await getMemosAuthToken();
+        if (!token) throw new Error("Could not obtain a Memos access token.");
+        const response = await patchMemoContent(memoName, migration.content, token);
+        if (!response || !response.ok) {
+          throw new Error(`Migration failed: HTTP ${response ? response.status : "no response"}.`);
+        }
+        refreshCardLocally(memoName, migration.content);
+        close();
+      } catch (cause) {
+        if (error) error.innerText = cause instanceof Error ? cause.message : String(cause);
+        button.disabled = false;
+        button.innerText = "Migrate to V3";
+      }
+    };
+  }
   function renderLanguageCards() {
     syncThemeClass();
     const currentSpace = getCurrentSpace();
@@ -4112,73 +4409,13 @@ ${tags}` : "");
         renderV3Card(container, parsed, tags, memoName);
         return;
       }
-      const cardWrapper = document.createElement("div");
-      cardWrapper.className = "lc-card-wrapper";
       const cardLangs = cardPresentLangs(data);
       const activeLangs = new Set(
         (cardLangs.length > 0 ? cardLangs : globalEnabled).filter(
           (k) => CONFIG.languages.some((l) => l.key === k)
         )
       );
-      const noteBar = document.createElement("div");
-      noteBar.className = "lc-card-note-bar";
-      const noteControls = document.createElement("div");
-      noteControls.className = "lc-card-note-controls";
-      if (memoName) {
-        const editBtn = document.createElement("button");
-        editBtn.type = "button";
-        editBtn.className = "lc-btn-icon lc-card-edit-btn";
-        editBtn.title = "Edit this card";
-        editBtn.innerText = "✏️";
-        editBtn.onclick = (e) => {
-          e.stopPropagation();
-          const editValues = { name: memoName, tags: tags.join(" "), version: 2 };
-          CONFIG.languages.forEach((l) => {
-            editValues[l.key] = cardLangValue(data, l.key);
-          });
-          openModal(editValues, Array.from(activeLangs));
-        };
-        noteControls.appendChild(editBtn);
-      }
-      noteBar.appendChild(noteControls);
-      cardWrapper.appendChild(noteBar);
-      const grid = document.createElement("div");
-      grid.className = "lc-card-grid";
-      grid.style.setProperty("--lc-cols", Math.max(1, activeLangs.size));
-      CONFIG.languages.forEach((lang) => {
-        const val = cardLangValue(data, lang.key);
-        const slot = document.createElement("div");
-        slot.className = "lc-card-slot";
-        slot.setAttribute("data-lc-slot", lang.key);
-        slot.style.display = activeLangs.has(lang.key) ? "flex" : "none";
-        const header = document.createElement("div");
-        header.className = "lc-card-header";
-        const badge = document.createElement("span");
-        badge.className = "lc-card-badge";
-        badge.style.color = lang.color;
-        badge.innerText = lang.label;
-        header.appendChild(badge);
-        slot.appendChild(header);
-        const textEl = document.createElement("div");
-        textEl.className = "lc-card-text" + (val ? "" : " lc-card-empty");
-        textEl.innerText = val || "—";
-        slot.appendChild(textEl);
-        grid.appendChild(slot);
-      });
-      cardWrapper.appendChild(grid);
-      if (tags.length > 0) {
-        const tagsContainer = document.createElement("div");
-        tagsContainer.className = "lc-card-tags";
-        tags.forEach((tag) => {
-          const chip = document.createElement("span");
-          chip.className = "lc-tag-chip";
-          chip.innerText = tag;
-          tagsContainer.appendChild(chip);
-        });
-        cardWrapper.appendChild(tagsContainer);
-      }
-      container.innerHTML = "";
-      container.appendChild(cardWrapper);
+      renderV2Card(container, parsed, activeLangs, memoName);
     });
   }
   function refreshCardLocally(memoName, newRawText) {

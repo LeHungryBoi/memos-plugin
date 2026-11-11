@@ -10,7 +10,7 @@ import {
 } from '../src/card-types.js';
 import {
   parseCardV3, parseAnyCard, buildCardContentV3, valuesFor, explanationsFor,
-  sectionExplanationsFor, unifiedExplanationFor
+  sectionExplanationsFor, unifiedExplanationFor, buildV3Migration
 } from '../src/card-model.js';
 import { migratedContent } from '../src/space-manager.js';
 
@@ -109,6 +109,21 @@ check('tags normalized', eq(parsed.tags, ['#vocab', '#daily']));
 check('definitions never stored in note',
   !/sections|explanationMode|"order"|"label"/.test(built.content));
 check('V2 reader still sees the card', parseAnyCard('{"_t":"lc","v":2,"en":"x"}').version === 2);
+const v2ForMigration = parseAnyCard('{"_t":"lc","v":2,"en":"cat","jp":"猫"}\n#vocab');
+const migratedV2 = buildV3Migration(v2ForMigration, perSection);
+check('V2 migration creates V3 content', parseCardV3(migratedV2.content).version === 3);
+check('V2 migration preserves values and tags', (() => {
+  const parsedMigration = parseCardV3(migratedV2.content);
+  return parsedMigration.values.en === 'cat'
+    && parsedMigration.values.ja === '猫'
+    && eq(parsedMigration.tags, ['#vocab'])
+    && eq(parsedMigration.enabledSections, ['en', 'ja']);
+})());
+const aliasMigration = buildV3Migration(
+  parseAnyCard('{"_t":"lc","v":2,"en":"cat","oldZh":"猫"}'),
+  { ...perSection, sectionAliases: { oldZh: 'zh' } }
+);
+check('V2 migration applies declared section aliases', parseCardV3(aliasMigration.content).values.zh === '猫');
 
 const hidden = buildCardContentV3(
   perSection, { en: 'x' }, { en: 'note' }, false, '', ['en'], 'shared'

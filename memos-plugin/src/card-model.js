@@ -197,6 +197,58 @@ import { V3_VERSION, valueForSection } from './card-types.js';
     return { data, content, tags: normalizedTags, hasAny };
   }
 
+  /** Convert a parsed V2 card without dropping legacy language or unknown keys. */
+  function buildV3Migration(parsed, type) {
+    if (!parsed || parsed.version !== 2) {
+      throw new Error('Only V2 cards can be migrated.');
+    }
+
+    const migrationType = { ...type, sections: [...type.sections] };
+    const values = {};
+    const aliases = type.sectionAliases || {};
+    const legacyKeys = new Set(['ja', 'jp', 'en', 'zh', 'cn']);
+    const metadataKeys = new Set(['_t', 'v', '_e', '_u', '_s', '_x', '_eh']);
+
+    CONFIG.languages.forEach(language => {
+      const text = cardLangValue(parsed.data, language.key);
+      if (!text) return;
+      const legacyKey = language.key === 'ja' ? 'jp' : (language.key === 'zh' ? 'cn' : '');
+      const target = migrationType.sections.find(section => (
+        section.key === language.key
+        || section.key === aliases[language.key]
+        || (legacyKey && section.key === legacyKey)
+      ));
+      const key = target ? target.key : (aliases[language.key] || language.key);
+      values[key] = text;
+    });
+
+    for (const [key, value] of Object.entries(parsed.data || {})) {
+      if (metadataKeys.has(key) || legacyKeys.has(key) || !String(value || '').trim()) continue;
+      const target = aliases[key] || key;
+      if (values[target] === undefined) values[target] = String(value).trim();
+    }
+
+    Object.keys(values).forEach(key => {
+      if (migrationType.sections.some(section => section.key === key)) return;
+      migrationType.sections.push({
+        key,
+        label: key,
+        code: String(key).slice(0, 4).toUpperCase(),
+        color: '#94a3b8',
+        defaultHidden: false,
+        placeholder: ''
+      });
+    });
+
+    const enabledSections = migrationType.sections
+      .filter(section => values[section.key])
+      .map(section => section.key);
+    const result = buildCardContentV3(
+      migrationType, values, {}, true, parsed.tags.join(' '), enabledSections, '', []
+    );
+    return { ...result, type: migrationType };
+  }
+
   /** Section values for a type, honouring declared aliases. */
   function valuesFor(parsed, type) {
     const out = {};
@@ -250,5 +302,6 @@ import { V3_VERSION, valueForSection } from './card-types.js';
 export {
   parseCardMemo, cardLangValue, cardPresentLangs,
   parseCardV3, parseAnyCard, buildCardContentV3, normalizeTags,
+  buildV3Migration,
   valuesFor, explanationsFor, sectionExplanationsFor, unifiedExplanationFor
 };

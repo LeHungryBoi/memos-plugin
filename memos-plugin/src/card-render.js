@@ -2,12 +2,14 @@ import { CONFIG } from './config.js';
 import { state, getGlobalEnabledLangs } from './state.js';
 import { syncThemeClass, getCurrentSpace } from './utils.js';
 import {
-  parseAnyCard, cardLangValue, cardPresentLangs, valuesFor,
+  parseAnyCard, parseCardV3, buildV3Migration,
+  cardLangValue, cardPresentLangs, valuesFor,
   sectionExplanationsFor, unifiedExplanationFor
 } from './card-model.js';
 import { typeForMemo, sectionKeys } from './card-types.js';
 import { tagStore } from './tags.js';
 import { openModal } from './editor.js';
+import { getMemosAuthToken, patchMemoContent } from './api.js';
 
   // --- Part 1: Render Language Cards with Per-Note Local Switch ---
 
@@ -42,8 +44,9 @@ import { openModal } from './editor.js';
    * Unknown keys are still shown (labelled by key) so a card is never silently
    * truncated while types are loading or until the user maps its names.
    */
-  function renderV3Card(container, parsed, tags, memoName) {
-    const baseType = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+  function renderV3Card(container, parsed, tags, memoName, typeOverride, showControls = true) {
+    const baseType = typeOverride
+      || typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
     const known = sectionKeys(baseType);
     const extras = Object.keys(parsed.values || {}).filter(k => !known.includes(k));
     const type = extras.length
@@ -73,7 +76,7 @@ import { openModal } from './editor.js';
     noteBar.className = 'lc-card-note-bar';
     const controls = document.createElement('div');
     controls.className = 'lc-card-note-controls';
-    if (memoName) {
+    if (memoName && showControls) {
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'lc-btn-icon lc-card-edit-btn';
@@ -165,6 +168,171 @@ import { openModal } from './editor.js';
     container.appendChild(wrapper);
   }
 
+  function renderV2Card(container, parsed, activeLangs, memoName, showControls = true) {
+    const { data, tags } = parsed;
+    const cardWrapper = document.createElement('div');
+    cardWrapper.className = 'lc-card-wrapper';
+
+    const noteBar = document.createElement('div');
+    noteBar.className = 'lc-card-note-bar';
+    const controls = document.createElement('div');
+    controls.className = 'lc-card-note-controls';
+    if (memoName && showControls) {
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'lc-btn-icon lc-card-edit-btn';
+      editBtn.title = 'Edit this card';
+      editBtn.setAttribute('aria-label', 'Edit this card');
+      editBtn.innerText = '✏️';
+      editBtn.onclick = (event) => {
+        event.stopPropagation();
+        const editValues = { name: memoName, tags: tags.join(' '), version: 2 };
+        CONFIG.languages.forEach(language => {
+          editValues[language.key] = cardLangValue(data, language.key);
+        });
+        openModal(editValues, Array.from(activeLangs));
+      };
+      controls.appendChild(editBtn);
+
+      const migrateBtn = document.createElement('button');
+      migrateBtn.type = 'button';
+      migrateBtn.className = 'lc-btn-icon lc-card-migrate-btn';
+      migrateBtn.title = 'Migrate this V2 card to V3';
+      migrateBtn.setAttribute('aria-label', 'Migrate this V2 card to V3');
+      migrateBtn.innerText = '⬆️';
+      migrateBtn.onclick = (event) => {
+        event.stopPropagation();
+        const type = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+        openMigrationPreview({ memoName, parsed, activeLangs, type });
+      };
+      controls.appendChild(migrateBtn);
+    }
+    noteBar.appendChild(controls);
+    cardWrapper.appendChild(noteBar);
+
+    const grid = document.createElement('div');
+    grid.className = 'lc-card-grid';
+    grid.style.setProperty('--lc-cols', Math.max(1, activeLangs.size));
+    CONFIG.languages.forEach(language => {
+      const slot = document.createElement('div');
+      slot.className = 'lc-card-slot';
+      slot.setAttribute('data-lc-slot', language.key);
+      slot.style.display = activeLangs.has(language.key) ? 'flex' : 'none';
+
+      const header = document.createElement('div');
+      header.className = 'lc-card-header';
+      const badge = document.createElement('span');
+      badge.className = 'lc-card-badge';
+      badge.style.color = language.color;
+      badge.innerText = language.label;
+      header.appendChild(badge);
+      slot.appendChild(header);
+
+      const value = cardLangValue(data, language.key);
+      const text = document.createElement('div');
+      text.className = 'lc-card-text' + (value ? '' : ' lc-card-empty');
+      text.innerText = value || '—';
+      slot.appendChild(text);
+      grid.appendChild(slot);
+    });
+    cardWrapper.appendChild(grid);
+
+    if (tags.length) {
+      const tagsContainer = document.createElement('div');
+      tagsContainer.className = 'lc-card-tags';
+      tags.forEach(tag => {
+        const chip = document.createElement('span');
+        chip.className = 'lc-tag-chip';
+        chip.innerText = tag;
+        tagsContainer.appendChild(chip);
+      });
+      cardWrapper.appendChild(tagsContainer);
+    }
+    container.innerHTML = '';
+    container.appendChild(cardWrapper);
+  }
+
+  function closeMigrationPreview(overlay) {
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+
+  function openMigrationPreview({ memoName, parsed, activeLangs, type }) {
+    const migration = buildV3Migration(parsed, type);
+    const migratedParsed = parseCardV3(migration.content);
+    if (!migratedParsed) throw new Error('Could not parse the generated V3 preview.');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'lc-modal-overlay lc-migration-preview-overlay';
+    overlay.id = 'lc-migration-preview-overlay';
+    overlay.innerHTML = `
+      <div class="lc-modal-dialog lc-v2-migration-dialog" role="dialog" aria-modal="true" aria-labelledby="lc-migration-preview-title">
+        <div class="lc-modal-header lc-v2-migration-header">
+          <h3 class="lc-modal-title" id="lc-migration-preview-title">Migrate V2 card to V3?</h3>
+          <button type="button" class="lc-modal-close lc-v2-migration-close" id="lc-migration-preview-close" aria-label="Close">&times;</button>
+        </div>
+        <div class="lc-modal-body lc-v2-migration-body">
+          <p class="lc-migration-preview-notice">Review the rendered card before confirming. Only this note will be migrated.</p>
+          <div class="lc-migration-preview-columns">
+            <section class="lc-migration-preview-column">
+              <h4>Current · V2</h4>
+              <div id="lc-migration-preview-v2"></div>
+              <h5>Raw note content</h5>
+              <pre class="lc-migration-raw-content" id="lc-migration-raw-v2"></pre>
+            </section>
+            <section class="lc-migration-preview-column">
+              <h4>After migration · V3</h4>
+              <div id="lc-migration-preview-v3"></div>
+              <h5>Raw note content</h5>
+              <pre class="lc-migration-raw-content" id="lc-migration-raw-v3"></pre>
+            </section>
+          </div>
+          <div id="lc-migration-preview-error" class="lc-migration-preview-error" role="status"></div>
+        </div>
+        <div class="lc-modal-footer lc-v2-migration-footer">
+          <button type="button" class="lc-btn lc-btn-secondary" id="lc-migration-preview-cancel">Cancel</button>
+          <button type="button" class="lc-btn lc-btn-primary" id="lc-migration-preview-confirm">Migrate to V3</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const v2Preview = document.getElementById('lc-migration-preview-v2');
+    const v3Preview = document.getElementById('lc-migration-preview-v3');
+    if (v2Preview) renderV2Card(v2Preview, parsed, activeLangs, null, false);
+    if (v3Preview) renderV3Card(v3Preview, migratedParsed, migratedParsed.tags, null, migration.type, false);
+    const rawV2 = document.getElementById('lc-migration-raw-v2');
+    const rawV3 = document.getElementById('lc-migration-raw-v3');
+    if (rawV2) rawV2.textContent = parsed.rawText;
+    if (rawV3) rawV3.textContent = migration.content;
+
+    const close = () => closeMigrationPreview(overlay);
+    overlay.onclick = event => {
+      if (event.target === overlay) close();
+    };
+    document.getElementById('lc-migration-preview-close').onclick = close;
+    document.getElementById('lc-migration-preview-cancel').onclick = close;
+    document.getElementById('lc-migration-preview-confirm').onclick = async event => {
+      const button = event.currentTarget;
+      const error = document.getElementById('lc-migration-preview-error');
+      button.disabled = true;
+      button.innerText = 'Migrating…';
+      if (error) error.innerText = '';
+      try {
+        const token = await getMemosAuthToken();
+        if (!token) throw new Error('Could not obtain a Memos access token.');
+        const response = await patchMemoContent(memoName, migration.content, token);
+        if (!response || !response.ok) {
+          throw new Error(`Migration failed: HTTP ${response ? response.status : 'no response'}.`);
+        }
+        refreshCardLocally(memoName, migration.content);
+        close();
+      } catch (cause) {
+        if (error) error.innerText = cause instanceof Error ? cause.message : String(cause);
+        button.disabled = false;
+        button.innerText = 'Migrate to V3';
+      }
+    };
+  }
+
   function renderLanguageCards() {
     syncThemeClass();
     const currentSpace = getCurrentSpace();
@@ -212,100 +380,13 @@ import { openModal } from './editor.js';
         return;
       }
 
-      // Card wrapper
-      const cardWrapper = document.createElement('div');
-      cardWrapper.className = 'lc-card-wrapper';
-
-      // Languages this card actually contains, in UI order. A card simply
-      // shows what it has (a ja-only card shows only the ja slot) — there are
-      // no per-card language pills anymore: every language section is already
-      // labelled in its own slot header, and edits go through the pencil.
-      // The global switch is only the fallback for cards without any language
-      // content (e.g. a tags-only legacy card).
       const cardLangs = cardPresentLangs(data);
       const activeLangs = new Set(
         (cardLangs.length > 0 ? cardLangs : globalEnabled).filter(k =>
           CONFIG.languages.some(l => l.key === k)
         )
       );
-
-      // 1. Header bar: edit button only (R5.2: no duplicate 🔤 Card heading)
-      const noteBar = document.createElement('div');
-      noteBar.className = 'lc-card-note-bar';
-
-      const noteControls = document.createElement('div');
-      noteControls.className = 'lc-card-note-controls';
-
-      // Edit button: opens the same side-by-side editor, pre-filled with this card
-      if (memoName) {
-        const editBtn = document.createElement('button');
-        editBtn.type = 'button';
-        editBtn.className = 'lc-btn-icon lc-card-edit-btn';
-        editBtn.title = 'Edit this card';
-        editBtn.innerText = '✏️';
-        editBtn.onclick = (e) => {
-          e.stopPropagation();
-          // Pre-fill in CONFIG (UI) order; cardLangValue handles legacy jp/cn keys
-          const editValues = { name: memoName, tags: tags.join(' '), version: 2 };
-          CONFIG.languages.forEach(l => { editValues[l.key] = cardLangValue(data, l.key); });
-          openModal(editValues, Array.from(activeLangs));
-        };
-        noteControls.appendChild(editBtn);
-      }
-
-      noteBar.appendChild(noteControls);
-      cardWrapper.appendChild(noteBar);
-
-      // 2. Build Card Slots (JA -> EN -> ZH); only languages the card has are visible
-      const grid = document.createElement('div');
-      grid.className = 'lc-card-grid';
-      grid.style.setProperty('--lc-cols', Math.max(1, activeLangs.size));
-
-      CONFIG.languages.forEach((lang) => {
-        const val = cardLangValue(data, lang.key);
-
-        const slot = document.createElement('div');
-        slot.className = 'lc-card-slot';
-        slot.setAttribute('data-lc-slot', lang.key);
-        slot.style.display = activeLangs.has(lang.key) ? 'flex' : 'none';
-
-        const header = document.createElement('div');
-        header.className = 'lc-card-header';
-
-        const badge = document.createElement('span');
-        badge.className = 'lc-card-badge';
-        badge.style.color = lang.color;
-        badge.innerText = lang.label;
-        header.appendChild(badge);
-
-        slot.appendChild(header);
-
-        const textEl = document.createElement('div');
-        textEl.className = 'lc-card-text' + (val ? '' : ' lc-card-empty');
-        textEl.innerText = val || '—';
-        slot.appendChild(textEl);
-
-        grid.appendChild(slot);
-      });
-
-      cardWrapper.appendChild(grid);
-
-      // 3. Tags container
-      if (tags.length > 0) {
-        const tagsContainer = document.createElement('div');
-        tagsContainer.className = 'lc-card-tags';
-        tags.forEach((tag) => {
-          const chip = document.createElement('span');
-          chip.className = 'lc-tag-chip';
-          chip.innerText = tag;
-          tagsContainer.appendChild(chip);
-        });
-        cardWrapper.appendChild(tagsContainer);
-      }
-
-      // Replace container's content with our structured card
-      container.innerHTML = '';
-      container.appendChild(cardWrapper);
+      renderV2Card(container, parsed, activeLangs, memoName);
     });
   }
 

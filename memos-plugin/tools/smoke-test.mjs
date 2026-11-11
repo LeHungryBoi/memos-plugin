@@ -471,6 +471,15 @@ if (!inlineStyle.includes('lc-injected-style') || !inlineStyle.includes('--lc-bg
 if (!inlineStyle.includes('Copy Content')) {
     throw new Error('R1: Copy Content quick action is missing');
 }
+if (!inlineStyle.includes('Migrate this V2 card to V3') ||
+    !inlineStyle.includes('lc-migration-preview-v2') ||
+    !inlineStyle.includes('lc-migration-preview-v3') ||
+    !inlineStyle.includes('lc-migration-raw-v2') ||
+    !inlineStyle.includes('lc-migration-raw-v3') ||
+    !inlineStyle.includes('lc-btn lc-btn-primary') ||
+    !inlineStyle.includes('lc-v2-migration-header')) {
+    throw new Error('V2 cards must offer a side-by-side V3 migration preview');
+}
 if (inlineStyle.includes('lc-explanation-toggle')) {
     throw new Error('global explanation toggle markup must not be in the bundle');
 }

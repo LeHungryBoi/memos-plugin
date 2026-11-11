@@ -1265,6 +1265,105 @@
   overflow: auto;
 }
 
+.lc-v2-migration-dialog {
+  width: min(100%, 1040px);
+  max-width: 1040px;
+}
+
+.lc-v2-migration-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lc-v2-migration-header .lc-modal-title {
+  min-width: 0;
+}
+
+.lc-v2-migration-close {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 22px;
+}
+
+.lc-v2-migration-body {
+  display: block;
+  overflow: auto;
+}
+
+.lc-migration-preview-notice {
+  margin: 0 0 12px;
+  color: var(--lc-text-muted);
+  font-size: 13px;
+}
+
+.lc-migration-preview-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lc-migration-preview-column {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+}
+
+.lc-migration-preview-column h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--lc-text-primary);
+}
+
+.lc-migration-preview-column h5 {
+  margin: 12px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--lc-text-muted);
+}
+
+.lc-migration-raw-content {
+  max-height: 180px;
+  overflow: auto;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 6px;
+  background: var(--lc-input-bg);
+  color: var(--lc-preview-text);
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lc-v2-migration-footer {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.lc-migration-preview-error {
+  margin-top: 8px;
+  color: #ef4444;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .lc-migration-preview-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .lc-v2-migration-dialog {
+    width: 100%;
+  }
+}
+
 .lc-migration-note {
   margin-bottom: 10px;
   padding: 10px 12px;
@@ -1325,7 +1424,6 @@
     grid-template-columns: 1fr;
   }
 }
-
 .lc-section-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr)) repeat(4, 28px);
