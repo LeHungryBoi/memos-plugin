@@ -3766,8 +3766,11 @@ ${marker}`.trim();
         </div>
 
         <div class="lc-modal-footer">
-          <div style="font-size: 12px; color: var(--lc-text-muted);">
-            Shortcut: <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Ctrl</kbd> + <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Enter</kbd>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="font-size: 12px; color: var(--lc-text-muted);">
+              Shortcut: <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Ctrl</kbd> + <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Enter</kbd>
+            </div>
+            <button class="lc-btn lc-btn-secondary" id="lc-btn-migrate" style="display:none;">Migrate to V3</button>
           </div>
           <div style="display:flex; gap:10px;">
             <button class="lc-btn lc-btn-secondary" id="lc-btn-cancel">Cancel</button>
@@ -3845,6 +3848,21 @@ ${marker}`.trim();
     document.getElementById("lc-modal-close-btn").onclick = closeModal;
     document.getElementById("lc-btn-cancel").onclick = closeModal;
     document.getElementById("lc-btn-save").onclick = saveCard;
+    document.getElementById("lc-btn-migrate").onclick = () => {
+      if (state.editingVersion !== 2 || !state.editingMemoName) return;
+      const { content } = buildCardPayload();
+      const parsed = parseAnyCard(content, getCurrentSpace());
+      if (!parsed || parsed.version !== 2) {
+        showError("Could not prepare this V2 card for migration.");
+        return;
+      }
+      openV2MigrationPreview({
+        memoName: state.editingMemoName,
+        parsed,
+        activeLangs: new Set(state.modalActiveLangs),
+        onMigrated: closeModal
+      });
+    };
     bindTagsInput();
     refreshQuickSpaceSelector();
   }
@@ -3874,6 +3892,10 @@ ${marker}`.trim();
     }
     const saveBtn = document.getElementById("lc-btn-save");
     if (saveBtn) saveBtn.innerText = state.editingMemoName ? "Update Card" : "Save Card";
+    const migrateBtn = document.getElementById("lc-btn-migrate");
+    if (migrateBtn) {
+      migrateBtn.style.display = state.editingVersion === 2 && Boolean(state.editingMemoName) ? "" : "none";
+    }
     const keys = type.sections.map((s) => s.key);
     const values = {};
     if (isV3Edit) {
@@ -4252,8 +4274,7 @@ ${tags}` : "");
       migrateBtn.innerText = "⬆️";
       migrateBtn.onclick = (event) => {
         event.stopPropagation();
-        const type = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
-        openMigrationPreview({ memoName, parsed, activeLangs, type });
+        openV2MigrationPreview({ memoName, parsed, activeLangs });
       };
       controls.appendChild(migrateBtn);
     }
@@ -4300,7 +4321,7 @@ ${tags}` : "");
   function closeMigrationPreview(overlay) {
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
-  function openMigrationPreview({ memoName, parsed, activeLangs, type }) {
+  function openMigrationPreview({ memoName, parsed, activeLangs, type, onMigrated }) {
     const migration = buildV3Migration(parsed, type);
     const migratedParsed = parseCardV3(migration.content);
     if (!migratedParsed) throw new Error("Could not parse the generated V3 preview.");
@@ -4366,12 +4387,17 @@ ${tags}` : "");
         }
         refreshCardLocally(memoName, migration.content);
         close();
+        if (onMigrated) onMigrated();
       } catch (cause) {
         if (error) error.innerText = cause instanceof Error ? cause.message : String(cause);
         button.disabled = false;
         button.innerText = "Migrate to V3";
       }
     };
+  }
+  function openV2MigrationPreview({ memoName, parsed, activeLangs, onMigrated }) {
+    const type = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+    openMigrationPreview({ memoName, parsed, activeLangs, type, onMigrated });
   }
   function renderLanguageCards() {
     syncThemeClass();

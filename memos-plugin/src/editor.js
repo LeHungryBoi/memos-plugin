@@ -11,8 +11,8 @@ import { showTypeManager, showCreateSpaceManager } from './space-manager.js';
 import {
   tagStore, checkTagAutocomplete, handleTagAutocompleteKeydown, hideTagAutocomplete
 } from './tags.js';
-import { refreshCardLocally } from './card-render.js';
-import { buildCardContentV3, normalizeTags } from './card-model.js';
+import { refreshCardLocally, openV2MigrationPreview } from './card-render.js';
+import { buildCardContentV3, normalizeTags, parseAnyCard } from './card-model.js';
 import { defaultType, activeTypeForNew } from './card-types.js';
 
 let pageScrollLock = null;
@@ -464,8 +464,11 @@ function unlockPageScroll() {
         </div>
 
         <div class="lc-modal-footer">
-          <div style="font-size: 12px; color: var(--lc-text-muted);">
-            Shortcut: <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Ctrl</kbd> + <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Enter</kbd>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="font-size: 12px; color: var(--lc-text-muted);">
+              Shortcut: <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Ctrl</kbd> + <kbd style="background:rgba(128,128,128,0.2); padding:2px 6px; border-radius:4px;">Enter</kbd>
+            </div>
+            <button class="lc-btn lc-btn-secondary" id="lc-btn-migrate" style="display:none;">Migrate to V3</button>
           </div>
           <div style="display:flex; gap:10px;">
             <button class="lc-btn lc-btn-secondary" id="lc-btn-cancel">Cancel</button>
@@ -549,6 +552,21 @@ function unlockPageScroll() {
     document.getElementById('lc-modal-close-btn').onclick = closeModal;
     document.getElementById('lc-btn-cancel').onclick = closeModal;
     document.getElementById('lc-btn-save').onclick = saveCard;
+    document.getElementById('lc-btn-migrate').onclick = () => {
+      if (state.editingVersion !== 2 || !state.editingMemoName) return;
+      const { content } = buildCardPayload();
+      const parsed = parseAnyCard(content, getCurrentSpace());
+      if (!parsed || parsed.version !== 2) {
+        showError('Could not prepare this V2 card for migration.');
+        return;
+      }
+      openV2MigrationPreview({
+        memoName: state.editingMemoName,
+        parsed,
+        activeLangs: new Set(state.modalActiveLangs),
+        onMigrated: closeModal
+      });
+    };
     bindTagsInput();
     refreshQuickSpaceSelector();
   }
@@ -589,6 +607,12 @@ function unlockPageScroll() {
     }
     const saveBtn = document.getElementById('lc-btn-save');
     if (saveBtn) saveBtn.innerText = state.editingMemoName ? 'Update Card' : 'Save Card';
+    const migrateBtn = document.getElementById('lc-btn-migrate');
+    if (migrateBtn) {
+      migrateBtn.style.display = state.editingVersion === 2 && Boolean(state.editingMemoName)
+        ? ''
+        : 'none';
+    }
 
     const keys = type.sections.map(s => s.key);
     const values = {};

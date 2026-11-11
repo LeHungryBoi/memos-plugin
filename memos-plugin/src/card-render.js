@@ -202,8 +202,7 @@ import { getMemosAuthToken, patchMemoContent } from './api.js';
       migrateBtn.innerText = '⬆️';
       migrateBtn.onclick = (event) => {
         event.stopPropagation();
-        const type = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
-        openMigrationPreview({ memoName, parsed, activeLangs, type });
+        openV2MigrationPreview({ memoName, parsed, activeLangs });
       };
       controls.appendChild(migrateBtn);
     }
@@ -256,7 +255,7 @@ import { getMemosAuthToken, patchMemoContent } from './api.js';
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
   }
 
-  function openMigrationPreview({ memoName, parsed, activeLangs, type }) {
+  function openMigrationPreview({ memoName, parsed, activeLangs, type, onMigrated }) {
     const migration = buildV3Migration(parsed, type);
     const migratedParsed = parseCardV3(migration.content);
     if (!migratedParsed) throw new Error('Could not parse the generated V3 preview.');
@@ -325,12 +324,18 @@ import { getMemosAuthToken, patchMemoContent } from './api.js';
         }
         refreshCardLocally(memoName, migration.content);
         close();
+        if (onMigrated) onMigrated();
       } catch (cause) {
         if (error) error.innerText = cause instanceof Error ? cause.message : String(cause);
         button.disabled = false;
         button.innerText = 'Migrate to V3';
       }
     };
+  }
+
+  function openV2MigrationPreview({ memoName, parsed, activeLangs, onMigrated }) {
+    const type = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+    openMigrationPreview({ memoName, parsed, activeLangs, type, onMigrated });
   }
 
   function renderLanguageCards() {
@@ -410,4 +415,7 @@ import { getMemosAuthToken, patchMemoContent } from './api.js';
     renderLanguageCards();
   }
 
-export { getMemoNameFromContainer, renderLanguageCards, refreshCardLocally, forceRerenderCards };
+export {
+  getMemoNameFromContainer, renderLanguageCards, refreshCardLocally,
+  forceRerenderCards, openV2MigrationPreview
+};

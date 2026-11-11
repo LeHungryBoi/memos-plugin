@@ -262,6 +262,9 @@ async function runScript(file, label) {
     await tick(20);
     if (env.ids.has('lc-toggle-btn-ja')) throw new Error('R5.1: homepage language pills must be gone');
     if (env.ids.has('lc-explanation-toggle')) throw new Error('the global explanation toggle must be removed');
+    if (!env.ids.has('lc-btn-migrate') || env.ids.get('lc-btn-migrate').style.display !== 'none') {
+        throw new Error('the editor migration button must be hidden unless editing a saved V2 card');
+    }
     if (!env.ids.has('lc-explanation-section-toggle-en')) {
         throw new Error('each language explanation must have its own switch');
     }
@@ -472,6 +475,8 @@ if (!inlineStyle.includes('Copy Content')) {
     throw new Error('R1: Copy Content quick action is missing');
 }
 if (!inlineStyle.includes('Migrate this V2 card to V3') ||
+    !inlineStyle.includes('lc-btn-migrate') ||
+    !inlineStyle.includes('openV2MigrationPreview') ||
     !inlineStyle.includes('lc-migration-preview-v2') ||
     !inlineStyle.includes('lc-migration-preview-v3') ||
     !inlineStyle.includes('lc-migration-raw-v2') ||
