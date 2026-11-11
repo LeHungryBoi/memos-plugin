@@ -27,7 +27,7 @@ function makeEnvironment() {
         {
             name: 'spaces/other',
             title: 'Other',
-            description: '{"_t":"lc","v":3,"typeId":"other","name":"Other","order":10,"sections":[{"key":"en","label":"English","color":"#38bdf8"}]}'
+            description: '{"_t":"lc","v":3,"typeId":"other","name":"Other","order":10,"sections":[{"key":"en","label":"English","color":"#38bdf8"},{"key":"ja","label":"Japanese","color":"#fbbf24"}]}'
         }
     ];
     const storageWrites = {};
@@ -177,6 +177,16 @@ function makeEnvironment() {
         if (url.includes('/ListUserStats') || url.includes('/ListAllUserStats')) {
             return response(200, { userStats: [{ tagCounts: { vocab: 5, daily: 2 } }] });
         }
+        if (url === '/api/memos?parent=spaces%2Flc&pageSize=1000') {
+            return response(200, {
+                memos: [{
+                    name: 'memos/legacy',
+                    space: 'spaces/lc',
+                    content: '{"_t":"lc","v":2,"en":"cat","old":"value"}'
+                }]
+            });
+        }
+        if (url.startsWith('/api/memos?parent=')) return response(200, { memos: [] });
         if (url.startsWith('/api/memos')) return response(200, { name: 'memos/abc' });
         return response(404, { message: 'not found' });
     };
@@ -190,7 +200,7 @@ function makeEnvironment() {
             addEventListener() {},
             innerWidth: 1280,
             innerHeight: 800,
-            location: { pathname: '/s/other', href: 'http://localhost/s/other' }
+            location: { pathname: '/spaces/other', href: 'http://localhost/spaces/other' }
         },
         navigator: { clipboard: { writeText: async () => {} } },
         localStorage: {
@@ -275,25 +285,19 @@ async function runScript(file, label) {
         explanationMarkup.indexOf('lc-explain-en')) {
         throw new Error('all explanation switches must be in a separate row above their text boxes');
     }
-    const jaExplanationToggle = env.ids.get('lc-explanation-section-toggle-ja');
-    const jaExplanationSlot = env.ids.get('lc-explanation-slot-ja');
-    if (jaExplanationToggle &&
-        (!jaExplanationToggle.classList.contains('active') ||
-            !jaExplanationToggle.classList.contains('language-hidden') ||
-            jaExplanationSlot.style.display !== 'none')) {
-        throw new Error('default-hidden language sections must also start with hidden explanation text');
-    }
     if (!env.ids.has('lc-space-select-btn') || !env.ids.has('lc-space-indicator')) {
         throw new Error('space selection and space management must have separate controls');
     }
-    if (!/^#1\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
-        throw new Error('the first new card must show counter 1 in the title');
+    if (!/^#11\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
+        throw new Error('a new card in the current Space must use that Space type and order');
     }
     if (!env.ids.has('lc-space-select')) {
         throw new Error('the quick Space dropdown wrapper must be available to its dismissal handler');
     }
-    if (env.ids.get('lc-space-select-text').innerText !== 'Language Cards') {
-        throw new Error('the first ordered type must be the default even when the page is in another space');
+    if (env.ids.get('lc-space-select-text').innerText !== 'Other' ||
+        env.ids.get('lc-editor-col-en').style.display !== 'flex' ||
+        env.ids.get('lc-editor-col-ja').style.display !== 'flex') {
+        throw new Error('new cards must select the current Space and show its non-hidden sections');
     }
     if (env.sandbox.document.body.style.position !== 'fixed' ||
         env.sandbox.document.documentElement.style.overflow !== 'hidden') {
@@ -364,11 +368,36 @@ async function runScript(file, label) {
         changedTouches: [{ clientX: 140, clientY: 102 }]
     });
     if (!editorSwipeMove.defaultPrevented ||
-        JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/other' ||
+        JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/lc' ||
         !env.ids.get('lc-space-select-panel').hidden ||
         !env.ids.get('lc-modal-header').classList.contains('lc-space-swipe-next') ||
+        !/^#1\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
+        throw new Error('swiping the editor must switch to the next Space and use its order');
+    }
+    const jaExplanationToggle = env.ids.get('lc-explanation-section-toggle-ja');
+    const jaExplanationSlot = env.ids.get('lc-explanation-slot-ja');
+    if (!jaExplanationToggle ||
+        !jaExplanationToggle.classList.contains('active') ||
+        !jaExplanationToggle.classList.contains('language-hidden') ||
+        jaExplanationSlot.style.display !== 'none') {
+        throw new Error('switching Space must apply that type’s default-hidden section setting');
+    }
+    await env.click('lc-modal-toggle-ja');
+    env.fire('lc-modal-overlay', 'touchstart', {
+        target: { closest: selector => selector === '.lc-modal-header' ? {} : null },
+        touches: [{ clientX: 140, clientY: 100 }]
+    });
+    env.fire('lc-modal-overlay', 'touchmove', {
+        target: { closest: selector => selector === '.lc-modal-header' ? {} : null },
+        touches: [{ clientX: 200, clientY: 102 }]
+    });
+    env.fire('lc-modal-overlay', 'touchend', {
+        changedTouches: [{ clientX: 200, clientY: 102 }]
+    });
+    if (env.ids.get('lc-editor-col-ja').style.display !== 'flex' ||
+        env.ids.get('lc-editor-col-zh').style.display !== 'flex' ||
         !/^#11\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
-        throw new Error('swiping the editor must switch spaces and show the selected Space order plus one');
+        throw new Error('switching back must apply the selected Space defaults, not retain hidden sections');
     }
     const typeBeforeBodySwipe = JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name;
     env.fire('lc-modal-overlay', 'touchstart', {
@@ -412,12 +441,12 @@ async function runScript(file, label) {
     }
     await env.click('lc-fab-btn');
     await tick(20);
-    if (env.ids.get('lc-space-select-text').innerText !== 'Language Cards' ||
-        JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/lc') {
-        throw new Error('each new card editor must default to the first ordered Space');
+    if (env.ids.get('lc-space-select-text').innerText !== 'Other' ||
+        JSON.parse(env.storageWrites.memos_lc_target_space_v2 || '{}').name !== 'spaces/other') {
+        throw new Error('each new card editor must match the current URL Space when available');
     }
-    if (!/^#1\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
-        throw new Error('reopening the first ordered Space must keep its order-based title number');
+    if (!/^#11\b/.test(env.ids.get('lc-modal-title-text').innerText)) {
+        throw new Error('reopening a card in the current Space must keep that type’s order number');
     }
     await env.click('lc-btn-cancel');
 
@@ -429,6 +458,42 @@ async function runScript(file, label) {
     if (!env.ids.has('lc-migration-open-btn')) throw new Error('R4: migration wizard entry is missing');
     const managerHtml = env.htmlById.get('lc-space-info-body') || '';
     if (!managerHtml.includes('lc-create-space-btn')) throw new Error('space manager must provide a create-space action');
+    if (!env.ids.has('lc-migration-type-select')) throw new Error('migration must let users choose a space-specific type');
+    if (!(env.htmlById.get('lc-space-info-body') || '').includes('value="other" selected')) {
+        throw new Error('the migration type selector must default to the current URL Space when available');
+    }
+    env.ids.get('lc-migration-type-select').value = 'spaces/lc';
+    const migrationButton = {
+        id: 'lc-migration-open-btn',
+        getAttribute: name => name === 'data-action' ? 'open-migration' : null
+    };
+    await env.ids.get('lc-space-info-body').onclick({
+        target: { closest: () => migrationButton }
+    });
+    await tick(20);
+    if (env.ids.get('lc-migration-overlay').style.display !== 'flex' ||
+        env.ids.get('lc-space-info-overlay').style.display !== 'flex' ||
+        !env.fetchCalls.some(call => call.includes('GET /api/memos?parent=spaces%2Flc&pageSize=1000'))) {
+        throw new Error('the migration wizard must open above management and scan only the chosen Space');
+    }
+    if (!(env.htmlById.get('lc-migration-body') || '').includes('old')) {
+        throw new Error('the selected Space migration scan must show only its incompatible notes');
+    }
+    env.fire('lc-migration-body', 'change', {
+        target: {
+            value: 'zh',
+            getAttribute: name => name === 'data-mig-note' ? '0' : (name === 'data-mig-row' ? '0' : null)
+        }
+    });
+    await env.click('lc-migration-preview-btn');
+    const migrationPreviewHtml = env.htmlById.get('lc-migration-preview') || '';
+    if (!migrationPreviewHtml.includes('lc-migration-preview-columns') ||
+        !migrationPreviewHtml.includes('lc-card-grid') ||
+        !migrationPreviewHtml.includes('lc-migration-json') ||
+        !migrationPreviewHtml.includes('&quot;zh&quot;:&quot;value&quot;')) {
+        throw new Error('mass migration preview must compare rendered cards and mapped JSON side by side');
+    }
+    await env.click('lc-migration-close-btn');
     env.ids.get('lc-new-space-title').value = 'New Vocabulary';
     const createButton = {
         id: 'lc-create-space-btn',
@@ -457,8 +522,14 @@ async function runScript(file, label) {
             })
         }
     });
-    if ((env.htmlById.get('lc-type-list') || '').includes('lc-type-order')) {
+    const typeListHtml = env.htmlById.get('lc-type-list') || '';
+    if (typeListHtml.includes('lc-type-order')) {
         throw new Error('type order must be controlled by the reorder buttons, not a manual field');
+    }
+    if (!typeListHtml.includes('data-color-brightness="0"') ||
+        !typeListHtml.includes('lc-color-spectrum') ||
+        !typeListHtml.includes('orient="vertical"')) {
+        throw new Error('section colours must have a hue/saturation picker and vertical brightness control');
     }
 
     return summarize(env);
@@ -470,6 +541,10 @@ console.log(`Bundle smoke test passed: ${bundle.ids.length} DOM ids, ${bundle.fe
 const inlineStyle = readFileSync(bundlePath, 'utf8');
 if (!inlineStyle.includes('lc-injected-style') || !inlineStyle.includes('--lc-bg-card')) {
     throw new Error('the single-file build must inline the stylesheet');
+}
+if (!inlineStyle.includes('.lc-migration-overlay') ||
+    !inlineStyle.includes('justify-content: flex-end')) {
+    throw new Error('the migration window must stack above management and the manager close button must align right');
 }
 if (!inlineStyle.includes('Copy Content')) {
     throw new Error('R1: Copy Content quick action is missing');

@@ -969,6 +969,10 @@
   z-index: 10060;
 }
 
+.lc-space-info-overlay .lc-modal-header-actions {
+  justify-content: flex-end;
+}
+
 .lc-space-info-dialog {
   max-width: 460px;
 }
@@ -1027,7 +1031,6 @@
 .lc-theme-dark .lc-space-info-name {
   color: #34d399;
 }
-
 /* --- V3: Explanation area (below sections, own toggle above) --- */
 .lc-card-explanations {
   display: grid;
@@ -1229,6 +1232,108 @@
   margin-bottom: 8px;
 }
 
+.lc-color-control {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.lc-color-control > .lc-form-input {
+  min-width: 0;
+}
+
+.lc-color-picker-toggle {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 28px;
+}
+
+.lc-color-swatch {
+  display: block;
+  width: 17px;
+  height: 17px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 4px;
+}
+
+.lc-color-picker {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 5px);
+  left: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 18px;
+  gap: 8px;
+  width: 190px;
+  padding: 9px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+  background: var(--lc-modal-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.lc-color-picker[hidden] {
+  display: none;
+}
+
+.lc-color-spectrum {
+  position: relative;
+  height: 112px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 5px;
+  background-image:
+    linear-gradient(to bottom, #fff, transparent),
+    linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  filter: brightness(var(--lc-picker-brightness, 1));
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.lc-color-spectrum-point {
+  position: absolute;
+  left: var(--lc-picker-x, 50%);
+  top: var(--lc-picker-y, 25%);
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #111;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.lc-color-brightness {
+  width: 18px;
+  height: 112px;
+  margin: 0;
+  appearance: none;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+  background: linear-gradient(to top, #000, var(--lc-picker-color, #fff));
+  writing-mode: vertical-lr;
+  direction: rtl;
+  cursor: ns-resize;
+}
+
+.lc-color-brightness::-webkit-slider-thumb {
+  width: 14px;
+  height: 6px;
+  appearance: none;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  background: #111;
+}
+
+.lc-color-brightness::-moz-range-thumb {
+  width: 12px;
+  height: 4px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  background: #111;
+}
+
 .lc-manager-create-space {
   display: flex;
   align-items: center;
@@ -1260,12 +1365,15 @@
   font-size: 13px;
   color: var(--lc-text-primary);
 }
-
 /* --- V3: migration wizard (own window) --- */
 .lc-migration-dialog {
-  max-width: 820px;
+  max-width: 1100px;
   max-height: 86vh;
   overflow: auto;
+}
+
+.lc-migration-overlay {
+  z-index: 10070;
 }
 
 .lc-v2-migration-dialog {
@@ -1310,6 +1418,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  align-items: start;
 }
 
 .lc-migration-preview-column {
@@ -1420,6 +1529,41 @@
   gap: 6px;
   font-size: 12px;
   color: var(--lc-text-muted);
+}
+
+.lc-migration-preview-note {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--lc-border-card);
+  border-radius: 10px;
+  background: var(--lc-modal-bg);
+}
+
+.lc-migration-preview-note > h4 {
+  margin: 0 0 10px;
+  color: var(--lc-text-primary);
+}
+
+.lc-migration-preview-card {
+  min-height: 36px;
+}
+
+.lc-migration-json {
+  max-height: 220px;
+  overflow: auto;
+  margin: 8px 0 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.lc-theme-dark .lc-migration-json {
+  color: #34d399;
 }
 
 @media (max-width: 640px) {
@@ -1723,7 +1867,7 @@
   }
   function getCurrentSpace() {
     const path = window.location.pathname;
-    const match = path.match(/\/s\/([^\/]+)/);
+    const match = path.match(/\/(?:spaces|s)\/([^\/]+)/);
     if (match && match[1]) {
       return match[1].startsWith("spaces/") ? match[1] : `spaces/${match[1]}`;
     }
@@ -2119,7 +2263,7 @@ ${normalizedTags}` : "");
     const res = await fetchJsonWithFallback(paths, token);
     if (!res || !res.ok) throw new Error(`ListMemos failed: HTTP ${res ? res.status : "no response"}`);
     const json = await res.json();
-    return Array.isArray(json.memos) ? json.memos : [];
+    return Array.isArray(json.memos) ? json.memos.filter((memo) => !memo.space || memo.space === spaceName) : [];
   }
   async function patchMemoContent(memoName, content, token) {
     const id = encodeURIComponent(String(memoName || "").replace(/^memos\//, ""));
@@ -2820,6 +2964,8 @@ ${normalizedTags}` : "");
   var draftType = null;
   var migrationPlan = [];
   var migrationType = null;
+  var colorDrag = null;
+  var sectionHsv = /* @__PURE__ */ new WeakMap();
   function status(message, isError) {
     const el = document.getElementById("lc-manager-status");
     if (!el) return;
@@ -2838,12 +2984,61 @@ ${normalizedTags}` : "");
 ${marker}`.trim();
     return `${text.substring(0, start)}${marker}${text.substring(end + 1)}`;
   }
+  function hexToHsv(value) {
+    const match = String(value || "").match(/^#?([0-9a-f]{6})$/i);
+    if (!match) return { h: 198, s: 0.75, v: 0.9 };
+    const hex = match[1];
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const delta = max - min;
+    let h = 0;
+    if (delta) {
+      if (max === r) h = 60 * ((g - b) / delta % 6);
+      else if (max === g) h = 60 * ((b - r) / delta + 2);
+      else h = 60 * ((r - g) / delta + 4);
+    }
+    if (h < 0) h += 360;
+    return { h, s: max ? delta / max : 0, v: max };
+  }
+  function colorHsvFor(section) {
+    if (!sectionHsv.has(section)) sectionHsv.set(section, hexToHsv(section.color));
+    return sectionHsv.get(section);
+  }
+  function hsvToHex(h, s, v) {
+    const chroma = v * s;
+    const section = h / 60;
+    const x = chroma * (1 - Math.abs(section % 2 - 1));
+    const [r1, g1, b1] = section < 1 ? [chroma, x, 0] : section < 2 ? [x, chroma, 0] : section < 3 ? [0, chroma, x] : section < 4 ? [0, x, chroma] : section < 5 ? [x, 0, chroma] : [chroma, 0, x];
+    const m = v - chroma;
+    return `#${[r1, g1, b1].map((channel) => Math.round((channel + m) * 255).toString(16).padStart(2, "0")).join("")}`;
+  }
+  function colorPickerMarkup(section, index) {
+    const hsv = colorHsvFor(section);
+    return `
+    <div class="lc-color-control">
+      <input class="lc-form-input" data-field="color" data-sec-index="${index}" value="${escapeHtml(section.color)}" placeholder="#38bdf8" title="Hex colour" />
+      <button type="button" class="lc-btn-icon lc-color-picker-toggle" data-action="color-picker-toggle" data-sec-index="${index}" aria-label="Choose section colour" aria-expanded="false">
+        <span id="lc-color-swatch-${index}" class="lc-color-swatch" style="background-color:${escapeHtml(section.color)}"></span>
+      </button>
+      <div id="lc-color-picker-${index}" class="lc-color-picker" data-sec-index="${index}" hidden>
+        <div class="lc-color-spectrum" data-color-spectrum="${index}" role="slider" tabindex="0" aria-label="Colour hue and saturation" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(hsv.h / 360 * 100)}"
+          style="--lc-picker-hue:${hsv.h}; --lc-picker-brightness:${hsv.v}; --lc-picker-x:${hsv.h / 360 * 100}%; --lc-picker-y:${(1 - hsv.s) * 100}%">
+          <span id="lc-color-spectrum-point-${index}" class="lc-color-spectrum-point"></span>
+        </div>
+        <input class="lc-color-brightness" type="range" min="0" max="100" value="${Math.round(hsv.v * 100)}" orient="vertical" data-color-brightness="${index}" aria-label="Brightness" title="Brightness"
+          style="--lc-picker-color:${hsvToHex(hsv.h, hsv.s, 1)}" />
+      </div>
+    </div>`;
+  }
   function sectionRowHtml(section, index) {
     return `
     <div class="lc-section-row" data-sec-row="${index}">
       <input class="lc-form-input" data-field="key" data-sec-index="${index}" value="${escapeHtml(section.key)}" placeholder="key" title="the key stored in the note" />
       <input class="lc-form-input" data-field="label" data-sec-index="${index}" value="${escapeHtml(section.label)}" placeholder="label" title="display label (the chip code is derived from this)" />
-      <input class="lc-form-input" data-field="color" data-sec-index="${index}" value="${escapeHtml(section.color)}" placeholder="#38bdf8" title="colour" />
+      ${colorPickerMarkup(section, index)}
       <button type="button" class="lc-btn-icon" data-action="section-toggle-hidden" data-sec-index="${index}" title="${section.defaultHidden ? "Hidden by default — click to show by default" : "Shown by default — click to hide by default"}">${section.defaultHidden ? "🚫" : "👁"}</button>
       <button type="button" class="lc-btn-icon" data-action="section-up" data-sec-index="${index}" title="Move up">↑</button>
       <button type="button" class="lc-btn-icon" data-action="section-down" data-sec-index="${index}" title="Move down">↓</button>
@@ -2943,9 +3138,61 @@ ${marker}`.trim();
       status("A card type needs at least one section.", true);
       return null;
     }
+    if (draftType.sections.some((section) => !/^#[0-9a-f]{6}$/i.test(section.color))) {
+      status("Section colours must be six-digit hex values (for example #38bdf8).", true);
+      return null;
+    }
     const preview = document.getElementById("lc-marker-preview");
     if (preview) preview.innerText = markerFromType(draftType);
     return draftType;
+  }
+  function updateSectionColor(index, h, s, v) {
+    const section = draftType && draftType.sections[index];
+    if (!section) return;
+    const nextHsv = {
+      h: Math.max(0, Math.min(360, h)),
+      s: Math.max(0, Math.min(1, s)),
+      v: Math.max(0, Math.min(1, v))
+    };
+    sectionHsv.set(section, nextHsv);
+    section.color = hsvToHex(nextHsv.h, nextHsv.s, nextHsv.v);
+    const input = document.querySelector(`[data-field="color"][data-sec-index="${index}"]`);
+    const swatch = document.getElementById(`lc-color-swatch-${index}`);
+    const spectrum = document.querySelector(`[data-color-spectrum="${index}"]`);
+    const point = document.getElementById(`lc-color-spectrum-point-${index}`);
+    const brightness = document.querySelector(`[data-color-brightness="${index}"]`);
+    if (input) input.value = section.color;
+    if (swatch) swatch.style.backgroundColor = section.color;
+    if (spectrum) {
+      spectrum.style.setProperty("--lc-picker-hue", String(nextHsv.h));
+      spectrum.style.setProperty("--lc-picker-brightness", String(nextHsv.v));
+      spectrum.style.setProperty("--lc-picker-x", `${nextHsv.h / 360 * 100}%`);
+      spectrum.style.setProperty("--lc-picker-y", `${(1 - nextHsv.s) * 100}%`);
+      spectrum.setAttribute("aria-valuenow", String(Math.round(nextHsv.h / 360 * 100)));
+    }
+    if (point) {
+      point.style.left = `${nextHsv.h / 360 * 100}%`;
+      point.style.top = `${(1 - nextHsv.s) * 100}%`;
+    }
+    if (brightness) {
+      brightness.value = String(Math.round(nextHsv.v * 100));
+      brightness.style.setProperty("--lc-picker-color", hsvToHex(nextHsv.h, nextHsv.s, 1));
+    }
+    const preview = document.getElementById("lc-marker-preview");
+    if (preview) preview.innerText = markerFromType(draftType);
+  }
+  function updateColorFromPointer(event) {
+    if (!colorDrag || !draftType || !draftType.sections[colorDrag.index]) return;
+    const rect = colorDrag.spectrum.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+    const current = colorHsvFor(draftType.sections[colorDrag.index]);
+    updateSectionColor(colorDrag.index, x * 360, 1 - y, current.v);
+  }
+  function stopColorDrag() {
+    colorDrag = null;
+    document.removeEventListener("pointermove", updateColorFromPointer);
+    document.removeEventListener("pointerup", stopColorDrag);
   }
   function migrationOverlay() {
     let overlay = document.getElementById("lc-migration-overlay");
@@ -3017,23 +3264,49 @@ ${marker}`.trim();
     el.innerText = message;
     el.className = `lc-manager-status${isError ? " lc-manager-error" : ""}`;
   }
-  function collectMigrationMapping() {
+  function collectMigrationMapping(note) {
     const mapping = {};
-    migrationPlan.forEach((note) => note.rows.forEach((row) => {
+    (note ? note.rows : []).forEach((row) => {
       if (row.target && row.target !== "__keep") mapping[row.key] = row.target;
-    }));
+    });
     return mapping;
+  }
+  function migrationCardMarkup(raw, type) {
+    const parsed = parseCardV3(raw);
+    const legacy = parsed ? null : parseCardMemo(raw, type.spaceName);
+    const values = parsed ? parsed.values : legacy ? legacy.data : null;
+    if (!values) return '<p class="lc-manager-hint">Could not render this note as a card.</p>';
+    const reserved = ["_t", "v", "_e", "_u", "_s", "_x", "_eh"];
+    const keys = Object.keys(values).filter((key) => !reserved.includes(key));
+    const sections = [
+      ...type.sections.filter((section) => keys.includes(section.key)),
+      ...keys.filter((key) => !type.sections.some((section) => section.key === key)).map((key) => ({ key, label: key, color: "#94a3b8" }))
+    ];
+    const enabled = parsed && parsed.enabledSections.length ? parsed.enabledSections : keys.filter((key) => String(values[key] || "").trim());
+    const visible = sections.filter((section) => enabled.includes(section.key));
+    const tags = parsed ? parsed.tags : legacy ? legacy.tags : [];
+    return `
+    <div class="lc-card-wrapper lc-migration-preview-card">
+      <div class="lc-card-grid" style="--lc-cols:${Math.max(1, visible.length)}">
+        ${visible.map((section) => `
+          <div class="lc-card-slot">
+            <div class="lc-card-header"><span class="lc-card-badge" style="color:${escapeHtml(section.color)}">${escapeHtml(section.label)}</span></div>
+            <div class="lc-card-text">${escapeHtml(String(values[section.key] || "")) || "—"}</div>
+          </div>`).join("") || '<p class="lc-manager-hint">No visible language sections.</p>'}
+      </div>
+      ${tags.length ? `<div class="lc-card-tags">${tags.map((tag) => `<span class="lc-tag-chip">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
+    </div>`;
   }
   function renderMigrationList() {
     const body = document.getElementById("lc-migration-body");
     if (!body) return;
     const type = migrationType;
     if (!migrationPlan.length) {
-      body.innerHTML = '<p class="lc-manager-hint">No incompatible notes found in this space.</p>';
+      body.innerHTML = '<p class="lc-manager-hint">No incompatible notes found in this space.</p><div id="lc-migration-status" class="lc-manager-status"></div>';
       return;
     }
     body.innerHTML = `
-    <p class="lc-manager-hint">Every note below carries keys that don't match a section of <b>${escapeHtml(type ? type.name : "")}</b>. Choose, per key, which section it should become &mdash; you can see the actual value next to it. "keep as-is" leaves the key untouched. Nothing is written until you press Migrate.</p>
+    <p class="lc-manager-hint">Every note below belongs to <b>${escapeHtml(type ? type.name : "")}</b> in <b>${escapeHtml(type ? type.spaceName : "")}</b>. Choose a target section separately for each note and key; "keep as-is" leaves the key untouched. Nothing is written until you press Migrate.</p>
     ${migrationPlan.map((note, ni) => `
       <div class="lc-migration-note">
         <div class="lc-migration-note-head">
@@ -3050,20 +3323,32 @@ ${marker}`.trim();
             <span class="lc-migration-sample">"${escapeHtml(row.sample)}"</span>
           </div>`).join("")}
       </div>`).join("")}
-    <pre id="lc-migration-preview" class="lc-preview-box"></pre>
+    <div id="lc-migration-preview"></div>
     <div id="lc-migration-status" class="lc-manager-status"></div>`;
   }
   function showMigrationPreview() {
-    const mapping = collectMigrationMapping();
     const host = document.getElementById("lc-migration-preview");
-    if (!host) return;
-    host.innerText = migrationPlan.map((note) => {
-      const before = note.raw.slice(0, 140);
-      const after = migratedContent(note.raw, mapping) || "(unparseable)";
-      return `${note.memoName}
-  before: ${before}
-  after:  ${after.slice(0, 140)}`;
-    }).join("\n\n") || "Nothing to preview.";
+    if (!host || !migrationType) return;
+    host.innerHTML = migrationPlan.map((note, index) => {
+      const mapping = collectMigrationMapping(note);
+      const after = migratedContent(note.raw, mapping);
+      return `
+      <section class="lc-migration-preview-note">
+        <h4>${escapeHtml(note.memoName || "memo")}</h4>
+        <div class="lc-migration-preview-columns">
+          <div class="lc-migration-preview-column">
+            <h4>Current card · ${escapeHtml(note.kind)}</h4>
+            ${migrationCardMarkup(note.raw, migrationType)}
+            <pre class="lc-migration-json">${escapeHtml(note.raw)}</pre>
+          </div>
+          <div class="lc-migration-preview-column">
+            <h4>After migration · V3</h4>
+            ${after ? migrationCardMarkup(after, migrationType) : '<p class="lc-manager-error">Could not generate migrated content.</p>'}
+            <pre class="lc-migration-json">${escapeHtml(after || "(unparseable)")}</pre>
+          </div>
+        </div>
+      </section>`;
+    }).join("") || '<p class="lc-manager-hint">Nothing to preview.</p>';
   }
   function migratedContent(rawText, mapping) {
     const start = rawText.indexOf("{");
@@ -3080,8 +3365,8 @@ ${marker}`.trim();
     mapped.v = V3_VERSION;
     return `${rawText.substring(0, start)}${JSON.stringify(mapped)}${rawText.substring(end + 1)}`;
   }
-  async function openMigrationWizard() {
-    const type = state.activeType || state.types[0];
+  async function openMigrationWizard(typeId) {
+    const type = state.types.find((candidate) => candidate.id === typeId) || state.activeType || state.types[0];
     if (!type || !type.spaceName) {
       status("Pick a card type bound to a space first.", true);
       return;
@@ -3121,12 +3406,12 @@ ${marker}`.trim();
     }
   }
   async function runMigration() {
-    const mapping = collectMigrationMapping();
     if (!migrationPlan.length) return;
     const token = await getMemosAuthToken();
     let done = 0;
     let failed = 0;
     for (const note of migrationPlan) {
+      const mapping = collectMigrationMapping(note);
       const content = migratedContent(note.raw, mapping);
       if (!content) {
         failed++;
@@ -3142,19 +3427,35 @@ ${marker}`.trim();
     }
     let aliasNote = "";
     const saveBox = document.getElementById("lc-migration-save-aliases");
-    if (saveBox && saveBox.checked && migrationType && Object.keys(mapping).length && done > 0) {
-      migrationType.sectionAliases = { ...migrationType.sectionAliases, ...mapping };
-      const ok = await writeTypeMarkerSilently(migrationType);
-      if (ok) {
-        await getCardTypes({ force: true });
-        aliasNote = " Mappings saved as section aliases.";
-      } else {
-        aliasNote = " (mappings were NOT saved to the type definition)";
+    if (saveBox && saveBox.checked && migrationType && done > 0) {
+      const agreedMappings = {};
+      const conflictingKeys = /* @__PURE__ */ new Set();
+      migrationPlan.forEach((note) => {
+        Object.entries(collectMigrationMapping(note)).forEach(([key, target]) => {
+          if (Object.prototype.hasOwnProperty.call(agreedMappings, key) && agreedMappings[key] !== target) {
+            conflictingKeys.add(key);
+          } else {
+            agreedMappings[key] = target;
+          }
+        });
+      });
+      conflictingKeys.forEach((key) => delete agreedMappings[key]);
+      if (Object.keys(agreedMappings).length) {
+        migrationType.sectionAliases = { ...migrationType.sectionAliases, ...agreedMappings };
+        const ok = await writeTypeMarkerSilently(migrationType);
+        if (ok) {
+          await getCardTypes({ force: true });
+          aliasNote = " Consistent mappings saved as section aliases.";
+        } else {
+          aliasNote = " (mappings were NOT saved to the type definition)";
+        }
       }
+      if (conflictingKeys.size) aliasNote += " Conflicting per-note mappings were not saved as aliases.";
     }
-    migrationStatus(`Migrated ${done} note(s), ${failed} failed.${aliasNote}`, failed > 0);
+    const resultMessage = `Migrated ${done} note(s), ${failed} failed.${aliasNote}`;
     migrationPlan = [];
     renderMigrationList();
+    migrationStatus(resultMessage, failed > 0);
   }
   function bindManagerEvents(bodyEl) {
     bodyEl.onclick = async (e) => {
@@ -3164,6 +3465,14 @@ ${marker}`.trim();
       const typeId = target.getAttribute("data-type-id");
       const index = Number(target.getAttribute("data-sec-index"));
       if (action === "type-edit") return openTypeEditor(typeId);
+      if (action === "color-picker-toggle") {
+        const picker = document.getElementById(`lc-color-picker-${index}`);
+        if (picker) {
+          picker.hidden = !picker.hidden;
+          target.setAttribute("aria-expanded", String(!picker.hidden));
+        }
+        return;
+      }
       if (action === "type-use") {
         setActiveType(typeId);
         await refreshSpaceIndicator(true);
@@ -3209,16 +3518,56 @@ ${marker}`.trim();
         const type = collectDraft() || draftType;
         if (type) return copyText(markerFromType(type), target);
       }
-      if (action === "open-migration" || target.id === "lc-migration-open-btn") return openMigrationWizard();
+      if (action === "open-migration" || target.id === "lc-migration-open-btn") {
+        const typeSelect = document.getElementById("lc-migration-type-select");
+        return openMigrationWizard(typeSelect && typeSelect.value);
+      }
     };
-    bodyEl.addEventListener("input", (e) => {
+    bodyEl.oninput = (e) => {
+      const brightnessIndex = e.target && e.target.getAttribute ? e.target.getAttribute("data-color-brightness") : null;
+      if (brightnessIndex !== null) {
+        const index2 = Number(brightnessIndex);
+        const section = draftType && draftType.sections[index2];
+        if (!section) return;
+        const hsv = colorHsvFor(section);
+        updateSectionColor(index2, hsv.h, hsv.s, Number(e.target.value) / 100);
+        return;
+      }
       const secField = e.target && e.target.getAttribute ? e.target.getAttribute("data-field") : null;
       if (!secField || !draftType) return;
       const index = Number(e.target.getAttribute("data-sec-index"));
-      if (draftType.sections[index]) draftType.sections[index][secField] = e.target.value || "";
+      if (!draftType.sections[index]) return;
+      if (secField === "color") {
+        const hsv = hexToHsv(e.target.value);
+        if (/^#[0-9a-f]{6}$/i.test(e.target.value)) {
+          updateSectionColor(index, hsv.h, hsv.s, hsv.v);
+        }
+        return;
+      }
+      draftType.sections[index][secField] = e.target.value || "";
       const preview = document.getElementById("lc-marker-preview");
       if (preview) preview.innerText = markerFromType(draftType);
-    });
+    };
+    bodyEl.onpointerdown = (event) => {
+      const spectrum = event.target && event.target.closest ? event.target.closest("[data-color-spectrum]") : null;
+      if (!spectrum) return;
+      colorDrag = { spectrum, index: Number(spectrum.getAttribute("data-color-spectrum")) };
+      updateColorFromPointer(event);
+      document.addEventListener("pointermove", updateColorFromPointer);
+      document.addEventListener("pointerup", stopColorDrag);
+    };
+    bodyEl.onkeydown = (event) => {
+      const spectrum = event.target && event.target.closest ? event.target.closest("[data-color-spectrum]") : null;
+      if (!spectrum || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+      const index = Number(spectrum.getAttribute("data-color-spectrum"));
+      const section = draftType && draftType.sections[index];
+      if (!section) return;
+      const hsv = colorHsvFor(section);
+      const hueDelta = event.key === "ArrowLeft" ? -3 : event.key === "ArrowRight" ? 3 : 0;
+      const saturationDelta = event.key === "ArrowUp" ? 0.03 : event.key === "ArrowDown" ? -0.03 : 0;
+      updateSectionColor(index, hsv.h + hueDelta, hsv.s + saturationDelta, hsv.v);
+    };
   }
   async function createSpaceFromManager() {
     const titleInput = document.getElementById("lc-new-space-title");
@@ -3323,6 +3672,7 @@ ${marker}`.trim();
       const marked = new Set(types.map((t) => t.spaceName));
       const unmarked = spaces.filter((s) => !marked.has(s.name));
       const inUseType = state.activeType || types[0];
+      const migrationDefaultType = types.find((type) => type.spaceName === getCurrentSpace()) || inUseType;
       bodyEl.innerHTML = `
       <div class="lc-manager">
         <p class="lc-manager-hint">Each marked space defines one card type. Click a card to edit its definition inline &mdash; the open card is the one being edited. Definitions live only in the space description, never in notes.</p>
@@ -3346,7 +3696,11 @@ ${marker}`.trim();
         </div>
         <div class="lc-manager-section">
           <h4>Incompatible notes</h4>
-          <p class="lc-manager-hint">Notes whose keys don't match this type can be migrated in a dedicated window: the scanner lists each note with its real key values, and you choose per key which section it should become.</p>
+          <p class="lc-manager-hint">Choose a card type to scan only its Space. Mappings are chosen per note and key; preview the rendered card and JSON before migrating.</p>
+          <label class="lc-form-label" for="lc-migration-type-select">Space to scan</label>
+          <select class="lc-form-input" id="lc-migration-type-select">
+            ${types.map((type) => `<option value="${escapeHtml(type.id)}" ${migrationDefaultType && migrationDefaultType.id === type.id ? "selected" : ""}>${escapeHtml(type.name)} · ${escapeHtml(type.spaceName || "")}</option>`).join("")}
+          </select>
           <button type="button" class="lc-btn lc-btn-secondary" id="lc-migration-open-btn" data-action="open-migration">Open migration wizard…</button>
         </div>
         <div id="lc-manager-status" class="lc-manager-status"></div>
@@ -3590,16 +3944,12 @@ ${marker}`.trim();
       explanations[section.key] = document.getElementById(`lc-explain-${section.key}`)?.value || "";
     });
     const unifiedExplanation = document.getElementById("lc-explain-unified")?.value || "";
-    const previousActive = new Set(state.modalActiveLangs);
     const previousHiddenExplanations = new Set(state.hiddenExplanationSections);
     state.editingType = type;
     state.activeType = type;
     const keys = type.sections.map((section) => section.key);
-    state.modalActiveLangs = keys.filter((key) => previousActive.has(key));
+    state.modalActiveLangs = keys.filter((key) => !type.sections.some((section) => section.key === key && section.defaultHidden));
     state.hiddenExplanationSections = keys.filter((key) => previousHiddenExplanations.has(key));
-    if (!state.modalActiveLangs.length) {
-      state.modalActiveLangs = keys.filter((key) => !type.sections.some((section) => section.key === key && section.defaultHidden));
-    }
     if (!state.modalActiveLangs.length && keys.length) state.modalActiveLangs = [...keys];
     renderEditorForType(type, values, explanations, unifiedExplanation);
     updateModalEditorSlots();
@@ -3898,7 +4248,8 @@ ${marker}`.trim();
     refreshSpaceIndicator();
     state.editingMemoName = editData && editData.name ? editData.name : null;
     if (!state.editingMemoName && state.types.length) {
-      setActiveType(state.types[0].id, false);
+      const currentSpaceType = activeTypeForNew(state.types, getCurrentSpace());
+      setActiveType(currentSpaceType.id, false);
     }
     const isV3Edit = Boolean(editData && editData.version === 3);
     state.editingVersion = isV3Edit ? 3 : state.editingMemoName ? 2 : 3;

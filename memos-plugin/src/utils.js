@@ -20,7 +20,7 @@ import { defaultType, markerFromType } from './card-types.js';
   /** Extract current space from URL */
   function getCurrentSpace() {
     const path = window.location.pathname;
-    const match = path.match(/\/s\/([^\/]+)/);
+    const match = path.match(/\/(?:spaces|s)\/([^\/]+)/);
     if (match && match[1]) {
       return match[1].startsWith('spaces/') ? match[1] : `spaces/${match[1]}`;
     }

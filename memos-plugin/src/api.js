@@ -169,7 +169,9 @@
     const res = await fetchJsonWithFallback(paths, token);
     if (!res || !res.ok) throw new Error(`ListMemos failed: HTTP ${res ? res.status : 'no response'}`);
     const json = await res.json();
-    return Array.isArray(json.memos) ? json.memos : [];
+    return Array.isArray(json.memos)
+      ? json.memos.filter(memo => !memo.space || memo.space === spaceName)
+      : [];
   }
 
   /** PATCH only the content of one memo (V3 migration wizard). */

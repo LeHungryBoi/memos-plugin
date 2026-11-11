@@ -252,19 +252,15 @@ function unlockPageScroll() {
       explanations[section.key] = document.getElementById(`lc-explain-${section.key}`)?.value || '';
     });
     const unifiedExplanation = document.getElementById('lc-explain-unified')?.value || '';
-    const previousActive = new Set(state.modalActiveLangs);
     const previousHiddenExplanations = new Set(state.hiddenExplanationSections);
 
     state.editingType = type;
     state.activeType = type;
     const keys = type.sections.map(section => section.key);
-    state.modalActiveLangs = keys.filter(key => previousActive.has(key));
+    state.modalActiveLangs = keys.filter(key => !type.sections.some(section => (
+      section.key === key && section.defaultHidden
+    )));
     state.hiddenExplanationSections = keys.filter(key => previousHiddenExplanations.has(key));
-    if (!state.modalActiveLangs.length) {
-      state.modalActiveLangs = keys.filter(key => !type.sections.some(section => (
-        section.key === key && section.defaultHidden
-      )));
-    }
     if (!state.modalActiveLangs.length && keys.length) state.modalActiveLangs = [...keys];
 
     renderEditorForType(type, values, explanations, unifiedExplanation);
@@ -586,7 +582,8 @@ function unlockPageScroll() {
 
     state.editingMemoName = editData && editData.name ? editData.name : null;
     if (!state.editingMemoName && state.types.length) {
-      setActiveType(state.types[0].id, false);
+      const currentSpaceType = activeTypeForNew(state.types, getCurrentSpace());
+      setActiveType(currentSpaceType.id, false);
     }
     const isV3Edit = Boolean(editData && editData.version === 3);
     state.editingVersion = isV3Edit ? 3 : (state.editingMemoName ? 2 : 3);

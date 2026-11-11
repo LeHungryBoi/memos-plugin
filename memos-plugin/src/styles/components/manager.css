@@ -111,6 +111,108 @@
   margin-bottom: 8px;
 }
 
+.lc-color-control {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.lc-color-control > .lc-form-input {
+  min-width: 0;
+}
+
+.lc-color-picker-toggle {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 28px;
+}
+
+.lc-color-swatch {
+  display: block;
+  width: 17px;
+  height: 17px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 4px;
+}
+
+.lc-color-picker {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 5px);
+  left: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) 18px;
+  gap: 8px;
+  width: 190px;
+  padding: 9px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+  background: var(--lc-modal-bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.lc-color-picker[hidden] {
+  display: none;
+}
+
+.lc-color-spectrum {
+  position: relative;
+  height: 112px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 5px;
+  background-image:
+    linear-gradient(to bottom, #fff, transparent),
+    linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);
+  filter: brightness(var(--lc-picker-brightness, 1));
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.lc-color-spectrum-point {
+  position: absolute;
+  left: var(--lc-picker-x, 50%);
+  top: var(--lc-picker-y, 25%);
+  width: 10px;
+  height: 10px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #111;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.lc-color-brightness {
+  width: 18px;
+  height: 112px;
+  margin: 0;
+  appearance: none;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 8px;
+  background: linear-gradient(to top, #000, var(--lc-picker-color, #fff));
+  writing-mode: vertical-lr;
+  direction: rtl;
+  cursor: ns-resize;
+}
+
+.lc-color-brightness::-webkit-slider-thumb {
+  width: 14px;
+  height: 6px;
+  appearance: none;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  background: #111;
+}
+
+.lc-color-brightness::-moz-range-thumb {
+  width: 12px;
+  height: 4px;
+  border: 1px solid #fff;
+  border-radius: 4px;
+  background: #111;
+}
+
 .lc-manager-create-space {
   display: flex;
   align-items: center;
@@ -142,4 +244,3 @@
   font-size: 13px;
   color: var(--lc-text-primary);
 }
-
