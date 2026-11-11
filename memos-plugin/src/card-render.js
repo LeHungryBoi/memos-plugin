@@ -9,7 +9,7 @@ import {
 import { typeForMemo, sectionKeys } from './card-types.js';
 import { tagStore } from './tags.js';
 import { openModal } from './editor.js';
-import { getMemosAuthToken, patchMemoContent } from './api.js';
+import { getMemosAuthToken, patchMemoContent, fetchMemoContent } from './api.js';
 
   // --- Part 1: Render Language Cards with Per-Note Local Switch ---
 
@@ -321,6 +321,11 @@ import { getMemosAuthToken, patchMemoContent } from './api.js';
         const response = await patchMemoContent(memoName, migration.content, token);
         if (!response || !response.ok) {
           throw new Error(`Migration failed: HTTP ${response ? response.status : 'no response'}.`);
+        }
+        const savedContent = await fetchMemoContent(memoName, token);
+        const verified = parseCardV3(savedContent);
+        if (!verified || savedContent !== migration.content) {
+          throw new Error('The server did not confirm the migrated V3 content. The card was not marked as migrated.');
         }
         refreshCardLocally(memoName, migration.content);
         close();

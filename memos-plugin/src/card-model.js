@@ -193,7 +193,11 @@ import { V3_VERSION, valueForSection } from './card-types.js';
     if (hiddenExplanations.length) data._eh = hiddenExplanations;
 
     const normalizedTags = normalizeTags(tags);
-    const content = JSON.stringify(data) + (normalizedTags ? `\n${normalizedTags}` : '');
+    // Markdown consumes backslash escapes before punctuation such as quotes.
+    // Unicode JSON escapes survive Markdown rendering and still parse to the
+    // original value when the card is read back from the rendered memo body.
+    const json = JSON.stringify(data).replace(/\\"/g, '\\u0022');
+    const content = json + (normalizedTags ? `\n${normalizedTags}` : '');
     return { data, content, tags: normalizedTags, hasAny };
   }
 

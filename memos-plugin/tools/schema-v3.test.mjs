@@ -109,6 +109,22 @@ check('tags normalized', eq(parsed.tags, ['#vocab', '#daily']));
 check('definitions never stored in note',
   !/sections|explanationMode|"order"|"label"/.test(built.content));
 check('V2 reader still sees the card', parseAnyCard('{"_t":"lc","v":2,"en":"x"}').version === 2);
+const quotedType = normalizeType({
+  _t: 'lc', v: 3, typeId: 'quoted', name: 'Quoted', order: 2,
+  explanationMode: 'per-section',
+  sections: [{ key: 'en', label: 'English' }]
+}, { name: 'spaces/quoted', title: 'Quoted' });
+const quotedContent = buildCardContentV3(
+  quotedType, { en: 'Say "hello"' }, { en: 'She said "yes"' }, true, '', ['en'], 'Use "quotes"'
+).content;
+const markdownRenderedContent = quotedContent.replace(/\\(["'])/g, '$1');
+check('V3 quote escapes survive Markdown and preserve values', (() => {
+  const parsedQuoted = parseCardV3(markdownRenderedContent);
+  return Boolean(parsedQuoted)
+    && parsedQuoted.values.en === 'Say "hello"'
+    && sectionExplanationsFor(parsedQuoted, quotedType).en === 'She said "yes"'
+    && unifiedExplanationFor(parsedQuoted, quotedType) === 'Use "quotes"';
+})());
 const v2ForMigration = parseAnyCard('{"_t":"lc","v":2,"en":"cat","jp":"猫"}\n#vocab');
 const migratedV2 = buildV3Migration(v2ForMigration, perSection);
 check('V2 migration creates V3 content', parseCardV3(migratedV2.content).version === 3);

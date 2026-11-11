@@ -175,15 +175,39 @@
   /** PATCH only the content of one memo (V3 migration wizard). */
   async function patchMemoContent(memoName, content, token) {
     const id = encodeURIComponent(String(memoName || '').replace(/^memos\//, ''));
-    return sendJsonWithFallback(
-      [`/api/memos/${id}?updateMask=content`, `/api/v1/memos/${id}?updateMask=content`],
-      'PATCH',
-      { content },
-      token
-    );
+    const paths = [
+      `/api/memos/${id}?updateMask=content`,
+      `/api/v1/memos/${id}?updateMask=content`
+    ];
+    const body = { content, visibility: 'PRIVATE' };
+    let response = await sendJsonWithFallback(paths, 'PATCH', body, token);
+    if (response && response.status === 401) {
+      const refreshedToken = await getMemosAuthToken(true);
+      if (refreshedToken) {
+        response = await sendJsonWithFallback(paths, 'PATCH', body, refreshedToken);
+      }
+    }
+    return response;
+  }
+
+  /** Read the memo back after migration so a successful HTTP status isn't mistaken for a persisted write. */
+  async function fetchMemoContent(memoName, token) {
+    const id = encodeURIComponent(String(memoName || '').replace(/^memos\//, ''));
+    const paths = [`/api/memos/${id}`, `/api/v1/memos/${id}`];
+    let response = await fetchJsonWithFallback(paths, token);
+    if (response && response.status === 401) {
+      const refreshedToken = await getMemosAuthToken(true);
+      if (refreshedToken) response = await fetchJsonWithFallback(paths, refreshedToken);
+    }
+    if (!response || !response.ok) {
+      throw new Error(`Could not verify migrated memo: HTTP ${response ? response.status : 'no response'}.`);
+    }
+    const memo = await response.json();
+    return memo && typeof memo.content === 'string' ? memo.content : '';
   }
 
 export {
   isLegacyFallbackStatus, fetchJsonWithFallback, fetchAllSpaces, getMemosAuthToken,
-  sendJsonWithFallback, updateSpaceDescription, createSpace, listMemosForSpace, patchMemoContent
+  sendJsonWithFallback, updateSpaceDescription, createSpace, listMemosForSpace,
+  patchMemoContent, fetchMemoContent
 };

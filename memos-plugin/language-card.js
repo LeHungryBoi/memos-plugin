@@ -1895,7 +1895,8 @@
     const hiddenExplanations = type.sections.filter((section) => (hiddenExplanationSections || []).includes(section.key)).map((section) => section.key);
     if (hiddenExplanations.length) data._eh = hiddenExplanations;
     const normalizedTags = normalizeTags(tags);
-    const content = JSON.stringify(data) + (normalizedTags ? `
+    const json = JSON.stringify(data).replace(/\\"/g, "\\u0022");
+    const content = json + (normalizedTags ? `
 ${normalizedTags}` : "");
     return { data, content, tags: normalizedTags, hasAny };
   }
@@ -2122,12 +2123,33 @@ ${normalizedTags}` : "");
   }
   async function patchMemoContent(memoName, content, token) {
     const id = encodeURIComponent(String(memoName || "").replace(/^memos\//, ""));
-    return sendJsonWithFallback(
-      [`/api/memos/${id}?updateMask=content`, `/api/v1/memos/${id}?updateMask=content`],
-      "PATCH",
-      { content },
-      token
-    );
+    const paths = [
+      `/api/memos/${id}?updateMask=content`,
+      `/api/v1/memos/${id}?updateMask=content`
+    ];
+    const body = { content, visibility: "PRIVATE" };
+    let response = await sendJsonWithFallback(paths, "PATCH", body, token);
+    if (response && response.status === 401) {
+      const refreshedToken = await getMemosAuthToken(true);
+      if (refreshedToken) {
+        response = await sendJsonWithFallback(paths, "PATCH", body, refreshedToken);
+      }
+    }
+    return response;
+  }
+  async function fetchMemoContent(memoName, token) {
+    const id = encodeURIComponent(String(memoName || "").replace(/^memos\//, ""));
+    const paths = [`/api/memos/${id}`, `/api/v1/memos/${id}`];
+    let response = await fetchJsonWithFallback(paths, token);
+    if (response && response.status === 401) {
+      const refreshedToken = await getMemosAuthToken(true);
+      if (refreshedToken) response = await fetchJsonWithFallback(paths, refreshedToken);
+    }
+    if (!response || !response.ok) {
+      throw new Error(`Could not verify migrated memo: HTTP ${response ? response.status : "no response"}.`);
+    }
+    const memo = await response.json();
+    return memo && typeof memo.content === "string" ? memo.content : "";
   }
 
   // src/tags.js
@@ -4384,6 +4406,11 @@ ${tags}` : "");
         const response = await patchMemoContent(memoName, migration.content, token);
         if (!response || !response.ok) {
           throw new Error(`Migration failed: HTTP ${response ? response.status : "no response"}.`);
+        }
+        const savedContent = await fetchMemoContent(memoName, token);
+        const verified = parseCardV3(savedContent);
+        if (!verified || savedContent !== migration.content) {
+          throw new Error("The server did not confirm the migrated V3 content. The card was not marked as migrated.");
         }
         refreshCardLocally(memoName, migration.content);
         close();
