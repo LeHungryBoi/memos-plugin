@@ -72,13 +72,13 @@ for (const [key, count] of selectorCounts) {
 }
 
 // Published artifacts must match the manifest; catches "edited src/ but forgot to build".
-const generatedCss = readFileSync(path.join(projectRoot, 'language-card.css'), 'utf8');
+const generatedCss = readFileSync(path.join(projectRoot, 'dist', 'language-card.css'), 'utf8');
 const bannerEnd = ' */\n';
 const cssStart = generatedCss.indexOf(bannerEnd);
 if (cssStart < 0 || generatedCss.slice(cssStart + bannerEnd.length) !== css) {
     throw new Error('language-card.css is stale: run npm run build');
 }
-const bundle = readFileSync(path.join(projectRoot, 'language-card.js'), 'utf8');
+const bundle = readFileSync(path.join(projectRoot, 'dist', 'language-card.js'), 'utf8');
 if (!bundle.includes(css)) {
     throw new Error('language-card.js has stale inlined CSS: run npm run build');
 }

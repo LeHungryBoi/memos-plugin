@@ -4,11 +4,12 @@ import { fileURLToPath } from 'node:url';
 import * as esbuild from 'esbuild';
 import { acquireWatchLock, releaseWatchLock } from './tools/watch-lock.mjs';
 import { collectCss } from './tools/css-manifest.mjs';
+import { deployGeneratedAssets, ensureEnvTemplate } from './tools/deploy.mjs';
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const cssEntry = path.join(projectRoot, 'src/styles/index.css');
 const isWatch = process.argv.includes('--watch');
-const outputDir = isWatch ? path.join(projectRoot, '.watch') : projectRoot;
+const outputDir = isWatch ? path.join(projectRoot, '.watch') : path.join(projectRoot, 'dist');
 const outJs = path.join(outputDir, 'language-card.js');
 const outCss = path.join(outputDir, 'language-card.css');
 // The default build inlines the CSS into the JS (one file to paste).
@@ -76,6 +77,9 @@ const options = {
 };
 
 if (isWatch) {
+    const envPath = ensureEnvTemplate(path.dirname(projectRoot));
+    console.log(`Deployment settings: ${path.relative(path.dirname(projectRoot), envPath)} (keep this file private).`);
+
     // VS Code starts this task on folderOpen; only one watcher may own the output.
     const lock = acquireWatchLock({ name: 'memos-plugin watcher' });
     if (!lock.ok) {
@@ -91,12 +95,26 @@ if (isWatch) {
     const logPlugin = {
         name: 'language-card-watch-log',
         setup(build) {
-            build.onEnd(result => {
+            build.onEnd(async result => {
                 if (result.errors.length > 0) {
                     console.error('Build failed; the previous language-card.js is still in place.');
                     return;
                 }
                 console.log(`[${new Date().toLocaleTimeString()}] Built language-card.js + language-card.css`);
+                try {
+                    const deployment = await deployGeneratedAssets({
+                        projectRoot,
+                        assetDir: outputDir,
+                        envPath
+                    });
+                    if (deployment.skipped) {
+                        console.log('Automatic upload skipped; fill in the root .env to enable it.');
+                    } else {
+                        console.log('Uploaded and verified Additional Script + Additional Style.');
+                    }
+                } catch (error) {
+                    console.error(`Automatic upload failed: ${error.message}`);
+                }
             });
         }
     };
@@ -112,7 +130,7 @@ if (isWatch) {
     process.once('SIGINT', shutdown);
     process.once('SIGTERM', shutdown);
     await context.watch();
-    console.log('Watching src/ for changes; output: .watch/language-card.js (single file).');
+    console.log('Watching src/ for changes; output: .watch/language-card.js + language-card.css.');
 } else {
     await esbuild.build(options);
     console.log(`Built ${path.relative(projectRoot, outJs)} (single file, CSS ${noInlineCss ? 'kept separate' : 'inlined'})`);

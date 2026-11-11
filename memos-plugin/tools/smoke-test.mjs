@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const bundlePath = path.join(root, 'language-card.js');
+const bundlePath = path.join(root, 'dist', 'language-card.js');
 const baselineFlag = process.argv.indexOf('--baseline');
 const baselinePath = baselineFlag === -1 ? null : path.resolve(root, process.argv[baselineFlag + 1]);
 
