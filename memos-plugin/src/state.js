@@ -16,6 +16,7 @@ export const state = {
   activeType: null,
   activeTypeManuallySelected: false,
   onQuickTypeSelected: null,
+  onCardTypesChanged: null,
   memoSpaceCache: new Map(),
   memoSpaceWarmed: false,
   editingVersion: 2,

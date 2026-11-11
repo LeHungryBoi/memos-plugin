@@ -6,7 +6,7 @@
  */
 import {
   extractMarker, normalizeType, defaultType, markerFromType, sortTypes,
-  sectionKeys, activeTypeForNew, valueForSection, mapSectionKeys
+  sectionKeys, incompatibleSectionKeys, activeTypeForNew, valueForSection, mapSectionKeys
 } from '../src/card-types.js';
 import {
   parseCardV3, parseAnyCard, buildCardContentV3, valuesFor, explanationsFor,
@@ -39,6 +39,20 @@ check('V3 marker recognized', Boolean(extractMarker(`prose ${markerFromType(newS
 check('wrong _t rejected', extractMarker('{"_t":"other","v":3}') === null);
 check('broken marker rejected', extractMarker('{"_t":"lc"') === null);
 check('custom sections', eq(sectionKeys(newSpeak), ['en', 'newSpeak']));
+const humanType = normalizeType({
+  _t: 'lc', v: 3, sections: [
+    { key: 'hu', label: 'Human', color: '#34d399' },
+    { key: 'newSpeak', label: 'New Speak', color: '#38bdf8' }
+  ]
+}, space);
+check('old en section values are migration candidates after rename', eq(
+  incompatibleSectionKeys({ _t: 'lc', v: 3, en: 'human', newSpeak: 'new word', _s: ['en', 'newSpeak'] }, humanType),
+  ['en']
+));
+check('recognized hu section values are not migration candidates', eq(
+  incompatibleSectionKeys({ hu: 'human', newSpeak: 'new word' }, humanType),
+  []
+));
 check('global explanation mode', newSpeak.explanationMode === 'global');
 check('alias declared', newSpeak.sectionAliases.personal === 'in room');
 check('alias lookup', valueForSection({ personal: 'hi' }, newSpeak, 'in room') === 'hi');
@@ -194,6 +208,16 @@ const migrated = migratedContent(
 check('migration keeps tail tags', migrated.endsWith('\n#tag'));
 check('migration bumps v to 3', JSON.parse(migrated.split('\n')[0]).v === 3);
 check('migration keeps mapped value', JSON.parse(migrated.split('\n')[0])['in room'] === 'x');
+const renamedSectionMigration = migratedContent(
+  '{"_t":"lc","v":3,"_s":["en"],"en":"human","_e":{"en":"definition"}}',
+  { en: 'hu' }
+);
+const renamedSectionData = JSON.parse(renamedSectionMigration);
+check('renamed en content migrates to hu', renamedSectionData.hu === 'human' && !('en' in renamedSectionData));
+check('renamed section metadata migrates with content', eq(
+  { enabled: renamedSectionData._s, explanation: renamedSectionData._e.hu },
+  { enabled: ['hu'], explanation: 'definition' }
+));
 
 if (failures) {
   console.error(`${failures} V3 contract check(s) failed.`);

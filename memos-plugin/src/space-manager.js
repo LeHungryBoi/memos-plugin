@@ -21,6 +21,8 @@ let draftType = null;
 let migrationPlan = [];
 let migrationType = null;
 let colorDrag = null;
+let currentPageTypeId = null;
+let selectCurrentSpaceOnNextRender = false;
 const sectionHsv = new WeakMap();
 
 function status(message, isError) {
@@ -122,15 +124,16 @@ function sectionRowHtml(section, index) {
  * no stale badges, no separate Definition block below.
  */
 function typeCardHtml(type, index, total, inUseId) {
-  const inUse = type.id === inUseId;
+  const isNewCardTarget = type.id === inUseId;
+  const currentPage = type.id === currentPageTypeId;
   const open = Boolean(draftType && draftType.id === type.id);
   const aliasCount = Object.keys(type.sectionAliases || {}).length;
   return `
-    <li class="lc-type-card${inUse ? ' lc-type-in-use' : ''}${open ? ' lc-type-open' : ''}">
+    <li class="lc-type-card${open ? ' lc-type-open' : ''}">
       <div class="lc-type-card-head">
         <button type="button" class="lc-type-card-title" data-action="type-edit" data-type-id="${escapeHtml(type.id)}" title="Click to edit this type">
           <b>${escapeHtml(type.name)}</b>
-          ${inUse ? '<span class="lc-type-badge-use">In use</span>' : ''}
+          ${currentPage ? '<span class="lc-type-badge-current">Current space</span>' : ''}
           <span class="lc-type-meta">
             ${escapeHtml(type.spaceName || 'no space')} &middot;
             ${type.sections.length ? type.sections.map(s => escapeHtml(s.label)).join(' · ') : 'no sections yet'} &middot;
@@ -141,7 +144,7 @@ function typeCardHtml(type, index, total, inUseId) {
         <div class="lc-type-row-actions">
           <button type="button" class="lc-btn-icon" data-action="type-up" data-type-id="${escapeHtml(type.id)}" ${index === 0 ? 'disabled' : ''} title="Move up">↑</button>
           <button type="button" class="lc-btn-icon" data-action="type-down" data-type-id="${escapeHtml(type.id)}" ${index === total - 1 ? 'disabled' : ''} title="Move down">↓</button>
-          ${inUse ? '' : `<button type="button" class="lc-btn lc-btn-secondary" data-action="type-use" data-type-id="${escapeHtml(type.id)}">Use for new cards</button>`}
+          ${isNewCardTarget ? '' : `<button type="button" class="lc-btn lc-btn-secondary" data-action="type-use" data-type-id="${escapeHtml(type.id)}">Use for new cards</button>`}
           <button type="button" class="lc-btn lc-btn-secondary" data-action="type-edit" data-type-id="${escapeHtml(type.id)}">${open ? 'Close' : 'Edit'}</button>
         </div>
       </div>
@@ -198,6 +201,7 @@ async function writeTypeMarker(type, successMessage) {
   if (res && res.ok) {
     status(successMessage || 'Marker saved.');
     await getCardTypes({ force: true });
+    if (typeof state.onCardTypesChanged === 'function') state.onCardTypesChanged();
     await refreshSpaceIndicator(true);
     await renderManager();
     return true;
@@ -469,9 +473,9 @@ function migratedContent(rawText, mapping) {
   return `${rawText.substring(0, start)}${JSON.stringify(mapped)}${rawText.substring(end + 1)}`;
 }
 
-async function openMigrationWizard(typeId) {
+async function openMigrationWizard(typeId, memoName) {
   const type = state.types.find(candidate => candidate.id === typeId)
-    || state.activeType || state.types[0];
+    || (memoName ? null : state.activeType || state.types[0]);
   if (!type || !type.spaceName) {
     status('Pick a card type bound to a space first.', true);
     return;
@@ -480,14 +484,18 @@ async function openMigrationWizard(typeId) {
   const overlay = migrationOverlay();
   overlay.style.display = 'flex';
   const title = document.getElementById('lc-migration-title');
-  if (title) title.innerText = `Migrate notes — ${type.name} (${type.spaceName})`;
+  if (title) {
+    title.innerText = memoName
+      ? `Migrate note — ${type.name}`
+      : `Migrate notes — ${type.name} (${type.spaceName})`;
+  }
   const body = document.getElementById('lc-migration-body');
   if (body) body.innerHTML = '<p class="lc-manager-hint">Scanning notes in this space…</p>';
   try {
     const token = await getMemosAuthToken();
     const memos = await listMemosForSpace(type.spaceName, token);
     const keys = sectionKeys(type);
-    migrationPlan = memos.map(memo => {
+    migrationPlan = memos.filter(memo => !memoName || memo.name === memoName).map(memo => {
       const raw = String(memo.content || '');
       const v3 = parseCardV3(raw);
       const legacy = v3 ? null : parseCardMemo(raw, type.spaceName);
@@ -555,6 +563,7 @@ async function runMigration() {
       const ok = await writeTypeMarkerSilently(migrationType);
       if (ok) {
         await getCardTypes({ force: true });
+        if (typeof state.onCardTypesChanged === 'function') state.onCardTypesChanged();
         aliasNote = ' Consistent mappings saved as section aliases.';
       } else {
         aliasNote = ' (mappings were NOT saved to the type definition)';
@@ -798,7 +807,9 @@ async function renderManager() {
     const [types, spaces] = await Promise.all([getCardTypes({ force: true }), getAllSpaces(true)]);
     const marked = new Set(types.map(t => t.spaceName));
     const unmarked = spaces.filter(s => !marked.has(s.name));
-    // "In use" = the currently selected target for new cards.
+    const currentPageType = types.find(type => type.spaceName === getCurrentSpace()) || null;
+    currentPageTypeId = currentPageType && currentPageType.id;
+    // "In use" remains the selected target for new cards; the current page is a separate context.
     const inUseType = state.activeType || types[0];
     const migrationDefaultType = types.find(type => type.spaceName === getCurrentSpace()) || inUseType;
     bodyEl.innerHTML = `
@@ -834,7 +845,10 @@ async function renderManager() {
         <div id="lc-manager-status" class="lc-manager-status"></div>
       </div>`;
     bindManagerEvents(bodyEl);
-    if (!draftType || !types.some(t => t.id === draftType.id)) {
+    if (selectCurrentSpaceOnNextRender) {
+      draftType = JSON.parse(JSON.stringify(currentPageType || inUseType || null));
+      selectCurrentSpaceOnNextRender = false;
+    } else if (!draftType || !types.some(t => t.id === draftType.id)) {
       draftType = inUseType ? JSON.parse(JSON.stringify(inUseType)) : null;
     }
     renderTypeList();
@@ -848,6 +862,7 @@ async function showTypeManager() {
   const titleEl = document.getElementById('lc-space-info-title');
   if (!overlay) return;
   if (titleEl) titleEl.innerText = '🃏 Card types & spaces';
+  selectCurrentSpaceOnNextRender = true;
   overlay.style.display = 'flex';
   status('');
   await renderManager();
@@ -862,4 +877,15 @@ async function showCreateSpaceManager() {
   }
 }
 
-export { showTypeManager, showCreateSpaceManager, renderManager, migratedContent };
+function openIncompatibleMemoMigration(type, memoName) {
+  if (!type || !memoName) {
+    status('Could not determine the card type or memo to migrate.', true);
+    return;
+  }
+  return openMigrationWizard(type.id, memoName);
+}
+
+export {
+  showTypeManager, showCreateSpaceManager, renderManager, migratedContent,
+  openIncompatibleMemoMigration
+};

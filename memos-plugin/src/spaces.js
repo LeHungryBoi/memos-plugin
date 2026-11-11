@@ -66,7 +66,9 @@ import {
     const force = Boolean(options && options.force);
     if (!force && state.types.length) {
       if (!state.activeTypeManuallySelected) {
-        state.activeType = sortTypes(state.types)[0] || activeTypeForNew(state.types, getCurrentSpace());
+        state.activeType = typeForSpace(state.types, getCurrentSpace())
+          || sortTypes(state.types)[0]
+          || activeTypeForNew(state.types, getCurrentSpace());
       }
       return state.types;
     }
@@ -77,8 +79,8 @@ import {
     }).filter(Boolean));
     state.types = types;
 
-    // Keep an explicit selection; otherwise the first ordered type is the
-    // default, independent of the page's current Space URL.
+    // Keep an explicit selection; otherwise use the current Space before
+    // falling back to the first ordered type.
     const cached = readCachedTargetSpace();
     const cachedType = cached && typeForSpace(types, cached.name);
     state.activeTypeManuallySelected = Boolean(cached && cached.manual);
@@ -86,7 +88,9 @@ import {
       state.activeType = cachedType;
     } else {
       state.activeTypeManuallySelected = false;
-      state.activeType = sortTypes(types)[0] || activeTypeForNew(types, getCurrentSpace());
+      state.activeType = typeForSpace(types, getCurrentSpace())
+        || sortTypes(types)[0]
+        || activeTypeForNew(types, getCurrentSpace());
     }
     return types;
   }

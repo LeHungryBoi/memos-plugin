@@ -41,11 +41,6 @@
   overflow: hidden;
 }
 
-.lc-type-card.lc-type-in-use {
-  border-color: #34d399;
-  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.25);
-}
-
 .lc-type-card.lc-type-open {
   border-color: #38bdf8;
   box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
@@ -84,12 +79,12 @@
   color: var(--lc-text-muted);
 }
 
-.lc-type-badge-use {
+.lc-type-badge-current {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 8px;
-  background: rgba(52, 211, 153, 0.18);
-  color: #34d399;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
 }
 
 .lc-type-card-body {

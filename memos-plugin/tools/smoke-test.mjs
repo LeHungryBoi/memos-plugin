@@ -457,7 +457,18 @@ async function runScript(file, label) {
     await tick(30);
     if (!env.ids.has('lc-migration-open-btn')) throw new Error('R4: migration wizard entry is missing');
     const managerHtml = env.htmlById.get('lc-space-info-body') || '';
+    const managerTypeListHtml = env.htmlById.get('lc-type-list') || '';
     if (!managerHtml.includes('lc-create-space-btn')) throw new Error('space manager must provide a create-space action');
+    const otherTypeCard = managerTypeListHtml.match(/<li class="lc-type-card[^>]*>(?:(?!<li class="lc-type-card)[\s\S])*?data-type-id="other"(?:(?!<li class="lc-type-card)[\s\S])*?<\/li>/);
+    const defaultTypeCard = managerTypeListHtml.match(/<li class="lc-type-card[^>]*>(?:(?!<li class="lc-type-card)[\s\S])*?data-type-id="spaces\/lc"(?:(?!<li class="lc-type-card)[\s\S])*?<\/li>/);
+    if (!managerTypeListHtml.includes('Current space') ||
+        !managerTypeListHtml.includes('lc-type-card-body') ||
+        !managerTypeListHtml.includes('lc-type-badge-current') ||
+        !otherTypeCard || otherTypeCard[0].includes('In use for new cards') ||
+        !defaultTypeCard || defaultTypeCard[0].includes('In use for new cards') ||
+        !managerTypeListHtml.includes('data-action="type-use"')) {
+        throw new Error('the manager must identify the current URL Space without showing an in-use indicator');
+    }
     if (!env.ids.has('lc-migration-type-select')) throw new Error('migration must let users choose a space-specific type');
     if (!(env.htmlById.get('lc-space-info-body') || '').includes('value="other" selected')) {
         throw new Error('the migration type selector must default to the current URL Space when available');
@@ -559,6 +570,12 @@ if (!inlineStyle.includes('Migrate this V2 card to V3') ||
     !inlineStyle.includes('lc-btn lc-btn-primary') ||
     !inlineStyle.includes('lc-v2-migration-header')) {
     throw new Error('V2 cards must offer a side-by-side V3 migration preview');
+}
+if (!inlineStyle.includes('Migrate incompatible sections') ||
+    !inlineStyle.includes('incompatibleSectionKeys') ||
+    !inlineStyle.includes('openIncompatibleMemoMigration') ||
+    !inlineStyle.includes('memo.name === memoName')) {
+    throw new Error('incompatible card sections must expose a per-note migration action');
 }
 if (inlineStyle.includes('lc-explanation-toggle')) {
     throw new Error('global explanation toggle markup must not be in the bundle');

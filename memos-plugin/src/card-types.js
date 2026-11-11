@@ -132,6 +132,15 @@ function sectionKeys(type) {
   return type.sections.map(s => s.key);
 }
 
+function incompatibleSectionKeys(values, type) {
+  const known = new Set(sectionKeys(type));
+  const metadata = new Set(['_t', 'v', '_e', '_u', '_s', '_x', '_eh']);
+  return Object.keys(values || {}).filter(key => (
+    !metadata.has(key) && !known.has(key)
+    && String(values[key] == null ? '' : values[key]).trim()
+  ));
+}
+
 function typeForSpace(types, spaceName) {
   if (!spaceName) return null;
   return types.find(t => t.spaceName === spaceName) || null;
@@ -201,6 +210,6 @@ function mapSectionKeys(data, aliasMap, keepUnknown = true) {
 
 export {
   V3_VERSION, defaultSections, extractMarker, normalizeType, defaultType,
-  markerFromType, sortTypes, sectionKeys, typeForSpace, activeTypeForNew,
+  markerFromType, sortTypes, sectionKeys, incompatibleSectionKeys, typeForSpace, activeTypeForNew,
   typeForMemo, valueForSection, mapSectionKeys
 };

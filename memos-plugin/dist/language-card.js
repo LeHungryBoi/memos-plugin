@@ -1162,11 +1162,6 @@
   overflow: hidden;
 }
 
-.lc-type-card.lc-type-in-use {
-  border-color: #34d399;
-  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.25);
-}
-
 .lc-type-card.lc-type-open {
   border-color: #38bdf8;
   box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
@@ -1205,12 +1200,12 @@
   color: var(--lc-text-muted);
 }
 
-.lc-type-badge-use {
+.lc-type-badge-current {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 8px;
-  background: rgba(52, 211, 153, 0.18);
-  color: #34d399;
+  background: rgba(56, 189, 248, 0.18);
+  color: #38bdf8;
 }
 
 .lc-type-card-body {
@@ -1687,6 +1682,7 @@
     activeType: null,
     activeTypeManuallySelected: false,
     onQuickTypeSelected: null,
+    onCardTypesChanged: null,
     memoSpaceCache: /* @__PURE__ */ new Map(),
     memoSpaceWarmed: false,
     editingVersion: 2,
@@ -1804,6 +1800,11 @@
   }
   function sectionKeys(type) {
     return type.sections.map((s) => s.key);
+  }
+  function incompatibleSectionKeys(values, type) {
+    const known = new Set(sectionKeys(type));
+    const metadata = /* @__PURE__ */ new Set(["_t", "v", "_e", "_u", "_s", "_x", "_eh"]);
+    return Object.keys(values || {}).filter((key) => !metadata.has(key) && !known.has(key) && String(values[key] == null ? "" : values[key]).trim());
   }
   function typeForSpace(types, spaceName) {
     if (!spaceName) return null;
@@ -2796,7 +2797,7 @@ ${normalizedTags}` : "");
     const force = Boolean(options && options.force);
     if (!force && state.types.length) {
       if (!state.activeTypeManuallySelected) {
-        state.activeType = sortTypes(state.types)[0] || activeTypeForNew(state.types, getCurrentSpace());
+        state.activeType = typeForSpace(state.types, getCurrentSpace()) || sortTypes(state.types)[0] || activeTypeForNew(state.types, getCurrentSpace());
       }
       return state.types;
     }
@@ -2813,7 +2814,7 @@ ${normalizedTags}` : "");
       state.activeType = cachedType;
     } else {
       state.activeTypeManuallySelected = false;
-      state.activeType = sortTypes(types)[0] || activeTypeForNew(types, getCurrentSpace());
+      state.activeType = typeForSpace(types, getCurrentSpace()) || sortTypes(types)[0] || activeTypeForNew(types, getCurrentSpace());
     }
     return types;
   }
@@ -2965,6 +2966,8 @@ ${normalizedTags}` : "");
   var migrationPlan = [];
   var migrationType = null;
   var colorDrag = null;
+  var currentPageTypeId = null;
+  var selectCurrentSpaceOnNextRender = false;
   var sectionHsv = /* @__PURE__ */ new WeakMap();
   function status(message, isError) {
     const el = document.getElementById("lc-manager-status");
@@ -3046,15 +3049,16 @@ ${marker}`.trim();
     </div>`;
   }
   function typeCardHtml(type, index, total, inUseId) {
-    const inUse = type.id === inUseId;
+    const isNewCardTarget = type.id === inUseId;
+    const currentPage = type.id === currentPageTypeId;
     const open = Boolean(draftType && draftType.id === type.id);
     const aliasCount = Object.keys(type.sectionAliases || {}).length;
     return `
-    <li class="lc-type-card${inUse ? " lc-type-in-use" : ""}${open ? " lc-type-open" : ""}">
+    <li class="lc-type-card${open ? " lc-type-open" : ""}">
       <div class="lc-type-card-head">
         <button type="button" class="lc-type-card-title" data-action="type-edit" data-type-id="${escapeHtml(type.id)}" title="Click to edit this type">
           <b>${escapeHtml(type.name)}</b>
-          ${inUse ? '<span class="lc-type-badge-use">In use</span>' : ""}
+          ${currentPage ? '<span class="lc-type-badge-current">Current space</span>' : ""}
           <span class="lc-type-meta">
             ${escapeHtml(type.spaceName || "no space")} &middot;
             ${type.sections.length ? type.sections.map((s) => escapeHtml(s.label)).join(" · ") : "no sections yet"} &middot;
@@ -3065,7 +3069,7 @@ ${marker}`.trim();
         <div class="lc-type-row-actions">
           <button type="button" class="lc-btn-icon" data-action="type-up" data-type-id="${escapeHtml(type.id)}" ${index === 0 ? "disabled" : ""} title="Move up">↑</button>
           <button type="button" class="lc-btn-icon" data-action="type-down" data-type-id="${escapeHtml(type.id)}" ${index === total - 1 ? "disabled" : ""} title="Move down">↓</button>
-          ${inUse ? "" : `<button type="button" class="lc-btn lc-btn-secondary" data-action="type-use" data-type-id="${escapeHtml(type.id)}">Use for new cards</button>`}
+          ${isNewCardTarget ? "" : `<button type="button" class="lc-btn lc-btn-secondary" data-action="type-use" data-type-id="${escapeHtml(type.id)}">Use for new cards</button>`}
           <button type="button" class="lc-btn lc-btn-secondary" data-action="type-edit" data-type-id="${escapeHtml(type.id)}">${open ? "Close" : "Edit"}</button>
         </div>
       </div>
@@ -3116,6 +3120,7 @@ ${marker}`.trim();
     if (res && res.ok) {
       status(successMessage || "Marker saved.");
       await getCardTypes({ force: true });
+      if (typeof state.onCardTypesChanged === "function") state.onCardTypesChanged();
       await refreshSpaceIndicator(true);
       await renderManager();
       return true;
@@ -3365,8 +3370,8 @@ ${marker}`.trim();
     mapped.v = V3_VERSION;
     return `${rawText.substring(0, start)}${JSON.stringify(mapped)}${rawText.substring(end + 1)}`;
   }
-  async function openMigrationWizard(typeId) {
-    const type = state.types.find((candidate) => candidate.id === typeId) || state.activeType || state.types[0];
+  async function openMigrationWizard(typeId, memoName) {
+    const type = state.types.find((candidate) => candidate.id === typeId) || (memoName ? null : state.activeType || state.types[0]);
     if (!type || !type.spaceName) {
       status("Pick a card type bound to a space first.", true);
       return;
@@ -3375,14 +3380,16 @@ ${marker}`.trim();
     const overlay = migrationOverlay();
     overlay.style.display = "flex";
     const title = document.getElementById("lc-migration-title");
-    if (title) title.innerText = `Migrate notes — ${type.name} (${type.spaceName})`;
+    if (title) {
+      title.innerText = memoName ? `Migrate note — ${type.name}` : `Migrate notes — ${type.name} (${type.spaceName})`;
+    }
     const body = document.getElementById("lc-migration-body");
     if (body) body.innerHTML = '<p class="lc-manager-hint">Scanning notes in this space…</p>';
     try {
       const token = await getMemosAuthToken();
       const memos = await listMemosForSpace(type.spaceName, token);
       const keys = sectionKeys(type);
-      migrationPlan = memos.map((memo) => {
+      migrationPlan = memos.filter((memo) => !memoName || memo.name === memoName).map((memo) => {
         const raw = String(memo.content || "");
         const v3 = parseCardV3(raw);
         const legacy = v3 ? null : parseCardMemo(raw, type.spaceName);
@@ -3445,6 +3452,7 @@ ${marker}`.trim();
         const ok = await writeTypeMarkerSilently(migrationType);
         if (ok) {
           await getCardTypes({ force: true });
+          if (typeof state.onCardTypesChanged === "function") state.onCardTypesChanged();
           aliasNote = " Consistent mappings saved as section aliases.";
         } else {
           aliasNote = " (mappings were NOT saved to the type definition)";
@@ -3671,6 +3679,8 @@ ${marker}`.trim();
       const [types, spaces] = await Promise.all([getCardTypes({ force: true }), getAllSpaces(true)]);
       const marked = new Set(types.map((t) => t.spaceName));
       const unmarked = spaces.filter((s) => !marked.has(s.name));
+      const currentPageType = types.find((type) => type.spaceName === getCurrentSpace()) || null;
+      currentPageTypeId = currentPageType && currentPageType.id;
       const inUseType = state.activeType || types[0];
       const migrationDefaultType = types.find((type) => type.spaceName === getCurrentSpace()) || inUseType;
       bodyEl.innerHTML = `
@@ -3706,7 +3716,10 @@ ${marker}`.trim();
         <div id="lc-manager-status" class="lc-manager-status"></div>
       </div>`;
       bindManagerEvents(bodyEl);
-      if (!draftType || !types.some((t) => t.id === draftType.id)) {
+      if (selectCurrentSpaceOnNextRender) {
+        draftType = JSON.parse(JSON.stringify(currentPageType || inUseType || null));
+        selectCurrentSpaceOnNextRender = false;
+      } else if (!draftType || !types.some((t) => t.id === draftType.id)) {
         draftType = inUseType ? JSON.parse(JSON.stringify(inUseType)) : null;
       }
       renderTypeList();
@@ -3719,6 +3732,7 @@ ${marker}`.trim();
     const titleEl = document.getElementById("lc-space-info-title");
     if (!overlay) return;
     if (titleEl) titleEl.innerText = "🃏 Card types & spaces";
+    selectCurrentSpaceOnNextRender = true;
     overlay.style.display = "flex";
     status("");
     await renderManager();
@@ -3730,6 +3744,13 @@ ${marker}`.trim();
       input.scrollIntoView({ block: "center" });
       input.focus();
     }
+  }
+  function openIncompatibleMemoMigration(type, memoName) {
+    if (!type || !memoName) {
+      status("Could not determine the card type or memo to migrate.", true);
+      return;
+    }
+    return openMigrationWizard(type.id, memoName);
   }
 
   // src/editor.js
@@ -4534,6 +4555,19 @@ ${tags}` : "");
     const controls = document.createElement("div");
     controls.className = "lc-card-note-controls";
     if (memoName && showControls) {
+      if (incompatibleSectionKeys(parsed.values, baseType).length) {
+        const migrateBtn = document.createElement("button");
+        migrateBtn.type = "button";
+        migrateBtn.className = "lc-btn-icon lc-card-incompatible-migrate-btn";
+        migrateBtn.title = "Migrate incompatible sections";
+        migrateBtn.setAttribute("aria-label", "Migrate incompatible sections");
+        migrateBtn.innerText = "🔀";
+        migrateBtn.onclick = (event) => {
+          event.stopPropagation();
+          openIncompatibleMemoMigration(baseType, memoName);
+        };
+        controls.appendChild(migrateBtn);
+      }
       const editBtn = document.createElement("button");
       editBtn.type = "button";
       editBtn.className = "lc-btn-icon lc-card-edit-btn";
@@ -4624,6 +4658,8 @@ ${tags}` : "");
     const controls = document.createElement("div");
     controls.className = "lc-card-note-controls";
     if (memoName && showControls) {
+      const memoType = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+      const hasIncompatibleSections = incompatibleSectionKeys(data, memoType).length > 0;
       const editBtn = document.createElement("button");
       editBtn.type = "button";
       editBtn.className = "lc-btn-icon lc-card-edit-btn";
@@ -4650,6 +4686,19 @@ ${tags}` : "");
         openV2MigrationPreview({ memoName, parsed, activeLangs });
       };
       controls.appendChild(migrateBtn);
+      if (hasIncompatibleSections) {
+        const incompatibleBtn = document.createElement("button");
+        incompatibleBtn.type = "button";
+        incompatibleBtn.className = "lc-btn-icon lc-card-incompatible-migrate-btn";
+        incompatibleBtn.title = "Migrate incompatible sections";
+        incompatibleBtn.setAttribute("aria-label", "Migrate incompatible sections");
+        incompatibleBtn.innerText = "🔀";
+        incompatibleBtn.onclick = (event) => {
+          event.stopPropagation();
+          openIncompatibleMemoMigration(memoType, memoName);
+        };
+        controls.appendChild(incompatibleBtn);
+      }
     }
     noteBar.appendChild(controls);
     cardWrapper.appendChild(noteBar);
@@ -4988,6 +5037,7 @@ ${tags}` : "");
     (document.head || document.body).appendChild(style);
   }
   injectStyles(styles_default);
+  state.onCardTypesChanged = forceRerenderCards;
   getCardTypes().then(() => warmMemoSpaceCache()).then(() => forceRerenderCards()).catch(() => {
   });
   var debounceTimer = null;

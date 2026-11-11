@@ -4,6 +4,7 @@ import { renderLanguageCards, forceRerenderCards } from './card-render.js';
 import { injectCreatorUI } from './editor.js';
 import { injectQuickActions } from './quick-actions.js';
 import { getCardTypes, warmMemoSpaceCache } from './spaces.js';
+import { state } from './state.js';
 
 /** The single-file build inlines the stylesheet; the CSS-only build leaves it out. */
 function injectStyles(css) {
@@ -15,6 +16,7 @@ function injectStyles(css) {
 }
 
 injectStyles(cssText);
+state.onCardTypesChanged = forceRerenderCards;
 
   // V3: card types live in space descriptions and load asynchronously. Once
   // they (and the memo -> space map) are ready, repaint already-rendered cards

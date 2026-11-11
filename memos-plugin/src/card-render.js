@@ -6,10 +6,11 @@ import {
   cardLangValue, cardPresentLangs, valuesFor,
   sectionExplanationsFor, unifiedExplanationFor
 } from './card-model.js';
-import { typeForMemo, sectionKeys } from './card-types.js';
+import { typeForMemo, sectionKeys, incompatibleSectionKeys } from './card-types.js';
 import { tagStore } from './tags.js';
 import { openModal } from './editor.js';
 import { getMemosAuthToken, patchMemoContent, fetchMemoContent } from './api.js';
+import { openIncompatibleMemoMigration } from './space-manager.js';
 
   // --- Part 1: Render Language Cards with Per-Note Local Switch ---
 
@@ -77,6 +78,20 @@ import { getMemosAuthToken, patchMemoContent, fetchMemoContent } from './api.js'
     const controls = document.createElement('div');
     controls.className = 'lc-card-note-controls';
     if (memoName && showControls) {
+      if (incompatibleSectionKeys(parsed.values, baseType).length) {
+        const migrateBtn = document.createElement('button');
+        migrateBtn.type = 'button';
+        migrateBtn.className = 'lc-btn-icon lc-card-incompatible-migrate-btn';
+        migrateBtn.title = 'Migrate incompatible sections';
+        migrateBtn.setAttribute('aria-label', 'Migrate incompatible sections');
+        migrateBtn.innerText = '🔀';
+        migrateBtn.onclick = (event) => {
+          event.stopPropagation();
+          openIncompatibleMemoMigration(baseType, memoName);
+        };
+        controls.appendChild(migrateBtn);
+      }
+
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'lc-btn-icon lc-card-edit-btn';
@@ -178,6 +193,9 @@ import { getMemosAuthToken, patchMemoContent, fetchMemoContent } from './api.js'
     const controls = document.createElement('div');
     controls.className = 'lc-card-note-controls';
     if (memoName && showControls) {
+      const memoType = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+      const hasIncompatibleSections = incompatibleSectionKeys(data, memoType).length > 0;
+
       const editBtn = document.createElement('button');
       editBtn.type = 'button';
       editBtn.className = 'lc-btn-icon lc-card-edit-btn';
@@ -205,6 +223,19 @@ import { getMemosAuthToken, patchMemoContent, fetchMemoContent } from './api.js'
         openV2MigrationPreview({ memoName, parsed, activeLangs });
       };
       controls.appendChild(migrateBtn);
+      if (hasIncompatibleSections) {
+        const incompatibleBtn = document.createElement('button');
+        incompatibleBtn.type = 'button';
+        incompatibleBtn.className = 'lc-btn-icon lc-card-incompatible-migrate-btn';
+        incompatibleBtn.title = 'Migrate incompatible sections';
+        incompatibleBtn.setAttribute('aria-label', 'Migrate incompatible sections');
+        incompatibleBtn.innerText = '🔀';
+        incompatibleBtn.onclick = (event) => {
+          event.stopPropagation();
+          openIncompatibleMemoMigration(memoType, memoName);
+        };
+        controls.appendChild(incompatibleBtn);
+      }
     }
     noteBar.appendChild(controls);
     cardWrapper.appendChild(noteBar);
