@@ -125,30 +125,28 @@ import { openModal } from './editor.js';
     });
     wrapper.appendChild(grid);
 
-    // Per-language explanations mirror the visible language columns.
-    if (parsed.showExplanation) {
-      const boxes = document.createElement('div');
-      boxes.className = 'lc-card-explanations';
-      boxes.style.setProperty('--lc-cols', Math.max(1, visibleKeys.length));
-      type.sections.forEach((section) => {
-        const text = explanations[section.key];
-        if (!text || !visibleKeys.includes(section.key)
-          || (parsed.hiddenExplanationSections || []).includes(section.key)) return;
-        const box = document.createElement('div');
-        box.className = 'lc-card-explanation';
-        box.setAttribute('data-lc-explanation', section.key);
-        box.style.gridColumn = String(visibleKeys.indexOf(section.key) + 1);
-        box.innerText = text;
-        boxes.appendChild(box);
-      });
-      if (boxes.children.length) wrapper.appendChild(boxes);
+    // Per-language explanations mirror visible language columns; _x is legacy.
+    const boxes = document.createElement('div');
+    boxes.className = 'lc-card-explanations';
+    boxes.style.setProperty('--lc-cols', Math.max(1, visibleKeys.length));
+    type.sections.forEach((section) => {
+      const text = explanations[section.key];
+      if (!text || !visibleKeys.includes(section.key)
+        || (parsed.hiddenExplanationSections || []).includes(section.key)) return;
+      const box = document.createElement('div');
+      box.className = 'lc-card-explanation';
+      box.setAttribute('data-lc-explanation', section.key);
+      box.style.gridColumn = String(visibleKeys.indexOf(section.key) + 1);
+      box.innerText = text;
+      boxes.appendChild(box);
+    });
+    if (boxes.children.length) wrapper.appendChild(boxes);
 
-      if (unifiedExplanation) {
-        const box = document.createElement('div');
-        box.className = 'lc-card-explanation lc-card-explanation-global';
-        box.innerText = unifiedExplanation;
-        wrapper.appendChild(box);
-      }
+    if (unifiedExplanation) {
+      const box = document.createElement('div');
+      box.className = 'lc-card-explanation lc-card-explanation-global';
+      box.innerText = unifiedExplanation;
+      wrapper.appendChild(box);
     }
 
     if (tags.length > 0) {

@@ -104,7 +104,7 @@ function unlockPageScroll() {
       const slot = document.getElementById(`lc-explanation-slot-${section.key}`);
       const languageEnabled = state.modalActiveLangs.includes(section.key);
       const explanationEnabled = isExplanationSectionEnabled(section.key);
-      const visible = state.explanationEnabled && languageEnabled && explanationEnabled;
+      const visible = languageEnabled && explanationEnabled;
       if (visible) activeCount++;
       if (slot) slot.style.display = visible ? 'flex' : 'none';
       if (toggle) {
@@ -120,7 +120,7 @@ function unlockPageScroll() {
       explanationGrid.style.setProperty('--lc-explanation-cols', Math.max(1, activeCount));
     }
     const unifiedSlot = document.querySelector('.lc-unified-explanation-slot');
-    if (unifiedSlot) unifiedSlot.style.display = state.explanationEnabled ? 'flex' : 'none';
+    if (unifiedSlot) unifiedSlot.style.display = 'flex';
   }
 
   function toggleExplanationSection(key) {
@@ -164,7 +164,7 @@ function unlockPageScroll() {
    * Per-section explanation switches stay visible independently of their
    * language columns; text inputs follow both switches.
    */
-  function renderExplanationArea(type, explanations, unifiedExplanation, enabled) {
+  function renderExplanationArea(type, explanations, unifiedExplanation) {
     const host = document.getElementById('lc-explanation-area');
     if (!host) return;
     if (state.editingVersion !== 3) {
@@ -183,10 +183,6 @@ function unlockPageScroll() {
       </div>`).join('');
     host.innerHTML = `
       <div class="lc-explanation-panel">
-        <div class="lc-explanation-toggle-row">
-          <button type="button" id="lc-explanation-toggle" class="lc-modal-lang-chip ${enabled ? 'active' : ''}" title="Show / hide explanation for this card">Explanation</button>
-          <span class="lc-modal-lang-label">per-language + unified</span>
-        </div>
         <div id="lc-explanation-section-toggles" class="lc-modal-lang-bar lc-explanation-section-toggles">
           <span class="lc-modal-lang-label">Sections:</span>
           ${sectionToggles}
@@ -194,29 +190,19 @@ function unlockPageScroll() {
         <div id="lc-explanation-inputs" class="lc-explanation-inputs" style="--lc-explanation-cols:${Math.max(1, currentSections().length)}">
           ${sectionInputs}
         </div>
-        <div class="lc-unified-explanation-slot" style="display:${enabled ? 'flex' : 'none'}">
+        <div class="lc-unified-explanation-slot">
           <label class="lc-form-label">Unified explanation</label>
           <textarea id="lc-explain-unified" class="lc-explanation-input" rows="2" placeholder="Explanation for the whole card">${escapeHtml(unifiedExplanation || '')}</textarea>
         </div>
       </div>`;
-    const toggle = document.getElementById('lc-explanation-toggle');
-    if (toggle) toggle.onclick = toggleExplanation;
     currentSections().forEach(section => {
       const sectionToggle = document.getElementById(`lc-explanation-section-toggle-${section.key}`);
       if (sectionToggle) sectionToggle.onclick = () => toggleExplanationSection(section.key);
     });
   }
 
-  function toggleExplanation() {
-    state.explanationEnabled = !state.explanationEnabled;
-    const btn = document.getElementById('lc-explanation-toggle');
-    if (btn) btn.classList.toggle('active', state.explanationEnabled);
-    updateModalExplanationSlots();
-    updatePreview();
-  }
-
   /** Build the section chips + inputs from the active card type. */
-  function renderEditorForType(type, values, explanations, unifiedExplanation, enabled) {
+  function renderEditorForType(type, values, explanations, unifiedExplanation) {
     const chips = document.getElementById('lc-modal-lang-bar');
     if (chips) {
       chips.innerHTML = `<span class="lc-modal-lang-label">This note:</span>` + type.sections.map(s => `
@@ -250,7 +236,7 @@ function unlockPageScroll() {
       });
     }
 
-    renderExplanationArea(type, explanations, unifiedExplanation, enabled);
+    renderExplanationArea(type, explanations, unifiedExplanation);
     bindEditorInputs(type.sections.map(s => s.key));
   }
 
@@ -281,7 +267,7 @@ function unlockPageScroll() {
     }
     if (!state.modalActiveLangs.length && keys.length) state.modalActiveLangs = [...keys];
 
-    renderEditorForType(type, values, explanations, unifiedExplanation, state.explanationEnabled);
+    renderEditorForType(type, values, explanations, unifiedExplanation);
     updateModalEditorSlots();
     updateSpaceHint(type.spaceName, type.spaceTitle);
     const title = document.getElementById('lc-modal-title-text');
@@ -614,7 +600,6 @@ function unlockPageScroll() {
     const tagsEl = document.getElementById('lc-input-tags');
     if (tagsEl) tagsEl.value = (editData && editData.tags) || '';
 
-    state.explanationEnabled = isV3Edit ? editData.showExplanation !== false : true;
     state.hiddenExplanationSections = isV3Edit && Array.isArray(editData.hiddenExplanationSections)
       ? editData.hiddenExplanationSections.filter(key => keys.includes(key))
       : [];
@@ -629,8 +614,7 @@ function unlockPageScroll() {
       type,
       values,
       isV3Edit ? editData.explanations : {},
-      isV3Edit ? editData.unifiedExplanation : '',
-      state.explanationEnabled
+      isV3Edit ? editData.unifiedExplanation : ''
     );
     updateModalEditorSlots();
     updateSpaceHint(type.spaceName, type.spaceTitle);
@@ -670,7 +654,7 @@ function unlockPageScroll() {
         type,
         values,
         explanations,
-        state.explanationEnabled,
+        true,
         rawTags,
         state.modalActiveLangs,
         unifiedExplanation,
@@ -860,5 +844,5 @@ function unlockPageScroll() {
 
 export {
   injectCreatorUI, openModal, closeModal, buildCardPayload,
-  updatePreview, showError, clearError, saveCard, toggleExplanation
+  updatePreview, showError, clearError, saveCard
 };

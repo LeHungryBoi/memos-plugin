@@ -1061,13 +1061,6 @@
   margin-top: 10px;
 }
 
-.lc-explanation-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
 .lc-explanation-section-toggles {
   flex-wrap: wrap;
   margin-bottom: 6px;

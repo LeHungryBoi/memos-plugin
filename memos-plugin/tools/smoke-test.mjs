@@ -261,7 +261,7 @@ async function runScript(file, label) {
     await env.click('lc-fab-btn'); // open editor
     await tick(20);
     if (env.ids.has('lc-toggle-btn-ja')) throw new Error('R5.1: homepage language pills must be gone');
-    if (!env.ids.has('lc-explanation-toggle')) throw new Error('R3: independent explanation switch missing');
+    if (env.ids.has('lc-explanation-toggle')) throw new Error('the global explanation toggle must be removed');
     if (!env.ids.has('lc-explanation-section-toggle-en')) {
         throw new Error('each language explanation must have its own switch');
     }
@@ -418,7 +418,6 @@ async function runScript(file, label) {
     }
     await env.click('lc-btn-cancel');
 
-    await env.click('lc-explanation-toggle'); // R3: switch is independent of section chips
     if (env.ids.has('lc-header-json')) throw new Error('editor must not show a second marker preview');
     const previewText = env.ids.get('lc-json-preview').innerText || '';
     if (!previewText.includes('"_t":"lc"')) throw new Error('the only preview must show the note content');
@@ -472,8 +471,8 @@ if (!inlineStyle.includes('lc-injected-style') || !inlineStyle.includes('--lc-bg
 if (!inlineStyle.includes('Copy Content')) {
     throw new Error('R1: Copy Content quick action is missing');
 }
-if (!inlineStyle.includes('lc-explanation-toggle')) {
-    throw new Error('R3: explanation switch is missing');
+if (inlineStyle.includes('lc-explanation-toggle')) {
+    throw new Error('global explanation toggle markup must not be in the bundle');
 }
 if (/\b(?:import|export)\s+(?:\{|\*|default|\w+\s+from)/.test(inlineStyle.replace(/^.*\*\//gm, ''))) {
     throw new Error('the bundle still contains ES module statements');

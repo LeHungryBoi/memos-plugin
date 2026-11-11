@@ -1064,13 +1064,6 @@
   margin-top: 10px;
 }
 
-.lc-explanation-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
 .lc-explanation-section-toggles {
   flex-wrap: wrap;
   margin-bottom: 6px;
@@ -1456,7 +1449,6 @@
     memoSpaceWarmed: false,
     editingVersion: 2,
     editingType: null,
-    explanationEnabled: true,
     hiddenExplanationSections: []
   };
   function getGlobalEnabledLangs() {
@@ -3300,7 +3292,7 @@ ${marker}`.trim();
       const slot = document.getElementById(`lc-explanation-slot-${section.key}`);
       const languageEnabled = state.modalActiveLangs.includes(section.key);
       const explanationEnabled = isExplanationSectionEnabled(section.key);
-      const visible = state.explanationEnabled && languageEnabled && explanationEnabled;
+      const visible = languageEnabled && explanationEnabled;
       if (visible) activeCount++;
       if (slot) slot.style.display = visible ? "flex" : "none";
       if (toggle) {
@@ -3316,7 +3308,7 @@ ${marker}`.trim();
       explanationGrid.style.setProperty("--lc-explanation-cols", Math.max(1, activeCount));
     }
     const unifiedSlot = document.querySelector(".lc-unified-explanation-slot");
-    if (unifiedSlot) unifiedSlot.style.display = state.explanationEnabled ? "flex" : "none";
+    if (unifiedSlot) unifiedSlot.style.display = "flex";
   }
   function toggleExplanationSection(key) {
     if (isExplanationSectionEnabled(key)) {
@@ -3350,7 +3342,7 @@ ${marker}`.trim();
     updateModalExplanationSlots();
     updatePreview();
   }
-  function renderExplanationArea(type, explanations, unifiedExplanation, enabled) {
+  function renderExplanationArea(type, explanations, unifiedExplanation) {
     const host = document.getElementById("lc-explanation-area");
     if (!host) return;
     if (state.editingVersion !== 3) {
@@ -3369,10 +3361,6 @@ ${marker}`.trim();
       </div>`).join("");
     host.innerHTML = `
       <div class="lc-explanation-panel">
-        <div class="lc-explanation-toggle-row">
-          <button type="button" id="lc-explanation-toggle" class="lc-modal-lang-chip ${enabled ? "active" : ""}" title="Show / hide explanation for this card">Explanation</button>
-          <span class="lc-modal-lang-label">per-language + unified</span>
-        </div>
         <div id="lc-explanation-section-toggles" class="lc-modal-lang-bar lc-explanation-section-toggles">
           <span class="lc-modal-lang-label">Sections:</span>
           ${sectionToggles}
@@ -3380,26 +3368,17 @@ ${marker}`.trim();
         <div id="lc-explanation-inputs" class="lc-explanation-inputs" style="--lc-explanation-cols:${Math.max(1, currentSections().length)}">
           ${sectionInputs}
         </div>
-        <div class="lc-unified-explanation-slot" style="display:${enabled ? "flex" : "none"}">
+        <div class="lc-unified-explanation-slot">
           <label class="lc-form-label">Unified explanation</label>
           <textarea id="lc-explain-unified" class="lc-explanation-input" rows="2" placeholder="Explanation for the whole card">${escapeHtml(unifiedExplanation || "")}</textarea>
         </div>
       </div>`;
-    const toggle = document.getElementById("lc-explanation-toggle");
-    if (toggle) toggle.onclick = toggleExplanation;
     currentSections().forEach((section) => {
       const sectionToggle = document.getElementById(`lc-explanation-section-toggle-${section.key}`);
       if (sectionToggle) sectionToggle.onclick = () => toggleExplanationSection(section.key);
     });
   }
-  function toggleExplanation() {
-    state.explanationEnabled = !state.explanationEnabled;
-    const btn = document.getElementById("lc-explanation-toggle");
-    if (btn) btn.classList.toggle("active", state.explanationEnabled);
-    updateModalExplanationSlots();
-    updatePreview();
-  }
-  function renderEditorForType(type, values, explanations, unifiedExplanation, enabled) {
+  function renderEditorForType(type, values, explanations, unifiedExplanation) {
     const chips = document.getElementById("lc-modal-lang-bar");
     if (chips) {
       chips.innerHTML = `<span class="lc-modal-lang-label">This note:</span>` + type.sections.map((s) => `
@@ -3431,7 +3410,7 @@ ${marker}`.trim();
         if (el) el.value = String(values && values[s.key] || "");
       });
     }
-    renderExplanationArea(type, explanations, unifiedExplanation, enabled);
+    renderExplanationArea(type, explanations, unifiedExplanation);
     bindEditorInputs(type.sections.map((s) => s.key));
   }
   function applyQuickSelectedType(type) {
@@ -3456,7 +3435,7 @@ ${marker}`.trim();
       state.modalActiveLangs = keys.filter((key) => !type.sections.some((section) => section.key === key && section.defaultHidden));
     }
     if (!state.modalActiveLangs.length && keys.length) state.modalActiveLangs = [...keys];
-    renderEditorForType(type, values, explanations, unifiedExplanation, state.explanationEnabled);
+    renderEditorForType(type, values, explanations, unifiedExplanation);
     updateModalEditorSlots();
     updateSpaceHint(type.spaceName, type.spaceTitle);
     const title = document.getElementById("lc-modal-title-text");
@@ -3764,7 +3743,6 @@ ${marker}`.trim();
     }
     const tagsEl = document.getElementById("lc-input-tags");
     if (tagsEl) tagsEl.value = editData && editData.tags || "";
-    state.explanationEnabled = isV3Edit ? editData.showExplanation !== false : true;
     state.hiddenExplanationSections = isV3Edit && Array.isArray(editData.hiddenExplanationSections) ? editData.hiddenExplanationSections.filter((key) => keys.includes(key)) : [];
     state.modalActiveLangs = initialLangs && initialLangs.length ? keys.filter((k) => initialLangs.includes(k)) : keys.filter((k) => !type.sections.some((s) => s.key === k && s.defaultHidden));
     if (!state.modalActiveLangs.length) state.modalActiveLangs = [...keys];
@@ -3772,8 +3750,7 @@ ${marker}`.trim();
       type,
       values,
       isV3Edit ? editData.explanations : {},
-      isV3Edit ? editData.unifiedExplanation : "",
-      state.explanationEnabled
+      isV3Edit ? editData.unifiedExplanation : ""
     );
     updateModalEditorSlots();
     updateSpaceHint(type.spaceName, type.spaceTitle);
@@ -3808,7 +3785,7 @@ ${marker}`.trim();
         type,
         values,
         explanations,
-        state.explanationEnabled,
+        true,
         rawTags,
         state.modalActiveLangs,
         unifiedExplanation,
@@ -4065,27 +4042,25 @@ ${tags}` : "");
       grid.appendChild(slot);
     });
     wrapper.appendChild(grid);
-    if (parsed.showExplanation) {
-      const boxes = document.createElement("div");
-      boxes.className = "lc-card-explanations";
-      boxes.style.setProperty("--lc-cols", Math.max(1, visibleKeys.length));
-      type.sections.forEach((section) => {
-        const text = explanations[section.key];
-        if (!text || !visibleKeys.includes(section.key) || (parsed.hiddenExplanationSections || []).includes(section.key)) return;
-        const box = document.createElement("div");
-        box.className = "lc-card-explanation";
-        box.setAttribute("data-lc-explanation", section.key);
-        box.style.gridColumn = String(visibleKeys.indexOf(section.key) + 1);
-        box.innerText = text;
-        boxes.appendChild(box);
-      });
-      if (boxes.children.length) wrapper.appendChild(boxes);
-      if (unifiedExplanation) {
-        const box = document.createElement("div");
-        box.className = "lc-card-explanation lc-card-explanation-global";
-        box.innerText = unifiedExplanation;
-        wrapper.appendChild(box);
-      }
+    const boxes = document.createElement("div");
+    boxes.className = "lc-card-explanations";
+    boxes.style.setProperty("--lc-cols", Math.max(1, visibleKeys.length));
+    type.sections.forEach((section) => {
+      const text = explanations[section.key];
+      if (!text || !visibleKeys.includes(section.key) || (parsed.hiddenExplanationSections || []).includes(section.key)) return;
+      const box = document.createElement("div");
+      box.className = "lc-card-explanation";
+      box.setAttribute("data-lc-explanation", section.key);
+      box.style.gridColumn = String(visibleKeys.indexOf(section.key) + 1);
+      box.innerText = text;
+      boxes.appendChild(box);
+    });
+    if (boxes.children.length) wrapper.appendChild(boxes);
+    if (unifiedExplanation) {
+      const box = document.createElement("div");
+      box.className = "lc-card-explanation lc-card-explanation-global";
+      box.innerText = unifiedExplanation;
+      wrapper.appendChild(box);
     }
     if (tags.length > 0) {
       const tagsContainer = document.createElement("div");

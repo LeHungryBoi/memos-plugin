@@ -20,7 +20,6 @@ export const state = {
   memoSpaceWarmed: false,
   editingVersion: 2,
   editingType: null,
-  explanationEnabled: true,
   hiddenExplanationSections: []
 };
 
