@@ -89,7 +89,8 @@ import { openModal } from './editor.js';
           values,
           explanations,
           unifiedExplanation,
-          showExplanation: parsed.showExplanation
+          showExplanation: parsed.showExplanation,
+          hiddenExplanationSections: parsed.hiddenExplanationSections
         }, visibleKeys);
       };
       controls.appendChild(editBtn);
@@ -131,7 +132,8 @@ import { openModal } from './editor.js';
       boxes.style.setProperty('--lc-cols', Math.max(1, visibleKeys.length));
       type.sections.forEach((section) => {
         const text = explanations[section.key];
-        if (!text || !visibleKeys.includes(section.key)) return;
+        if (!text || !visibleKeys.includes(section.key)
+          || (parsed.hiddenExplanationSections || []).includes(section.key)) return;
         const box = document.createElement('div');
         box.className = 'lc-card-explanation';
         box.setAttribute('data-lc-explanation', section.key);

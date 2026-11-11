@@ -262,6 +262,24 @@ async function runScript(file, label) {
     await tick(20);
     if (env.ids.has('lc-toggle-btn-ja')) throw new Error('R5.1: homepage language pills must be gone');
     if (!env.ids.has('lc-explanation-toggle')) throw new Error('R3: independent explanation switch missing');
+    if (!env.ids.has('lc-explanation-section-toggle-en')) {
+        throw new Error('each language explanation must have its own switch');
+    }
+    const explanationMarkup = env.htmlById.get('lc-explanation-area') || '';
+    if (explanationMarkup.indexOf('lc-explanation-section-toggles') >
+        explanationMarkup.indexOf('lc-explanation-inputs') ||
+        explanationMarkup.indexOf('lc-explanation-section-toggle-en') >
+        explanationMarkup.indexOf('lc-explain-en')) {
+        throw new Error('all explanation switches must be in a separate row above their text boxes');
+    }
+    const jaExplanationToggle = env.ids.get('lc-explanation-section-toggle-ja');
+    const jaExplanationSlot = env.ids.get('lc-explanation-slot-ja');
+    if (jaExplanationToggle &&
+        (!jaExplanationToggle.classList.contains('active') ||
+            !jaExplanationToggle.classList.contains('language-hidden') ||
+            jaExplanationSlot.style.display !== 'none')) {
+        throw new Error('default-hidden language sections must also start with hidden explanation text');
+    }
     if (!env.ids.has('lc-space-select-btn') || !env.ids.has('lc-space-indicator')) {
         throw new Error('space selection and space management must have separate controls');
     }
@@ -290,6 +308,45 @@ async function runScript(file, label) {
     if (editorTouch.defaultPrevented) {
         throw new Error('touch scrolling inside the editor must remain available');
     }
+
+    const enExplanation = env.ids.get('lc-explain-en');
+    const enExplanationSlot = env.ids.get('lc-explanation-slot-en');
+    const enExplanationToggle = env.ids.get('lc-explanation-section-toggle-en');
+    await env.click('lc-explanation-section-toggle-en');
+    if (enExplanationSlot.style.display !== 'none' ||
+        enExplanationToggle.classList.contains('active') ||
+        env.ids.get('lc-explanation-inputs').style['--lc-explanation-cols'] !== 1) {
+        throw new Error('turning off a per-language explanation must hide only its text input');
+    }
+    await env.click('lc-modal-toggle-en');
+    if (enExplanationSlot.style.display !== 'none' ||
+        !enExplanationToggle.classList.contains('language-hidden') ||
+        enExplanationToggle.getAttribute('aria-pressed') !== 'false') {
+        throw new Error('language visibility must hide explanation text without changing its switch');
+    }
+    await env.click('lc-modal-toggle-en');
+    if (enExplanationSlot.style.display !== 'none' ||
+        enExplanationToggle.classList.contains('language-hidden')) {
+        throw new Error('re-enabling a language must respect its independently disabled explanation');
+    }
+    await env.click('lc-explanation-section-toggle-en');
+    await env.click('lc-modal-toggle-en');
+    if (enExplanationSlot.style.display !== 'none' ||
+        !enExplanationToggle.classList.contains('active') ||
+        !enExplanationToggle.classList.contains('language-hidden') ||
+        enExplanationToggle.getAttribute('aria-pressed') !== 'true') {
+        throw new Error('an enabled explanation switch must remain on while its language is hidden');
+    }
+    await env.click('lc-modal-toggle-en');
+    if (enExplanationSlot.style.display === 'none') {
+        throw new Error('re-enabling the language must show its independently enabled explanation');
+    }
+    await env.click('lc-explanation-section-toggle-en');
+    if (enExplanationSlot.style.display !== 'none' ||
+        !(env.ids.get('lc-json-preview').innerText || '').includes('"_eh":["en"]')) {
+        throw new Error('per-language explanation visibility must be hidden and included in the payload');
+    }
+    await env.click('lc-explanation-section-toggle-en');
 
     env.ids.get('lc-space-select-panel').hidden = true;
     env.fire('lc-modal-overlay', 'touchstart', {

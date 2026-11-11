@@ -20,7 +20,8 @@ export const state = {
   memoSpaceWarmed: false,
   editingVersion: 2,
   editingType: null,
-  explanationEnabled: true
+  explanationEnabled: true,
+  hiddenExplanationSections: []
 };
 
   // --- Global Language State (read-only V2 compatibility) ---

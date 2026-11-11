@@ -91,7 +91,8 @@ import { V3_VERSION, valueForSection } from './card-types.js';
 
   /**
    * V3 content: {"_t":"lc","v":3,<section keys>, "_e": explanations,
-   * "_u": unified explanation, "_s": visible sections, "_x": bool}
+   * "_u": unified explanation, "_s": visible sections, "_x": bool,
+   * "_eh": hidden explanation sections}
    * followed by optional tail tags. No sections / labels / order / mode here.
    */
   function parseCardV3(rawText) {
@@ -110,7 +111,7 @@ import { V3_VERSION, valueForSection } from './card-types.js';
     const tags = (rawText.substring(end + 1).match(/#[^\s#]+/g) || []);
     const values = {};
     for (const [key, value] of Object.entries(data)) {
-      if (!['_t', 'v', '_e', '_u', '_s', '_x'].includes(key)) values[key] = value;
+      if (!['_t', 'v', '_e', '_u', '_s', '_x', '_eh'].includes(key)) values[key] = value;
     }
     const hasValues = Object.values(values).some(v => v && String(v).trim().length > 0);
     if (!hasValues && tags.length === 0) return null;
@@ -126,6 +127,9 @@ import { V3_VERSION, valueForSection } from './card-types.js';
       enabledSections: Array.isArray(data._s)
         ? data._s.filter(key => typeof key === 'string')
         : Object.keys(values).filter(key => values[key] && String(values[key]).trim()),
+      hiddenExplanationSections: Array.isArray(data._eh)
+        ? data._eh.filter(key => typeof key === 'string')
+        : [],
       showExplanation: data._x !== false,
       rawText
     };
@@ -145,6 +149,7 @@ import { V3_VERSION, valueForSection } from './card-types.js';
       explanations: {},
       unifiedExplanation: '',
       enabledSections: [],
+      hiddenExplanationSections: [],
       showExplanation: false,
       rawText: legacy.rawText
     };
@@ -152,7 +157,8 @@ import { V3_VERSION, valueForSection } from './card-types.js';
 
   /** Serialize values, section explanations, visibility and the unified explanation. */
   function buildCardContentV3(
-    type, values, explanations, showExplanation, tags, enabledSections, unifiedExplanation
+    type, values, explanations, showExplanation, tags, enabledSections, unifiedExplanation,
+    hiddenExplanationSections
   ) {
     const data = { _t: CONFIG.typeIdentifier, v: V3_VERSION };
     let hasAny = false;
@@ -181,6 +187,10 @@ import { V3_VERSION, valueForSection } from './card-types.js';
       .map(section => section.key);
     data._s = visible;
     if (showExplanation === false) data._x = false;
+    const hiddenExplanations = type.sections
+      .filter(section => (hiddenExplanationSections || []).includes(section.key))
+      .map(section => section.key);
+    if (hiddenExplanations.length) data._eh = hiddenExplanations;
 
     const normalizedTags = normalizeTags(tags);
     const content = JSON.stringify(data) + (normalizedTags ? `\n${normalizedTags}` : '');

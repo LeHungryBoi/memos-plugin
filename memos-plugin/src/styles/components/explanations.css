@@ -41,6 +41,11 @@
   margin-bottom: 6px;
 }
 
+.lc-explanation-section-toggles {
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
 .lc-explanation-inputs {
   display: grid;
   grid-template-columns: repeat(var(--lc-explanation-cols, 1), minmax(0, 1fr));
@@ -52,6 +57,15 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+}
+
+.lc-explanation-section-toggle {
+  flex: 0 0 auto;
+}
+
+.lc-explanation-section-toggle.active.language-hidden {
+  border-color: #9ca3af !important;
+  color: #9ca3af !important;
 }
 
 .lc-unified-explanation-slot {
@@ -79,4 +93,3 @@
   outline: 2px solid rgba(59, 130, 246, 0.45);
   outline-offset: 1px;
 }
-

@@ -121,6 +121,16 @@ check('hidden section state and explanations persist', (() => {
     && eq(sectionExplanationsFor(parsedHidden, perSection), { en: 'note', zh: '' })
     && unifiedExplanationFor(parsedHidden) === 'shared';
 })());
+const hiddenSection = buildCardContentV3(
+  perSection, { en: 'x', zh: '猫' }, { en: 'note', zh: '说明' }, true, '', ['en', 'zh'], '',
+  ['zh']
+);
+check('independent explanation switch persists', (() => {
+  const parsedSection = parseCardV3(hiddenSection.content);
+  return eq(JSON.parse(hiddenSection.content)._eh, ['zh'])
+    && eq(parsedSection.hiddenExplanationSections, ['zh'])
+    && eq(sectionExplanationsFor(parsedSection, perSection), { en: 'note', zh: '说明' });
+})());
 check('legacy global explanation remains readable', (() => {
   const legacyGlobal = parseCardV3('{"_t":"lc","v":3,"en":"x","_e":"shared note"}');
   return unifiedExplanationFor(legacyGlobal) === 'shared note'
@@ -142,6 +152,10 @@ const mapped = mapSectionKeys(
 check('migration renames section keys only', eq(mapped, {
   _t: 'lc', v: 2, 'in room': 'x', _e: { 'in room': 'note' }, _s: ['in room'], other: 'keep'
 }));
+check('migration renames hidden explanation section keys', eq(
+  mapSectionKeys({ _t: 'lc', v: 3, _eh: ['personal'] }, { personal: 'in room' }),
+  { _t: 'lc', v: 3, _eh: ['in room'] }
+));
 const migrated = migratedContent(
   '{"_t":"lc","v":2,"personal":"x","_e":{"personal":"note"}}\n#tag',
   { personal: 'in room' }

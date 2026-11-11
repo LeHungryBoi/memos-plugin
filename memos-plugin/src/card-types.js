@@ -187,6 +187,10 @@ function mapSectionKeys(data, aliasMap, keepUnknown = true) {
       out._s = value.map(sectionKey => aliasMap[sectionKey] || sectionKey);
       continue;
     }
+    if (key === '_eh' && Array.isArray(value)) {
+      out._eh = value.map(sectionKey => aliasMap[sectionKey] || sectionKey);
+      continue;
+    }
     const target = aliasMap[key] || key;
     if (target !== key || keepUnknown || ['_t', 'v', '_x'].includes(key)) {
       out[target] = value;
