@@ -1,7 +1,9 @@
 import { CONFIG } from './config.js';
 import { state } from './state.js';
 import { getCurrentSpace, syncThemeClass, escapeHtml } from './utils.js';
-import { isLegacyFallbackStatus, getMemosAuthToken } from './api.js';
+import {
+  isLegacyFallbackStatus, getMemosAuthToken, fetchMemoContent, deleteMemo
+} from './api.js';
 import {
   clearTargetSpaceCache, resolveTargetSpace, refreshSpaceIndicator,
   hideSpaceInfoPopup, updateSpaceHint, refreshQuickSpaceSelector,
@@ -14,6 +16,7 @@ import {
 import { refreshCardLocally, openV2MigrationPreview } from './card-render.js';
 import { buildCardContentV3, normalizeTags, parseAnyCard } from './card-model.js';
 import { defaultType, activeTypeForNew } from './card-types.js';
+import { updateEditorDuplicateWarning } from './duplicate-ui.js';
 
 let pageScrollLock = null;
 let spaceSwipeAnimationTimer = null;
@@ -440,8 +443,18 @@ function unlockPageScroll() {
 
         <div class="lc-modal-body">
           <div id="lc-modal-error" style="display:none; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:8px 12px; font-size:13px;"></div>
+          <div id="lc-merge-session-banner" class="lc-merge-session-banner" hidden></div>
+          <div id="lc-merge-confirmation" class="lc-merge-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="lc-merge-confirmation-title" hidden>
+            <strong id="lc-merge-confirmation-title">Confirm merge and delete</strong>
+            <p id="lc-merge-confirmation-text"></p>
+            <div class="lc-merge-confirmation-actions">
+              <button type="button" class="lc-btn lc-btn-secondary" id="lc-merge-confirm-cancel">Cancel</button>
+              <button type="button" class="lc-btn lc-btn-danger" id="lc-merge-confirm-accept">Merge &amp; delete</button>
+            </div>
+          </div>
 
           <div class="lc-editor-grid" id="lc-editor-grid"></div>
+          <div id="lc-editor-duplicate-warning" class="lc-duplicate-warning lc-editor-duplicate-warning" role="status" hidden></div>
           <div id="lc-explanation-area"></div>
 
           <div class="lc-form-group" style="margin-top: 4px;">
@@ -548,6 +561,16 @@ function unlockPageScroll() {
     document.getElementById('lc-modal-close-btn').onclick = closeModal;
     document.getElementById('lc-btn-cancel').onclick = closeModal;
     document.getElementById('lc-btn-save').onclick = saveCard;
+    document.getElementById('lc-merge-confirm-cancel').onclick = () => {
+      const confirmation = document.getElementById('lc-merge-confirmation');
+      if (confirmation) confirmation.hidden = true;
+    };
+    document.getElementById('lc-merge-confirm-accept').onclick = () => {
+      if (state.mergeSession) state.mergeSession.confirmed = true;
+      const confirmation = document.getElementById('lc-merge-confirmation');
+      if (confirmation) confirmation.hidden = true;
+      saveCard();
+    };
     document.getElementById('lc-btn-migrate').onclick = () => {
       if (state.editingVersion !== 2 || !state.editingMemoName) return;
       const { content } = buildCardPayload();
@@ -571,13 +594,24 @@ function unlockPageScroll() {
    * Open the editor. V3 cards are rendered from the space's card type;
    * V2 cards keep the legacy three-section payload so old notes are untouched.
    */
-  function openModal(editData, initialLangs) {
+  function openModal(editData, initialLangs, mergeSession = null) {
     syncThemeClass();
     const overlay = document.getElementById('lc-modal-overlay');
     if (!overlay) return;
     lockPageScroll();
     overlay.style.display = 'flex';
     clearError();
+    state.duplicateSaveConfirmed = false;
+    state.mergeSession = mergeSession;
+    const mergeBanner = document.getElementById('lc-merge-session-banner');
+    if (mergeBanner) {
+      mergeBanner.hidden = !mergeSession;
+      mergeBanner.textContent = mergeSession
+        ? `Manual merge: content will be saved to ${mergeSession.targetMemoName}; after successful save, ${mergeSession.sourceMemoName} will be permanently deleted. Review every field before continuing.`
+        : '';
+    }
+    const mergeConfirmation = document.getElementById('lc-merge-confirmation');
+    if (mergeConfirmation) mergeConfirmation.hidden = true;
     refreshSpaceIndicator();
 
     state.editingMemoName = editData && editData.name ? editData.name : null;
@@ -603,7 +637,11 @@ function unlockPageScroll() {
         : `#${type.order + 1} · ${type.name}`;
     }
     const saveBtn = document.getElementById('lc-btn-save');
-    if (saveBtn) saveBtn.innerText = state.editingMemoName ? 'Update Card' : 'Save Card';
+    if (saveBtn) {
+      saveBtn.innerText = state.mergeSession
+        ? 'Review merge'
+        : (state.editingMemoName ? 'Update Card' : 'Save Card');
+    }
     const migrateBtn = document.getElementById('lc-btn-migrate');
     if (migrateBtn) {
       migrateBtn.style.display = state.editingVersion === 2 && Boolean(state.editingMemoName)
@@ -638,6 +676,7 @@ function unlockPageScroll() {
       isV3Edit ? editData.unifiedExplanation : ''
     );
     updateModalEditorSlots();
+    updateEditorDuplicateWarning();
     updateSpaceHint(type.spaceName, type.spaceTitle);
 
     hideTagAutocomplete();
@@ -653,6 +692,10 @@ function unlockPageScroll() {
     hideTagAutocomplete();
     const overlay = document.getElementById('lc-modal-overlay');
     if (overlay) overlay.style.display = 'none';
+    const mergeConfirmation = document.getElementById('lc-merge-confirmation');
+    if (mergeConfirmation) mergeConfirmation.hidden = true;
+    state.mergeSession = null;
+    state.duplicateSaveConfirmed = false;
     unlockPageScroll();
   }
 
@@ -704,6 +747,19 @@ function unlockPageScroll() {
     if (!previewEl) return;
     const { content } = buildCardPayload();
     previewEl.innerText = content;
+    if (state.duplicateSaveConfirmed) {
+      state.duplicateSaveConfirmed = false;
+      const saveBtn = document.getElementById('lc-btn-save');
+      if (saveBtn) saveBtn.innerText = state.editingMemoName ? 'Update Card' : 'Save Card';
+    }
+    if (state.mergeSession) {
+      state.mergeSession.confirmed = false;
+      const confirmation = document.getElementById('lc-merge-confirmation');
+      if (confirmation) confirmation.hidden = true;
+      const saveBtn = document.getElementById('lc-btn-save');
+      if (saveBtn) saveBtn.innerText = 'Review merge';
+    }
+    updateEditorDuplicateWarning();
   }
 
   function showError(msg) {
@@ -731,8 +787,26 @@ function unlockPageScroll() {
     }
 
     const saveBtn = document.getElementById('lc-btn-save');
+    const mergeSession = state.mergeSession;
+    const duplicates = mergeSession ? [] : updateEditorDuplicateWarning();
+    if (mergeSession && !mergeSession.confirmed) {
+      const confirmation = document.getElementById('lc-merge-confirmation');
+      const text = document.getElementById('lc-merge-confirmation-text');
+      const accept = document.getElementById('lc-merge-confirm-accept');
+      if (text) {
+        text.textContent = `This updates ${mergeSession.targetMemoName} with the edited content and permanently deletes ${mergeSession.sourceMemoName}. This cannot be undone.`;
+      }
+      if (confirmation) confirmation.hidden = false;
+      if (accept) accept.focus();
+      return;
+    }
+    if (duplicates.length && !state.duplicateSaveConfirmed) {
+      state.duplicateSaveConfirmed = true;
+      saveBtn.innerText = state.editingMemoName ? 'Update anyway' : 'Save anyway';
+      return;
+    }
     saveBtn.disabled = true;
-    saveBtn.innerText = 'Saving...';
+    saveBtn.innerText = mergeSession ? 'Merging...' : 'Saving...';
 
     const isEdit = Boolean(state.editingMemoName);
     const payload = {
@@ -834,6 +908,29 @@ function unlockPageScroll() {
         );
       }
 
+      if (mergeSession) {
+        if (mergeSession.savedContent !== content) {
+          const savedContent = await fetchMemoContent(mergeSession.targetMemoName, token);
+          if (savedContent !== content) {
+            throw new Error('The kept card was not confirmed after saving; the other card was not deleted.');
+          }
+          mergeSession.savedContent = content;
+          refreshCardLocally(mergeSession.targetMemoName, content);
+        }
+        const deletion = await deleteMemo(mergeSession.sourceMemoName, token);
+        if (!deletion || !deletion.ok) {
+          throw new Error(
+            `The kept card was updated, but the other card could not be deleted (HTTP ${deletion ? deletion.status : 'no response'}).`
+          );
+        }
+        document.querySelectorAll('[data-lc-memo-name]').forEach(container => {
+          if (container.getAttribute('data-lc-memo-name') !== mergeSession.sourceMemoName) return;
+          const article = container.closest('article');
+          if (article) article.remove();
+        });
+        state.memoSpaceCache.delete(mergeSession.sourceMemoName);
+      }
+
       // Register all tags from this saved card into tagStore
       const savedRawTags = (document.getElementById('lc-input-tags')?.value || '').trim();
       if (savedRawTags) {
@@ -849,17 +946,19 @@ function unlockPageScroll() {
         if (el) el.value = '';
       });
       // Edit mode: repaint the source card locally so the new content shows at once
-      if (usePatch) {
+      if (usePatch && !mergeSession) {
         refreshCardLocally(state.editingMemoName, content);
       }
       state.editingMemoName = null;
       closeModal();
       // No page reload needed: Memos updates the feed on its own.
     } catch (err) {
-      showError('Failed to save card: ' + err.message);
+      showError(`${mergeSession ? 'Merge failed: ' : 'Failed to save card: '}${err.message}`);
     } finally {
       saveBtn.disabled = false;
-      saveBtn.innerText = state.editingMemoName ? 'Update Card' : 'Save Card';
+      saveBtn.innerText = state.mergeSession
+        ? (state.mergeSession.savedContent ? 'Retry delete' : 'Review merge')
+        : (state.editingMemoName ? 'Update Card' : 'Save Card');
     }
   }
 

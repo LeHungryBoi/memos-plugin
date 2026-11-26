@@ -257,6 +257,292 @@
   transform: translateY(0);
 }
 
+.lc-browse-duplicate-warning {
+  position: fixed;
+  right: 20px;
+  bottom: 76px;
+  z-index: 9998;
+  max-width: min(190px, calc(100vw - 24px));
+  min-height: 36px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #b45309;
+  background: var(--lc-modal-bg);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+}
+
+.lc-browse-duplicate-warning:hover,
+.lc-browse-duplicate-warning:focus-visible {
+  filter: brightness(1.08);
+  outline: 2px solid rgba(217, 119, 6, 0.55);
+  outline-offset: 2px;
+}
+
+.lc-duplicate-review-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.48);
+}
+
+.lc-duplicate-review-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(1120px, 100%);
+  max-height: min(900px, 92vh);
+  max-height: min(900px, 92dvh);
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 16px;
+  background: var(--lc-modal-bg);
+  color: var(--lc-text-primary);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.lc-duplicate-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.lc-duplicate-review-header h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.lc-duplicate-review-header p {
+  margin: 5px 0 0;
+  color: var(--lc-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.lc-duplicate-review-close {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--lc-text-primary);
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.lc-duplicate-review-navigator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  margin: 12px 0;
+}
+
+.lc-duplicate-review-navigator button {
+  min-height: 38px;
+  padding: 6px 12px;
+}
+
+.lc-duplicate-review-navigator button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.lc-duplicate-review-matches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 0 0 auto;
+  max-height: 92px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.lc-duplicate-review-match {
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid rgba(217, 119, 6, 0.42);
+  border-radius: 8px;
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--lc-text-primary);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.lc-duplicate-review-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  align-content: start;
+  gap: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+
+.lc-duplicate-review-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--lc-modal-border);
+  border-radius: 12px;
+  background: var(--lc-slot-bg);
+}
+
+.lc-duplicate-preview-card {
+  min-width: 0;
+}
+
+.lc-duplicate-preview-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--lc-text-primary);
+  font-size: 12px;
+}
+
+.lc-duplicate-preview-card > header strong {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.lc-duplicate-memo-link {
+  flex: 0 0 auto;
+  color: var(--lc-text-muted);
+  font-size: 11px;
+}
+
+.lc-duplicate-preview-card mark {
+  border-radius: 2px;
+  background: rgba(245, 158, 11, 0.4);
+  color: inherit;
+  box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.32);
+}
+
+.lc-duplicate-review-card-content .lc-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.lc-duplicate-keep-button {
+  min-height: 42px;
+  width: 100%;
+}
+
+.lc-duplicate-review-dialog :focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.8);
+  outline-offset: 2px;
+}
+
+.lc-merge-session-banner,
+.lc-merge-confirmation {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(217, 119, 6, 0.48);
+  border-radius: 10px;
+  background: rgba(217, 119, 6, 0.08);
+  color: var(--lc-text-primary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.lc-merge-confirmation {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+.lc-merge-confirmation strong {
+  display: block;
+  color: #b45309;
+}
+
+.lc-merge-confirmation p {
+  margin: 5px 0 10px;
+}
+
+.lc-merge-confirmation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.lc-btn-danger {
+  border: 1px solid #b91c1c;
+  background: #b91c1c;
+  color: #ffffff;
+}
+
+.lc-btn-danger:hover {
+  background: #991b1b;
+}
+
+@media (max-width: 480px) {
+  .lc-browse-duplicate-warning {
+    right: 12px;
+    bottom: 68px;
+    max-width: min(180px, calc(100vw - 24px));
+  }
+
+  .lc-duplicate-review-overlay {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .lc-duplicate-review-dialog {
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    border: 0;
+    border-radius: 0;
+  }
+
+  .lc-duplicate-review-header h2 {
+    font-size: 17px;
+  }
+
+  .lc-duplicate-review-header p {
+    font-size: 12px;
+  }
+
+  .lc-duplicate-review-cards {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .lc-duplicate-review-column {
+    padding: 9px;
+  }
+}
+
 /* --- Modal Overlay & Dialog --- */
 .lc-modal-overlay {
   position: fixed;
@@ -658,6 +944,62 @@
 .lc-slot-textarea::placeholder {
   color: var(--lc-input-placeholder) !important;
   opacity: 0.8;
+}
+
+.lc-duplicate-warning {
+  border: 1px solid rgba(217, 119, 6, 0.42);
+  border-radius: 9px;
+  background: var(--lc-modal-bg);
+  color: var(--lc-text-primary);
+  font-size: 12px;
+  line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.lc-editor-duplicate-warning {
+  margin-top: 10px;
+  padding: 10px 12px;
+}
+
+.lc-duplicate-warning[hidden] {
+  display: none;
+}
+
+.lc-duplicate-warning > strong {
+  display: block;
+  color: #b45309;
+  font-size: 12.5px;
+}
+
+.lc-duplicate-warning p {
+  margin: 4px 0 0;
+  color: var(--lc-text-muted);
+}
+
+.lc-duplicate-match {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--lc-modal-border);
+  overflow-wrap: anywhere;
+}
+
+.lc-duplicate-match-heading {
+  font-weight: 700;
+  color: var(--lc-text-badge);
+}
+
+.lc-duplicate-line {
+  margin-top: 2px;
+}
+
+.lc-duplicate-source,
+.lc-duplicate-memo-link {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.lc-duplicate-more {
+  font-weight: 600;
 }
 
 /* --- Form Input & Preview --- */
@@ -1687,7 +2029,9 @@
     memoSpaceWarmed: false,
     editingVersion: 2,
     editingType: null,
-    hiddenExplanationSections: []
+    hiddenExplanationSections: [],
+    duplicateSaveConfirmed: false,
+    mergeSession: null
   };
   function getGlobalEnabledLangs() {
     try {
@@ -2155,7 +2499,7 @@ ${normalizedTags}` : "");
     let pageToken = "";
     do {
       const query = pageToken ? `?pageSize=1000&pageToken=${encodeURIComponent(pageToken)}` : "?pageSize=1000";
-      const res = await fetchJsonWithFallback([`/api/spaces${query}`, `/api/v1/spaces${query}`], token);
+      const res = await fetchJsonWithFallback([`/api/v1/spaces${query}`, `/api/spaces${query}`], token);
       if (!res || !res.ok) throw new Error(`ListSpaces failed: HTTP ${res ? res.status : "no response"}`);
       const json = await res.json();
       if (Array.isArray(json.spaces)) spaces.push(...json.spaces);
@@ -2182,10 +2526,10 @@ ${normalizedTags}` : "");
       }
     }
     const refreshEndpoints = [
-      { url: "/memos.api.AuthService/RefreshToken", connect: true },
       { url: "/memos.api.v1.AuthService/RefreshToken", connect: true },
-      { url: "/api/auth/refresh", connect: false },
-      { url: "/api/v1/auth/refresh", connect: false }
+      { url: "/memos.api.AuthService/RefreshToken", connect: true },
+      { url: "/api/v1/auth/refresh", connect: false },
+      { url: "/api/auth/refresh", connect: false }
     ];
     for (const endpoint of refreshEndpoints) {
       try {
@@ -2241,7 +2585,7 @@ ${normalizedTags}` : "");
   async function updateSpaceDescription(spaceName, description, token) {
     const id = encodeURIComponent(String(spaceName || "").replace(/^spaces\//, ""));
     return sendJsonWithFallback(
-      [`/api/spaces/${id}?updateMask=description`, `/api/v1/spaces/${id}?updateMask=description`],
+      [`/api/v1/spaces/${id}?updateMask=description`, `/api/spaces/${id}?updateMask=description`],
       "PATCH",
       { name: spaceName, description },
       token
@@ -2249,7 +2593,7 @@ ${normalizedTags}` : "");
   }
   async function createSpace(title, description, token) {
     return sendJsonWithFallback(
-      ["/api/spaces", "/api/v1/spaces"],
+      ["/api/v1/spaces", "/api/spaces"],
       "POST",
       { title, description },
       token
@@ -2258,8 +2602,8 @@ ${normalizedTags}` : "");
   async function listMemosForSpace(spaceName, token) {
     const parent = encodeURIComponent(spaceName || "");
     const paths = [
-      `/api/memos?parent=${parent}&pageSize=1000`,
-      `/api/v1/memos?parent=${parent}&pageSize=1000`
+      `/api/v1/memos?parent=${parent}&pageSize=1000`,
+      `/api/memos?parent=${parent}&pageSize=1000`
     ];
     const res = await fetchJsonWithFallback(paths, token);
     if (!res || !res.ok) throw new Error(`ListMemos failed: HTTP ${res ? res.status : "no response"}`);
@@ -2269,8 +2613,8 @@ ${normalizedTags}` : "");
   async function patchMemoContent(memoName, content, token) {
     const id = encodeURIComponent(String(memoName || "").replace(/^memos\//, ""));
     const paths = [
-      `/api/memos/${id}?updateMask=content`,
-      `/api/v1/memos/${id}?updateMask=content`
+      `/api/v1/memos/${id}?updateMask=content`,
+      `/api/memos/${id}?updateMask=content`
     ];
     const body = { content, visibility: "PRIVATE" };
     let response = await sendJsonWithFallback(paths, "PATCH", body, token);
@@ -2284,7 +2628,7 @@ ${normalizedTags}` : "");
   }
   async function fetchMemoContent(memoName, token) {
     const id = encodeURIComponent(String(memoName || "").replace(/^memos\//, ""));
-    const paths = [`/api/memos/${id}`, `/api/v1/memos/${id}`];
+    const paths = [`/api/v1/memos/${id}`, `/api/memos/${id}`];
     let response = await fetchJsonWithFallback(paths, token);
     if (response && response.status === 401) {
       const refreshedToken = await getMemosAuthToken(true);
@@ -2295,6 +2639,34 @@ ${normalizedTags}` : "");
     }
     const memo = await response.json();
     return memo && typeof memo.content === "string" ? memo.content : "";
+  }
+  async function deleteMemo(memoName, token) {
+    const id = String(memoName || "").replace(/^memos\//, "").trim();
+    if (!id) throw new Error("A memo name is required for deletion.");
+    const paths = [`/api/v1/memos/${encodeURIComponent(id)}`, `/api/memos/${encodeURIComponent(id)}`];
+    const send = async (authToken) => {
+      let lastRes = null;
+      for (const path of paths) {
+        const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+        const response2 = await fetch(path, {
+          method: "DELETE",
+          headers,
+          credentials: "include"
+        });
+        if (isLegacyFallbackStatus(response2.status)) {
+          lastRes = response2;
+          continue;
+        }
+        return response2;
+      }
+      return lastRes;
+    };
+    let response = await send(token);
+    if (response && response.status === 401) {
+      const refreshedToken = await getMemosAuthToken(true);
+      if (refreshedToken) response = await send(refreshedToken);
+    }
+    return response;
   }
 
   // src/tags.js
@@ -3753,6 +4125,520 @@ ${marker}`.trim();
     return openMigrationWizard(type.id, memoName);
   }
 
+  // src/duplicates.js
+  function normalizeDuplicateText(value) {
+    return String(value || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{M}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+  }
+  function characterTrigrams(value) {
+    const padded = `  ${value} `;
+    const trigrams = /* @__PURE__ */ new Set();
+    for (let i = 0; i <= padded.length - 3; i++) {
+      trigrams.add(padded.slice(i, i + 3));
+    }
+    return trigrams;
+  }
+  function characterBigrams(value) {
+    const characters = Array.from(value);
+    const bigrams = /* @__PURE__ */ new Set();
+    for (let i = 0; i < characters.length - 1; i++) {
+      bigrams.add(characters[i] + characters[i + 1]);
+    }
+    return bigrams;
+  }
+  function isPossibleDuplicate(left, right) {
+    const a = normalizeDuplicateText(left);
+    const b = normalizeDuplicateText(right);
+    if (!a || !b) return null;
+    if (a === b) return "exact";
+    const shorter = a.length <= b.length ? a : b;
+    const longer = a.length <= b.length ? b : a;
+    if (shorter.length >= 12 && longer.includes(shorter) && shorter.length / longer.length >= 0.6) {
+      return "similar";
+    }
+    const aWords = a.split(" ");
+    const bWords = b.split(" ");
+    let wordSimilarity;
+    if (Math.min(aWords.length, bWords.length) >= 4) {
+      const aWordSet = new Set(aWords);
+      const bWordSet = new Set(bWords);
+      let sharedWords = 0;
+      aWordSet.forEach((word) => {
+        if (bWordSet.has(word)) sharedWords++;
+      });
+      wordSimilarity = sharedWords / (aWordSet.size + bWordSet.size - sharedWords);
+    } else {
+      const aCompact = a.replace(/\s+/g, "");
+      const bCompact = b.replace(/\s+/g, "");
+      const aBigrams = characterBigrams(aCompact);
+      const bBigrams = characterBigrams(bCompact);
+      let sharedBigrams = 0;
+      aBigrams.forEach((bigram) => {
+        if (bBigrams.has(bigram)) sharedBigrams++;
+      });
+      wordSimilarity = sharedBigrams / (aBigrams.size + bBigrams.size - sharedBigrams);
+    }
+    const hasCjk = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/u.test(a + b);
+    const minSentenceLength = hasCjk ? 14 : 20;
+    if (Math.min(Array.from(a).length, Array.from(b).length) < minSentenceLength || Math.min(a.length, b.length) / Math.max(a.length, b.length) < 0.7) {
+      return null;
+    }
+    const aTrigrams = characterTrigrams(a);
+    const bTrigrams = characterTrigrams(b);
+    let sharedTrigrams = 0;
+    aTrigrams.forEach((trigram) => {
+      if (bTrigrams.has(trigram)) sharedTrigrams++;
+    });
+    const trigramSimilarity = 2 * sharedTrigrams / (aTrigrams.size + bTrigrams.size);
+    return wordSimilarity >= 0.55 && trigramSimilarity >= 0.72 ? "similar" : null;
+  }
+  function linesForSections(sections) {
+    return Object.entries(sections || {}).flatMap(([section, value]) => String(value || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => ({ section, line })));
+  }
+  function mergeSectionValues(primary, secondary) {
+    const primaryText = String(primary || "").trimEnd();
+    const seen = new Set(
+      primaryText.split(/\r?\n/).map((line) => normalizeDuplicateText(line)).filter(Boolean)
+    );
+    const additions = [];
+    String(secondary || "").split(/\r?\n/).forEach((line) => {
+      const trimmed = line.trim();
+      const normalized = normalizeDuplicateText(trimmed);
+      if (!trimmed || !normalized || seen.has(normalized)) return;
+      seen.add(normalized);
+      additions.push(trimmed);
+    });
+    return [primaryText, ...additions].filter(Boolean).join("\n");
+  }
+  function matchesForSections(sections, card) {
+    const matches = [];
+    const cardLines = linesForSections(card.sections);
+    linesForSections(sections).forEach((candidate) => {
+      cardLines.forEach((existing) => {
+        if (candidate.section !== existing.section) return;
+        const confidence = isPossibleDuplicate(candidate.line, existing.line);
+        if (!confidence) return;
+        matches.push({
+          section: candidate.section,
+          candidateLine: candidate.line,
+          existingLine: existing.line,
+          confidence,
+          memoName: card.memoName || ""
+        });
+      });
+    });
+    return matches;
+  }
+  function findDuplicateMatches(sections, cards, excludeMemoName = "") {
+    return (cards || []).flatMap((card) => card.memoName && card.memoName === excludeMemoName ? [] : matchesForSections(sections, card));
+  }
+  function findCardDuplicatePairs(cards) {
+    const list = cards || [];
+    const pairs = [];
+    for (let leftIndex = 0; leftIndex < list.length; leftIndex++) {
+      for (let rightIndex = leftIndex + 1; rightIndex < list.length; rightIndex++) {
+        const left = list[leftIndex];
+        const right = list[rightIndex];
+        if (left.memoName && left.memoName === right.memoName) continue;
+        const matches = matchesForSections(left.sections, right);
+        if (matches.length) pairs.push({ left, right, matches });
+      }
+    }
+    return pairs;
+  }
+
+  // src/duplicate-ui.js
+  var mergeEditorHandler = null;
+  var visiblePairs = [];
+  var visiblePairsSignature = "";
+  function setMergeEditorHandler(handler) {
+    mergeEditorHandler = handler;
+  }
+  function canonicalSection(key, type) {
+    for (const [oldKey, newKey] of Object.entries(type && type.sectionAliases || {})) {
+      if (oldKey === key) return newKey;
+    }
+    if (key === "jp") return "ja";
+    if (key === "cn") return "zh";
+    return key;
+  }
+  function sectionValues(parsed, type) {
+    const values = parsed.values || parsed.data || {};
+    const sections = {};
+    Object.entries(values).forEach(([key, value]) => {
+      if (key.startsWith("_") || key === "v" || !String(value || "").trim()) return;
+      sections[canonicalSection(key, type)] = String(value);
+    });
+    return sections;
+  }
+  function visibleCards() {
+    const containers = document.querySelectorAll('article [data-lc-parsed="true"]');
+    return Array.from(containers).flatMap((container) => {
+      const parsed = parseAnyCard(container.getAttribute("data-lc-raw"), getCurrentSpace());
+      if (!parsed) return [];
+      const memoName = container.getAttribute("data-lc-memo-name") || "";
+      const type = typeForMemo(state.types, memoName, getCurrentSpace(), state.memoSpaceCache);
+      return [{
+        memoName,
+        container,
+        article: container.closest("article"),
+        parsed,
+        type,
+        sections: sectionValues(parsed, type)
+      }];
+    });
+  }
+  function sectionLabel(key) {
+    for (const language of CONFIG.languages) {
+      if (canonicalSection(language.key) === key || language.key === key) return language.label;
+    }
+    for (const type of state.types) {
+      const section = type.sections.find((item) => canonicalSection(item.key, type) === key);
+      if (section) return section.label;
+    }
+    return key;
+  }
+  function appendMemoLink(parent, memoName, label) {
+    if (!memoName) {
+      parent.textContent = label;
+      return;
+    }
+    const link = document.createElement("a");
+    link.className = "lc-duplicate-memo-link";
+    link.href = `/memos/${encodeURIComponent(memoName.replace(/^memos\//, ""))}`;
+    link.textContent = label;
+    parent.appendChild(link);
+  }
+  function cardIdentity(card) {
+    const firstLine = Object.values(card.sections).flatMap((value) => value.split(/\r?\n/)).map((line) => line.trim()).find(Boolean);
+    const timestamp = card.article && card.article.querySelector("relative-time[datetime], time[datetime]");
+    const dateValue = timestamp && new Date(timestamp.getAttribute("datetime"));
+    const date = dateValue && !Number.isNaN(dateValue.getTime()) ? dateValue.toLocaleString(void 0, { dateStyle: "medium", timeStyle: "short" }) : "";
+    const title = firstLine && firstLine.length > 72 ? `${firstLine.slice(0, 69)}…` : firstLine;
+    return [title || "Language card", date].filter(Boolean).join(" · ");
+  }
+  function renderCardPreview(card, matches, side) {
+    const article = document.createElement("article");
+    article.className = "lc-duplicate-preview-card";
+    const label = cardIdentity(card);
+    const header = document.createElement("header");
+    const identity = document.createElement("strong");
+    identity.textContent = label;
+    header.appendChild(identity);
+    if (card.memoName) {
+      const originalLink = document.createElement("a");
+      originalLink.className = "lc-duplicate-memo-link";
+      originalLink.href = `/memos/${encodeURIComponent(card.memoName.replace(/^memos\//, ""))}`;
+      originalLink.textContent = "Open original";
+      header.appendChild(originalLink);
+    }
+    article.appendChild(header);
+    const content = card.article && card.article.querySelector(".lc-card-wrapper");
+    if (!content) {
+      const fallback = document.createElement("p");
+      fallback.textContent = Object.values(card.sections).join("\n");
+      article.appendChild(fallback);
+      return article;
+    }
+    const preview = content.cloneNode(true);
+    preview.classList.add("lc-duplicate-review-card-content");
+    preview.querySelectorAll(".lc-card-note-controls").forEach((controls) => controls.remove());
+    preview.querySelectorAll(".lc-card-slot").forEach((slot) => {
+      const section = canonicalSection(slot.getAttribute("data-lc-slot") || "", card.type);
+      const text = slot.querySelector(".lc-card-text");
+      if (!text) return;
+      const matchingLines = new Set(matches.filter((match) => match.section === section).map((match) => side === "left" ? match.candidateLine : match.existingLine));
+      const lines = text.textContent.split(/\r?\n/);
+      text.replaceChildren();
+      lines.forEach((line, index) => {
+        if (index) text.appendChild(document.createTextNode("\n"));
+        if (matchingLines.has(line.trim())) {
+          const mark = document.createElement("mark");
+          mark.textContent = line;
+          text.appendChild(mark);
+        } else {
+          text.appendChild(document.createTextNode(line));
+        }
+      });
+    });
+    article.appendChild(preview);
+    return article;
+  }
+  function appendMatch(root, match, sourceName) {
+    const row = document.createElement("div");
+    row.className = "lc-duplicate-match";
+    const heading = document.createElement("strong");
+    heading.className = "lc-duplicate-match-heading";
+    heading.textContent = `${sectionLabel(match.section)}${match.confidence === "similar" ? " · similar wording" : ""}`;
+    row.appendChild(heading);
+    const text = document.createElement("p");
+    text.className = "lc-duplicate-line";
+    text.textContent = `“${match.candidateLine}”  ↔  “${match.existingLine}”`;
+    row.appendChild(text);
+    if (sourceName) {
+      const source = document.createElement("div");
+      source.className = "lc-duplicate-source";
+      appendMemoLink(source, sourceName, "Open matching card");
+      row.appendChild(source);
+    }
+    root.appendChild(row);
+  }
+  function updateEditorDuplicateWarning() {
+    const panel = document.getElementById("lc-editor-duplicate-warning");
+    if (!panel) return [];
+    if (state.mergeSession) {
+      panel.innerHTML = "";
+      panel.hidden = true;
+      return [];
+    }
+    const sections = {};
+    (state.editingType && state.editingType.sections || CONFIG.languages).forEach((section) => {
+      const input = document.getElementById(`lc-input-${section.key}`);
+      sections[canonicalSection(section.key, state.editingType)] = input ? input.value : "";
+    });
+    const matches = findDuplicateMatches(
+      sections,
+      visibleCards(),
+      state.editingMemoName || ""
+    );
+    panel.innerHTML = "";
+    if (!matches.length) {
+      panel.hidden = true;
+      return matches;
+    }
+    panel.hidden = false;
+    const title = document.createElement("strong");
+    title.textContent = `Possible duplicates found (${matches.length})`;
+    panel.appendChild(title);
+    const note = document.createElement("p");
+    note.textContent = "Review the detected text before saving. Save anyway is always available.";
+    panel.appendChild(note);
+    matches.slice(0, 5).forEach((match) => appendMatch(panel, match, match.memoName));
+    if (matches.length > 5) {
+      const more = document.createElement("p");
+      more.className = "lc-duplicate-more";
+      more.textContent = `And ${matches.length - 5} more matching lines.`;
+      panel.appendChild(more);
+    }
+    return matches;
+  }
+  function showDuplicateReview() {
+    if (!visiblePairs.length) return;
+    const overlay = document.createElement("div");
+    overlay.className = "lc-duplicate-review-overlay";
+    overlay.setAttribute("role", "presentation");
+    const trigger = document.getElementById("lc-browse-duplicate-warning");
+    if (trigger) trigger.setAttribute("aria-expanded", "true");
+    let pairIndex = 0;
+    let closed = false;
+    const closeReview = () => {
+      if (closed) return;
+      closed = true;
+      overlay.remove();
+      if (trigger) {
+        trigger.setAttribute("aria-expanded", "false");
+        if (trigger.isConnected) trigger.focus();
+      }
+    };
+    const dialog = document.createElement("section");
+    dialog.className = "lc-duplicate-review-dialog";
+    dialog.setAttribute("role", "dialog");
+    dialog.setAttribute("aria-modal", "true");
+    dialog.setAttribute("aria-labelledby", "lc-duplicate-review-title");
+    const header = document.createElement("header");
+    header.className = "lc-duplicate-review-header";
+    const titleGroup = document.createElement("div");
+    const title = document.createElement("h2");
+    title.id = "lc-duplicate-review-title";
+    title.textContent = "Review possible duplicates";
+    titleGroup.appendChild(title);
+    const help = document.createElement("p");
+    help.textContent = "Compare the rendered cards. Matching lines are highlighted; choose which note to keep.";
+    titleGroup.appendChild(help);
+    header.appendChild(titleGroup);
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "lc-duplicate-review-close";
+    close.setAttribute("aria-label", "Close duplicate review");
+    close.textContent = "×";
+    header.appendChild(close);
+    dialog.appendChild(header);
+    const navigator2 = document.createElement("div");
+    navigator2.className = "lc-duplicate-review-navigator";
+    const previous = document.createElement("button");
+    previous.type = "button";
+    previous.className = "lc-btn lc-btn-secondary";
+    previous.textContent = "Previous";
+    const position = document.createElement("span");
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "lc-btn lc-btn-secondary";
+    next.textContent = "Next";
+    navigator2.append(previous, position, next);
+    dialog.appendChild(navigator2);
+    const matchedLines = document.createElement("div");
+    matchedLines.className = "lc-duplicate-review-matches";
+    dialog.appendChild(matchedLines);
+    const cards = document.createElement("div");
+    cards.className = "lc-duplicate-review-cards";
+    dialog.appendChild(cards);
+    const renderPair = () => {
+      const pair = visiblePairs[pairIndex];
+      position.textContent = `${pairIndex + 1} of ${visiblePairs.length}`;
+      previous.disabled = pairIndex === 0;
+      next.disabled = pairIndex === visiblePairs.length - 1;
+      matchedLines.innerHTML = "";
+      pair.matches.forEach((match) => {
+        const line = document.createElement("span");
+        line.className = "lc-duplicate-review-match";
+        line.textContent = `${sectionLabel(match.section)} · “${match.candidateLine}” ↔ “${match.existingLine}”`;
+        matchedLines.appendChild(line);
+      });
+      cards.innerHTML = "";
+      [
+        { card: pair.left, side: "left", other: pair.right },
+        { card: pair.right, side: "right", other: pair.left }
+      ].forEach(({ card, side, other }) => {
+        const column = document.createElement("div");
+        column.className = "lc-duplicate-review-column";
+        column.appendChild(renderCardPreview(card, pair.matches, side));
+        const keep = document.createElement("button");
+        keep.type = "button";
+        keep.className = "lc-btn lc-btn-primary lc-duplicate-keep-button";
+        keep.textContent = "Keep this note";
+        keep.setAttribute("aria-label", `Keep ${cardIdentity(card)} and merge the other note`);
+        keep.onclick = () => {
+          closeReview();
+          const draft = prepareMergeDraft(card, other);
+          if (mergeEditorHandler) {
+            mergeEditorHandler(draft.editData, draft.activeSections, draft.mergeSession);
+          }
+        };
+        column.appendChild(keep);
+        cards.appendChild(column);
+      });
+    };
+    previous.onclick = () => {
+      pairIndex = Math.max(0, pairIndex - 1);
+      renderPair();
+    };
+    next.onclick = () => {
+      pairIndex = Math.min(visiblePairs.length - 1, pairIndex + 1);
+      renderPair();
+    };
+    close.onclick = closeReview;
+    overlay.onclick = (event) => {
+      if (event.target === overlay) closeReview();
+    };
+    overlay.onkeydown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeReview();
+      }
+    };
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    renderPair();
+    close.focus();
+  }
+  function prepareMergeDraft(target, source) {
+    const sections = {};
+    Object.entries(target.sections).forEach(([key, value]) => {
+      sections[key] = value;
+    });
+    Object.entries(source.sections).forEach(([key, value]) => {
+      sections[key] = mergeSectionValues(sections[key], value);
+    });
+    const tags = [.../* @__PURE__ */ new Set([...target.parsed.tags || [], ...source.parsed.tags || []])].join(" ");
+    const targetType = target.type || defaultType(null);
+    const sectionDefinitions = [...targetType.sections];
+    Object.keys(sections).forEach((key) => {
+      if (sectionDefinitions.some((section) => section.key === key)) return;
+      const sourceSection = source.type.sections.find((section) => canonicalSection(section.key, source.type) === key);
+      sectionDefinitions.push(sourceSection ? { ...sourceSection, key } : { key, label: key, code: key.slice(0, 4).toUpperCase(), color: "#94a3b8" });
+    });
+    const mergeType = { ...targetType, sections: sectionDefinitions };
+    const needsV3 = target.parsed.version === 3 || Object.keys(sections).some((key) => !CONFIG.languages.some((language) => language.key === key));
+    let editData;
+    let activeSections;
+    if (needsV3) {
+      const explanations = {};
+      for (const card of [target, source]) {
+        const raw = card.parsed.explanations || {};
+        if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+        Object.entries(raw).forEach(([key, value]) => {
+          const section = canonicalSection(key, card.type);
+          explanations[section] = mergeSectionValues(explanations[section], value);
+        });
+      }
+      const targetUnified = target.parsed.unifiedExplanation || "";
+      const sourceUnified = source.parsed.unifiedExplanation || "";
+      editData = {
+        name: target.memoName,
+        version: 3,
+        type: mergeType,
+        values: sections,
+        explanations,
+        unifiedExplanation: mergeSectionValues(targetUnified, sourceUnified),
+        tags,
+        showExplanation: target.parsed.showExplanation !== false,
+        hiddenExplanationSections: target.parsed.hiddenExplanationSections || []
+      };
+      activeSections = sectionDefinitions.filter((section) => sections[section.key]).map((section) => section.key);
+    } else {
+      editData = { name: target.memoName, version: 2, tags };
+      CONFIG.languages.forEach((language) => {
+        editData[language.key] = sections[language.key] || "";
+      });
+      activeSections = CONFIG.languages.filter((language) => editData[language.key]).map((language) => language.key);
+    }
+    return {
+      editData,
+      activeSections,
+      mergeSession: {
+        targetMemoName: target.memoName,
+        sourceMemoName: source.memoName,
+        confirmed: false,
+        savedContent: null
+      }
+    };
+  }
+  function updateBrowseDuplicateWarning() {
+    const bar = document.getElementById("lc-floating-bar");
+    if (!bar) return;
+    let button = document.getElementById("lc-browse-duplicate-warning");
+    if (!button) {
+      button = document.createElement("button");
+      button.type = "button";
+      button.id = "lc-browse-duplicate-warning";
+      button.className = "lc-duplicate-warning lc-browse-duplicate-warning";
+      button.onclick = showDuplicateReview;
+      document.body.appendChild(button);
+    }
+    const modal = document.getElementById("lc-modal-overlay");
+    if (modal && modal.style.display !== "none") {
+      if (button.style.display !== "none") button.style.display = "none";
+      return;
+    }
+    const pairs = findCardDuplicatePairs(visibleCards());
+    const signature = JSON.stringify(pairs.map((pair) => [
+      pair.left.memoName,
+      pair.right.memoName,
+      pair.matches.map((match) => [match.section, match.candidateLine, match.existingLine, match.confidence])
+    ]));
+    if (signature === visiblePairsSignature && button.style.display !== "none") return;
+    visiblePairs = pairs;
+    visiblePairsSignature = signature;
+    if (!pairs.length) {
+      if (button.style.display !== "none") button.style.display = "none";
+      return;
+    }
+    button.style.display = "";
+    button.setAttribute("aria-label", `${pairs.length} possible duplicate pairs. Tap to review.`);
+    button.setAttribute("aria-expanded", "false");
+    button.title = "Tap to review duplicate cards";
+    button.textContent = `⚠ ${pairs.length} possible duplicate${pairs.length === 1 ? "" : "s"}`;
+  }
+
   // src/editor.js
   var pageScrollLock = null;
   var spaceSwipeAnimationTimer = null;
@@ -4139,8 +5025,18 @@ ${marker}`.trim();
 
         <div class="lc-modal-body">
           <div id="lc-modal-error" style="display:none; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:8px; padding:8px 12px; font-size:13px;"></div>
+          <div id="lc-merge-session-banner" class="lc-merge-session-banner" hidden></div>
+          <div id="lc-merge-confirmation" class="lc-merge-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="lc-merge-confirmation-title" hidden>
+            <strong id="lc-merge-confirmation-title">Confirm merge and delete</strong>
+            <p id="lc-merge-confirmation-text"></p>
+            <div class="lc-merge-confirmation-actions">
+              <button type="button" class="lc-btn lc-btn-secondary" id="lc-merge-confirm-cancel">Cancel</button>
+              <button type="button" class="lc-btn lc-btn-danger" id="lc-merge-confirm-accept">Merge &amp; delete</button>
+            </div>
+          </div>
 
           <div class="lc-editor-grid" id="lc-editor-grid"></div>
+          <div id="lc-editor-duplicate-warning" class="lc-duplicate-warning lc-editor-duplicate-warning" role="status" hidden></div>
           <div id="lc-explanation-area"></div>
 
           <div class="lc-form-group" style="margin-top: 4px;">
@@ -4241,6 +5137,16 @@ ${marker}`.trim();
     document.getElementById("lc-modal-close-btn").onclick = closeModal;
     document.getElementById("lc-btn-cancel").onclick = closeModal;
     document.getElementById("lc-btn-save").onclick = saveCard;
+    document.getElementById("lc-merge-confirm-cancel").onclick = () => {
+      const confirmation = document.getElementById("lc-merge-confirmation");
+      if (confirmation) confirmation.hidden = true;
+    };
+    document.getElementById("lc-merge-confirm-accept").onclick = () => {
+      if (state.mergeSession) state.mergeSession.confirmed = true;
+      const confirmation = document.getElementById("lc-merge-confirmation");
+      if (confirmation) confirmation.hidden = true;
+      saveCard();
+    };
     document.getElementById("lc-btn-migrate").onclick = () => {
       if (state.editingVersion !== 2 || !state.editingMemoName) return;
       const { content } = buildCardPayload();
@@ -4259,13 +5165,22 @@ ${marker}`.trim();
     bindTagsInput();
     refreshQuickSpaceSelector();
   }
-  function openModal(editData, initialLangs) {
+  function openModal(editData, initialLangs, mergeSession = null) {
     syncThemeClass();
     const overlay = document.getElementById("lc-modal-overlay");
     if (!overlay) return;
     lockPageScroll();
     overlay.style.display = "flex";
     clearError();
+    state.duplicateSaveConfirmed = false;
+    state.mergeSession = mergeSession;
+    const mergeBanner = document.getElementById("lc-merge-session-banner");
+    if (mergeBanner) {
+      mergeBanner.hidden = !mergeSession;
+      mergeBanner.textContent = mergeSession ? `Manual merge: content will be saved to ${mergeSession.targetMemoName}; after successful save, ${mergeSession.sourceMemoName} will be permanently deleted. Review every field before continuing.` : "";
+    }
+    const mergeConfirmation = document.getElementById("lc-merge-confirmation");
+    if (mergeConfirmation) mergeConfirmation.hidden = true;
     refreshSpaceIndicator();
     state.editingMemoName = editData && editData.name ? editData.name : null;
     if (!state.editingMemoName && state.types.length) {
@@ -4285,7 +5200,9 @@ ${marker}`.trim();
       titleText.innerText = state.editingMemoName ? `Edit · ${type.name}` : `#${type.order + 1} · ${type.name}`;
     }
     const saveBtn = document.getElementById("lc-btn-save");
-    if (saveBtn) saveBtn.innerText = state.editingMemoName ? "Update Card" : "Save Card";
+    if (saveBtn) {
+      saveBtn.innerText = state.mergeSession ? "Review merge" : state.editingMemoName ? "Update Card" : "Save Card";
+    }
     const migrateBtn = document.getElementById("lc-btn-migrate");
     if (migrateBtn) {
       migrateBtn.style.display = state.editingVersion === 2 && Boolean(state.editingMemoName) ? "" : "none";
@@ -4313,6 +5230,7 @@ ${marker}`.trim();
       isV3Edit ? editData.unifiedExplanation : ""
     );
     updateModalEditorSlots();
+    updateEditorDuplicateWarning();
     updateSpaceHint(type.spaceName, type.spaceTitle);
     hideTagAutocomplete();
     tagStore.scanPage();
@@ -4325,6 +5243,10 @@ ${marker}`.trim();
     hideTagAutocomplete();
     const overlay = document.getElementById("lc-modal-overlay");
     if (overlay) overlay.style.display = "none";
+    const mergeConfirmation = document.getElementById("lc-merge-confirmation");
+    if (mergeConfirmation) mergeConfirmation.hidden = true;
+    state.mergeSession = null;
+    state.duplicateSaveConfirmed = false;
     unlockPageScroll();
   }
   function buildCardPayload() {
@@ -4372,6 +5294,19 @@ ${tags}` : "");
     if (!previewEl) return;
     const { content } = buildCardPayload();
     previewEl.innerText = content;
+    if (state.duplicateSaveConfirmed) {
+      state.duplicateSaveConfirmed = false;
+      const saveBtn = document.getElementById("lc-btn-save");
+      if (saveBtn) saveBtn.innerText = state.editingMemoName ? "Update Card" : "Save Card";
+    }
+    if (state.mergeSession) {
+      state.mergeSession.confirmed = false;
+      const confirmation = document.getElementById("lc-merge-confirmation");
+      if (confirmation) confirmation.hidden = true;
+      const saveBtn = document.getElementById("lc-btn-save");
+      if (saveBtn) saveBtn.innerText = "Review merge";
+    }
+    updateEditorDuplicateWarning();
   }
   function showError(msg) {
     const errBox = document.getElementById("lc-modal-error");
@@ -4395,8 +5330,26 @@ ${tags}` : "");
       return;
     }
     const saveBtn = document.getElementById("lc-btn-save");
+    const mergeSession = state.mergeSession;
+    const duplicates = mergeSession ? [] : updateEditorDuplicateWarning();
+    if (mergeSession && !mergeSession.confirmed) {
+      const confirmation = document.getElementById("lc-merge-confirmation");
+      const text = document.getElementById("lc-merge-confirmation-text");
+      const accept = document.getElementById("lc-merge-confirm-accept");
+      if (text) {
+        text.textContent = `This updates ${mergeSession.targetMemoName} with the edited content and permanently deletes ${mergeSession.sourceMemoName}. This cannot be undone.`;
+      }
+      if (confirmation) confirmation.hidden = false;
+      if (accept) accept.focus();
+      return;
+    }
+    if (duplicates.length && !state.duplicateSaveConfirmed) {
+      state.duplicateSaveConfirmed = true;
+      saveBtn.innerText = state.editingMemoName ? "Update anyway" : "Save anyway";
+      return;
+    }
     saveBtn.disabled = true;
-    saveBtn.innerText = "Saving...";
+    saveBtn.innerText = mergeSession ? "Merging..." : "Saving...";
     const isEdit = Boolean(state.editingMemoName);
     const payload = {
       content,
@@ -4480,6 +5433,28 @@ ${tags}` : "");
           `HTTP ${res.status}${res.statusText ? " " + res.statusText : ""} — ${method} ${res.url || url}` + (bodySnippet ? ` — ${bodySnippet}` : "") + ` (page: ${window.location.href})`
         );
       }
+      if (mergeSession) {
+        if (mergeSession.savedContent !== content) {
+          const savedContent = await fetchMemoContent(mergeSession.targetMemoName, token);
+          if (savedContent !== content) {
+            throw new Error("The kept card was not confirmed after saving; the other card was not deleted.");
+          }
+          mergeSession.savedContent = content;
+          refreshCardLocally(mergeSession.targetMemoName, content);
+        }
+        const deletion = await deleteMemo(mergeSession.sourceMemoName, token);
+        if (!deletion || !deletion.ok) {
+          throw new Error(
+            `The kept card was updated, but the other card could not be deleted (HTTP ${deletion ? deletion.status : "no response"}).`
+          );
+        }
+        document.querySelectorAll("[data-lc-memo-name]").forEach((container) => {
+          if (container.getAttribute("data-lc-memo-name") !== mergeSession.sourceMemoName) return;
+          const article = container.closest("article");
+          if (article) article.remove();
+        });
+        state.memoSpaceCache.delete(mergeSession.sourceMemoName);
+      }
       const savedRawTags = (document.getElementById("lc-input-tags")?.value || "").trim();
       if (savedRawTags) {
         savedRawTags.split(/[\s,]+/).forEach((t) => tagStore.add(t));
@@ -4492,16 +5467,16 @@ ${tags}` : "");
         const el = document.getElementById(id);
         if (el) el.value = "";
       });
-      if (usePatch) {
+      if (usePatch && !mergeSession) {
         refreshCardLocally(state.editingMemoName, content);
       }
       state.editingMemoName = null;
       closeModal();
     } catch (err) {
-      showError("Failed to save card: " + err.message);
+      showError(`${mergeSession ? "Merge failed: " : "Failed to save card: "}${err.message}`);
     } finally {
       saveBtn.disabled = false;
-      saveBtn.innerText = state.editingMemoName ? "Update Card" : "Save Card";
+      saveBtn.innerText = state.mergeSession ? state.mergeSession.savedContent ? "Retry delete" : "Review merge" : state.editingMemoName ? "Update Card" : "Save Card";
     }
   }
 
@@ -5029,6 +6004,9 @@ ${tags}` : "");
   }
 
   // src/main.js
+  setMergeEditorHandler((editData, activeSections, mergeSession) => {
+    openModal(editData, activeSections, mergeSession);
+  });
   function injectStyles(css) {
     if (!css || typeof document === "undefined" || document.getElementById("lc-injected-style")) return;
     const style = document.createElement("style");
@@ -5047,6 +6025,7 @@ ${tags}` : "");
       renderLanguageCards();
       injectCreatorUI();
       injectQuickActions();
+      updateBrowseDuplicateWarning();
     }, 120);
   });
   observer.observe(document.body, { childList: true, subtree: true });
@@ -5055,10 +6034,12 @@ ${tags}` : "");
       renderLanguageCards();
       injectCreatorUI();
       injectQuickActions();
+      updateBrowseDuplicateWarning();
     });
   } else {
     renderLanguageCards();
     injectCreatorUI();
     injectQuickActions();
+    updateBrowseDuplicateWarning();
   }
 })();

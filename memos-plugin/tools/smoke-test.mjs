@@ -171,13 +171,14 @@ function makeEnvironment() {
             spaces.push(space);
             return response(200, space);
         }
-        if (url.startsWith('/api/spaces')) {
+        if (url.startsWith('/api/v1/spaces') || url.startsWith('/api/spaces')) {
             return response(200, { spaces, nextPageToken: '' });
         }
         if (url.includes('/ListUserStats') || url.includes('/ListAllUserStats')) {
             return response(200, { userStats: [{ tagCounts: { vocab: 5, daily: 2 } }] });
         }
-        if (url === '/api/memos?parent=spaces%2Flc&pageSize=1000') {
+        if (url === '/api/v1/memos?parent=spaces%2Flc&pageSize=1000' ||
+            url === '/api/memos?parent=spaces%2Flc&pageSize=1000') {
             return response(200, {
                 memos: [{
                     name: 'memos/legacy',
@@ -186,8 +187,12 @@ function makeEnvironment() {
                 }]
             });
         }
-        if (url.startsWith('/api/memos?parent=')) return response(200, { memos: [] });
-        if (url.startsWith('/api/memos')) return response(200, { name: 'memos/abc' });
+        if (url.startsWith('/api/v1/memos?parent=') || url.startsWith('/api/memos?parent=')) {
+            return response(200, { memos: [] });
+        }
+        if (url.startsWith('/api/v1/memos') || url.startsWith('/api/memos')) {
+            return response(200, { name: 'memos/abc' });
+        }
         return response(404, { message: 'not found' });
     };
 
@@ -433,7 +438,7 @@ async function runScript(file, label) {
     await tick(20);
 
     env.ids.get('lc-input-en').value = 'hello';
-    await env.click('lc-btn-save'); // POST /api/memos
+    await env.click('lc-btn-save'); // POST /api/v1/memos
     await tick(20);
     if (env.sandbox.document.body.style.position !== undefined ||
         env.sandbox.document.documentElement.style.overflow !== undefined) {
@@ -484,7 +489,7 @@ async function runScript(file, label) {
     await tick(20);
     if (env.ids.get('lc-migration-overlay').style.display !== 'flex' ||
         env.ids.get('lc-space-info-overlay').style.display !== 'flex' ||
-        !env.fetchCalls.some(call => call.includes('GET /api/memos?parent=spaces%2Flc&pageSize=1000'))) {
+        !env.fetchCalls.some(call => call.includes('GET /api/v1/memos?parent=spaces%2Flc&pageSize=1000'))) {
         throw new Error('the migration wizard must open above management and scan only the chosen Space');
     }
     if (!(env.htmlById.get('lc-migration-body') || '').includes('old')) {
@@ -513,8 +518,8 @@ async function runScript(file, label) {
     await env.ids.get('lc-space-info-body').onclick({
         target: { closest: () => createButton }
     });
-    if (!env.fetchCalls.includes('POST /api/spaces') || !env.fetchCalls.includes('POST /api/v1/spaces')) {
-        throw new Error('creating a space must fall back from the current API path to v1');
+    if (!env.fetchCalls.includes('POST /api/v1/spaces') || env.fetchCalls.includes('POST /api/spaces')) {
+        throw new Error('creating a space on Memos 0.31 must use v1 without probing a newer path');
     }
     const createdSpace = env.spaces.find(space => space.name === 'spaces/new-vocabulary');
     if (!createdSpace || !createdSpace.description.includes('"v":3') || !createdSpace.description.includes('"sections"')) {

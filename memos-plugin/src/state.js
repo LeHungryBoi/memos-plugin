@@ -21,7 +21,9 @@ export const state = {
   memoSpaceWarmed: false,
   editingVersion: 2,
   editingType: null,
-  hiddenExplanationSections: []
+  hiddenExplanationSections: [],
+  duplicateSaveConfirmed: false,
+  mergeSession: null
 };
 
   // --- Global Language State (read-only V2 compatibility) ---

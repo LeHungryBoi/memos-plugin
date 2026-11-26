@@ -1,12 +1,12 @@
-/** Memos REST / Connect calls, with 0.31 <-> 26.10+ path fallbacks. */
+/** Memos REST / Connect calls, preferring 0.31 paths with 26.10+ fallbacks. */
 
   // --- API Generation Compatibility ---
   // Two API generations exist in the wild:
   // - memos 0.31 (and older): /api/v1/... REST, /memos.api.v1.<Service>/<Method> Connect
   // - memos 26.10+ (current): /api/... REST, /memos.api.<Service>/<Method> Connect,
   //   and v1 paths answer 410 Gone
-  // Requests below try the new path first and fall back to the legacy one.
-  // Note: on 0.31 the new path is simply unknown -> 404 (NOT 410).
+  // This plugin targets Memos 0.31, so use v1 paths first. Newer builds answer
+  // v1 with 410 Gone and are reached through the fallback.
   function isLegacyFallbackStatus(status) {
     return status === 404 || status === 410;
   }
@@ -32,7 +32,7 @@
     let pageToken = '';
     do {
       const query = pageToken ? `?pageSize=1000&pageToken=${encodeURIComponent(pageToken)}` : '?pageSize=1000';
-      const res = await fetchJsonWithFallback([`/api/spaces${query}`, `/api/v1/spaces${query}`], token);
+      const res = await fetchJsonWithFallback([`/api/v1/spaces${query}`, `/api/spaces${query}`], token);
       if (!res || !res.ok) throw new Error(`ListSpaces failed: HTTP ${res ? res.status : 'no response'}`);
       const json = await res.json();
       if (Array.isArray(json.spaces)) spaces.push(...json.spaces);
@@ -66,15 +66,12 @@
       }
     }
 
-    // Silent refresh: try every known endpoint across both API generations.
-    // New builds (26.10+) serve /memos.api.* + /api/auth/refresh; memos 0.31
-    // serves /memos.api.v1.* + /api/v1/auth/refresh. Unknown paths 404, so a
-    // simple sequential try is enough.
+    // Silent refresh: try the target 0.31 endpoints before newer paths.
     const refreshEndpoints = [
-      { url: '/memos.api.AuthService/RefreshToken', connect: true },
       { url: '/memos.api.v1.AuthService/RefreshToken', connect: true },
-      { url: '/api/auth/refresh', connect: false },
-      { url: '/api/v1/auth/refresh', connect: false }
+      { url: '/memos.api.AuthService/RefreshToken', connect: true },
+      { url: '/api/v1/auth/refresh', connect: false },
+      { url: '/api/auth/refresh', connect: false }
     ];
     for (const endpoint of refreshEndpoints) {
       try {
@@ -142,7 +139,7 @@
   async function updateSpaceDescription(spaceName, description, token) {
     const id = encodeURIComponent(String(spaceName || '').replace(/^spaces\//, ''));
     return sendJsonWithFallback(
-      [`/api/spaces/${id}?updateMask=description`, `/api/v1/spaces/${id}?updateMask=description`],
+      [`/api/v1/spaces/${id}?updateMask=description`, `/api/spaces/${id}?updateMask=description`],
       'PATCH',
       { name: spaceName, description },
       token
@@ -152,7 +149,7 @@
   /** Create a space; the authenticated caller becomes its first administrator. */
   async function createSpace(title, description, token) {
     return sendJsonWithFallback(
-      ['/api/spaces', '/api/v1/spaces'],
+      ['/api/v1/spaces', '/api/spaces'],
       'POST',
       { title, description },
       token
@@ -163,8 +160,8 @@
   async function listMemosForSpace(spaceName, token) {
     const parent = encodeURIComponent(spaceName || '');
     const paths = [
-      `/api/memos?parent=${parent}&pageSize=1000`,
-      `/api/v1/memos?parent=${parent}&pageSize=1000`
+      `/api/v1/memos?parent=${parent}&pageSize=1000`,
+      `/api/memos?parent=${parent}&pageSize=1000`
     ];
     const res = await fetchJsonWithFallback(paths, token);
     if (!res || !res.ok) throw new Error(`ListMemos failed: HTTP ${res ? res.status : 'no response'}`);
@@ -178,8 +175,8 @@
   async function patchMemoContent(memoName, content, token) {
     const id = encodeURIComponent(String(memoName || '').replace(/^memos\//, ''));
     const paths = [
-      `/api/memos/${id}?updateMask=content`,
-      `/api/v1/memos/${id}?updateMask=content`
+      `/api/v1/memos/${id}?updateMask=content`,
+      `/api/memos/${id}?updateMask=content`
     ];
     const body = { content, visibility: 'PRIVATE' };
     let response = await sendJsonWithFallback(paths, 'PATCH', body, token);
@@ -195,7 +192,7 @@
   /** Read the memo back after migration so a successful HTTP status isn't mistaken for a persisted write. */
   async function fetchMemoContent(memoName, token) {
     const id = encodeURIComponent(String(memoName || '').replace(/^memos\//, ''));
-    const paths = [`/api/memos/${id}`, `/api/v1/memos/${id}`];
+    const paths = [`/api/v1/memos/${id}`, `/api/memos/${id}`];
     let response = await fetchJsonWithFallback(paths, token);
     if (response && response.status === 401) {
       const refreshedToken = await getMemosAuthToken(true);
@@ -208,8 +205,38 @@
     return memo && typeof memo.content === 'string' ? memo.content : '';
   }
 
+  /** Delete one memo after an explicit user confirmation. */
+  async function deleteMemo(memoName, token) {
+    const id = String(memoName || '').replace(/^memos\//, '').trim();
+    if (!id) throw new Error('A memo name is required for deletion.');
+    const paths = [`/api/v1/memos/${encodeURIComponent(id)}`, `/api/memos/${encodeURIComponent(id)}`];
+    const send = async authToken => {
+      let lastRes = null;
+      for (const path of paths) {
+        const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+        const response = await fetch(path, {
+          method: 'DELETE',
+          headers,
+          credentials: 'include'
+        });
+        if (isLegacyFallbackStatus(response.status)) {
+          lastRes = response;
+          continue;
+        }
+        return response;
+      }
+      return lastRes;
+    };
+    let response = await send(token);
+    if (response && response.status === 401) {
+      const refreshedToken = await getMemosAuthToken(true);
+      if (refreshedToken) response = await send(refreshedToken);
+    }
+    return response;
+  }
+
 export {
   isLegacyFallbackStatus, fetchJsonWithFallback, fetchAllSpaces, getMemosAuthToken,
   sendJsonWithFallback, updateSpaceDescription, createSpace, listMemosForSpace,
-  patchMemoContent, fetchMemoContent
+  patchMemoContent, fetchMemoContent, deleteMemo
 };

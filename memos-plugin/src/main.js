@@ -1,10 +1,15 @@
 // Build-time manifest: build.mjs resolves this to one concatenated stylesheet.
 import cssText from './styles/index.css';
 import { renderLanguageCards, forceRerenderCards } from './card-render.js';
-import { injectCreatorUI } from './editor.js';
+import { injectCreatorUI, openModal } from './editor.js';
 import { injectQuickActions } from './quick-actions.js';
 import { getCardTypes, warmMemoSpaceCache } from './spaces.js';
 import { state } from './state.js';
+import { setMergeEditorHandler, updateBrowseDuplicateWarning } from './duplicate-ui.js';
+
+setMergeEditorHandler((editData, activeSections, mergeSession) => {
+  openModal(editData, activeSections, mergeSession);
+});
 
 /** The single-file build inlines the stylesheet; the CSS-only build leaves it out. */
 function injectStyles(css) {
@@ -34,6 +39,7 @@ state.onCardTypesChanged = forceRerenderCards;
       renderLanguageCards();
       injectCreatorUI();
       injectQuickActions();
+      updateBrowseDuplicateWarning();
     }, 120);
   });
 
@@ -44,9 +50,11 @@ state.onCardTypesChanged = forceRerenderCards;
       renderLanguageCards();
       injectCreatorUI();
       injectQuickActions();
+      updateBrowseDuplicateWarning();
     });
   } else {
     renderLanguageCards();
     injectCreatorUI();
     injectQuickActions();
+    updateBrowseDuplicateWarning();
   }
