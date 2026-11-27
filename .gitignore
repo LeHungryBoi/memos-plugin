@@ -1,4 +1,5 @@
 ﻿/memos/
 /memos-plugin/node_modules/
+/memos-plugin/dist/
 /memos-plugin/.watch/
 /.env
